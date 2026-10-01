@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { pool } from "../config/database";
-import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import {
+  authenticate,
+  AuthenticatedRequest,
+  requireRole,
+} from "../middleware/auth";
 
 const router = Router();
 
@@ -228,5 +232,87 @@ router.get("/", async (req, res) => {
     });
   }
 });
+// Verify or reject a report
+router.patch(
+  "/:id/verify",
+  authenticate,
+  requireRole("MODERATOR", "ADMIN"),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const { verification_status } = req.body;
+
+      const allowedStatuses = ["PENDING", "VERIFIED", "REJECTED"];
+
+      if (
+        !verification_status ||
+        !allowedStatuses.includes(verification_status)
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message:
+            "verification_status must be one of: PENDING, VERIFIED, REJECTED",
+        });
+      }
+
+      const report = await pool.query(
+        `SELECT id
+         FROM reports
+         WHERE id = $1`,
+        [id]
+      );
+
+      if (report.rows.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Report not found",
+        });
+      }
+
+      const updated = await pool.query(
+        `UPDATE reports
+         SET
+           verification_status = $1,
+           updated_at = NOW()
+         WHERE id = $2
+         RETURNING
+           id,
+           reporter_id,
+           social_account_id,
+           title,
+           description,
+           status,
+           verification_status,
+           published_at,
+           created_at,
+           updated_at`,
+        [verification_status, id]
+      );
+
+      return res.json({
+        status: "ok",
+        message: "Report verification status updated successfully",
+        report: updated.rows[0],
+      });
+    } catch (error) {
+      console.error("Failed to verify report:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to update report verification status",
+      });
+    }
+  }
+);
+
+// Verify or reject a report
+router.patch(
+  "/:id/verify",
+  authenticate,
+  requireRole("MODERATOR", "ADMIN"),
+  async (req: AuthenticatedRequest, res) => {
+    // ...
+  }
+);
 
 export default router;
