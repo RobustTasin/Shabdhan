@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../config/database";
-import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import { authenticate, AuthenticatedRequest, requireRole } from "../middleware/auth";
+import { createAuditLog } from "../utils/audit";
 
 const router = Router();
 
@@ -94,6 +95,96 @@ router.post(
       res.status(500).json({
         status: "error",
         message: "Failed to create evidence",
+      });
+    }
+  }
+);
+
+// Verify or reject evidence
+router.patch(
+  "/:id/verify",
+  authenticate,
+  requireRole("MODERATOR", "ADMIN"),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = String(req.params.id);
+      const { verification_status } = req.body;
+
+      const allowedStatuses = ["PENDING", "VERIFIED", "REJECTED"];
+
+      if (
+        !verification_status ||
+        !allowedStatuses.includes(verification_status)
+      ) {
+        return res.status(400).json({
+          status: "error",
+          message:
+            "verification_status must be one of: PENDING, VERIFIED, REJECTED",
+        });
+      }
+
+      const evidence = await pool.query(
+        `SELECT id, verification_status
+         FROM evidence
+         WHERE id = $1`,
+        [id]
+      );
+
+      if (evidence.rows.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Evidence not found",
+        });
+      }
+
+      const oldVerificationStatus = evidence.rows[0].verification_status;
+
+      const updated = await pool.query(
+        `UPDATE evidence
+         SET
+           verification_status = $1,
+           updated_at = NOW()
+         WHERE id = $2
+         RETURNING
+           id,
+           report_id,
+           uploaded_by,
+           evidence_type,
+           file_name,
+           file_url,
+           file_hash,
+           description,
+           verification_status,
+           created_at,
+           updated_at`,
+        [verification_status, id]
+      );
+
+      await createAuditLog({
+        userId: req.user!.id,
+        action: "EVIDENCE_VERIFICATION_UPDATED",
+        entityType: "evidence",
+        entityId: id,
+        oldData: {
+          verification_status: oldVerificationStatus,
+        },
+        newData: {
+          verification_status,
+        },
+        req,
+      });
+
+      return res.json({
+        status: "ok",
+        message: "Evidence verification status updated successfully",
+        evidence: updated.rows[0],
+      });
+    } catch (error) {
+      console.error("Failed to verify evidence:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to update evidence verification status",
       });
     }
   }
