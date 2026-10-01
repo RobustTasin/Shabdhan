@@ -67,6 +67,61 @@ router.post(
   }
 );
 
+router.get("/:id", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+         r.id,
+         r.title,
+         r.description,
+         r.status,
+         r.verification_status,
+         r.published_at,
+         r.created_at,
+         r.updated_at,
+         json_build_object(
+           'id', u.id,
+           'username', u.username,
+           'email', u.email,
+           'role', u.role,
+           'is_verified', u.is_verified
+         ) AS reporter,
+         json_build_object(
+           'id', sa.id,
+           'platform', sa.platform,
+           'username', sa.username,
+           'profile_url', sa.profile_url,
+           'display_name', sa.display_name,
+           'account_id', sa.account_id
+         ) AS social_account
+       FROM reports r
+       JOIN users u ON u.id = r.reporter_id
+       JOIN social_accounts sa ON sa.id = r.social_account_id
+       WHERE r.id = $1`,
+      [req.params.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        status: "error",
+        message: "Report not found",
+      });
+    }
+
+    res.json({
+      status: "ok",
+      report: result.rows[0],
+    });
+  } catch (error) {
+    console.error("Failed to fetch report:", error);
+
+    res.status(500).json({
+      status: "error",
+      message: "Failed to fetch report",
+    });
+  }
+});
+
 // Get all reports
 router.get("/", async (_req, res) => {
   try {
