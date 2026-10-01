@@ -8,6 +8,7 @@ import authRouter from "./routes/auth";
 import socialAccountsRouter from "./routes/socialAccounts";
 import evidenceRouter from "./routes/evidence";
 import corroborationsRouter from "./routes/corroborations";
+import disputesRouter from "./routes/disputes";
 
 dotenv.config({ path: ".env.local" });
 
@@ -23,6 +24,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/social-accounts", socialAccountsRouter);
 app.use("/api/evidence", evidenceRouter);
 app.use("/api/corroborations", corroborationsRouter);
+app.use("/api/disputes", disputesRouter);
 
 app.get("/api/health", async (_req, res) => {
   try {
