@@ -10,6 +10,7 @@ import evidenceRouter from "./routes/evidence";
 import corroborationsRouter from "./routes/corroborations";
 import disputesRouter from "./routes/disputes";
 import auditLogsRouter from "./routes/auditLogs";
+import commentsRouter from "./routes/comments";
 
 dotenv.config({ path: ".env.local" });
 
@@ -27,6 +28,7 @@ app.use("/api/evidence", evidenceRouter);
 app.use("/api/corroborations", corroborationsRouter);
 app.use("/api/disputes", disputesRouter);
 app.use("/api/audit-logs", auditLogsRouter);
+app.use("/api/comments", commentsRouter);
 
 app.get("/api/health", async (_req, res) => {
   try {
