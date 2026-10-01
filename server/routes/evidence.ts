@@ -27,9 +27,9 @@ router.post(
         });
       }
 
-      // Make sure the report exists
+      // Make sure the report exists and check evidence creation access
       const report = await pool.query(
-        `SELECT id
+        `SELECT id, reporter_id
          FROM reports
          WHERE id = $1`,
         [report_id]
@@ -39,6 +39,18 @@ router.post(
         return res.status(404).json({
           status: "error",
           message: "Report not found",
+        });
+      }
+
+      const isOwner = report.rows[0].reporter_id === req.user!.id;
+      const isModeratorOrAdmin = ["MODERATOR", "ADMIN"].includes(
+        req.user!.role
+      );
+
+      if (!isOwner && !isModeratorOrAdmin) {
+        return res.status(403).json({
+          status: "error",
+          message: "You do not have permission to add evidence to this report",
         });
       }
 
