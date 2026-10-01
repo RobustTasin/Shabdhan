@@ -6,6 +6,8 @@ import {
   requireRole,
 } from "../middleware/auth";
 
+import { createAuditLog } from "../utils/audit";
+
 const router = Router();
 
 // Create a report
@@ -239,7 +241,7 @@ router.patch(
   requireRole("MODERATOR", "ADMIN"),
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { id } = req.params;
+      const id = String(req.params.id);
       const { verification_status } = req.body;
 
       const allowedStatuses = ["PENDING", "VERIFIED", "REJECTED"];
@@ -256,7 +258,7 @@ router.patch(
       }
 
       const report = await pool.query(
-        `SELECT id
+        `SELECT id, verification_status
          FROM reports
          WHERE id = $1`,
         [id]
@@ -268,6 +270,8 @@ router.patch(
           message: "Report not found",
         });
       }
+
+      const oldVerificationStatus = report.rows[0].verification_status;
 
       const updated = await pool.query(
         `UPDATE reports
@@ -289,6 +293,20 @@ router.patch(
         [verification_status, id]
       );
 
+      await createAuditLog({
+        userId: req.user!.id,
+        action: "REPORT_VERIFICATION_UPDATED",
+        entityType: "report",
+        entityId: id,
+        oldData: {
+          verification_status: oldVerificationStatus,
+        },
+        newData: {
+          verification_status,
+        },
+        req,
+      });
+
       return res.json({
         status: "ok",
         message: "Report verification status updated successfully",
@@ -302,16 +320,6 @@ router.patch(
         message: "Failed to update report verification status",
       });
     }
-  }
-);
-
-// Verify or reject a report
-router.patch(
-  "/:id/verify",
-  authenticate,
-  requireRole("MODERATOR", "ADMIN"),
-  async (req: AuthenticatedRequest, res) => {
-    // ...
   }
 );
 
