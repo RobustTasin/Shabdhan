@@ -4,6 +4,45 @@ import { authenticate, AuthenticatedRequest } from "../middleware/auth";
 
 const router = Router();
 
+// Get disputes for a report
+router.get(
+  "/report/:reportId",
+  async (req, res) => {
+    try {
+      const { reportId } = req.params;
+
+      const result = await pool.query(
+        `SELECT
+           id,
+           report_id,
+           submitted_by,
+           reason,
+           result,
+           reviewed_by,
+           review_notes,
+           created_at,
+           updated_at
+         FROM disputes
+         WHERE report_id = $1
+         ORDER BY created_at DESC`,
+        [reportId]
+      );
+
+      res.json({
+        status: "ok",
+        disputes: result.rows,
+      });
+    } catch (error) {
+      console.error("Failed to fetch disputes for report:", error);
+
+      res.status(500).json({
+        status: "error",
+        message: "Failed to fetch disputes",
+      });
+    }
+  }
+);
+
 // Submit a dispute
 router.post(
   "/",
