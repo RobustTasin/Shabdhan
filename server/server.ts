@@ -5,6 +5,7 @@ import { pool } from "./config/database";
 import categoriesRouter from "./routes/categories";
 import reportsRouter from "./routes/reports";
 import authRouter from "./routes/auth";
+import socialAccountsRouter from "./routes/socialAccounts";
 
 dotenv.config({ path: ".env.local" });
 
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use("/api/categories", categoriesRouter);
 app.use("/api/reports", reportsRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/social-accounts", socialAccountsRouter);
 
 app.get("/api/health", async (_req, res) => {
   try {
