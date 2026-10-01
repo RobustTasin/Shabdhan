@@ -1,8 +1,45 @@
 import { Router } from "express";
 import { pool } from "../config/database";
-import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import { authenticate, AuthenticatedRequest, requireRole } from "../middleware/auth";
 
 const router = Router();
+
+// Get all disputes (Moderator/Admin)
+router.get(
+  "/",
+  authenticate,
+  requireRole("MODERATOR", "ADMIN"),
+  async (_req: AuthenticatedRequest, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT
+           id,
+           report_id,
+           submitted_by,
+           reason,
+           result,
+           reviewed_by,
+           review_notes,
+           created_at,
+           updated_at
+         FROM disputes
+         ORDER BY created_at DESC`
+      );
+
+      res.json({
+        status: "ok",
+        disputes: result.rows,
+      });
+    } catch (error) {
+      console.error("Failed to fetch disputes:", error);
+
+      res.status(500).json({
+        status: "error",
+        message: "Failed to fetch disputes",
+      });
+    }
+  }
+);
 
 // Get disputes for a report
 router.get(
