@@ -13,6 +13,7 @@ import disputesRouter from "./routes/disputes";
 import auditLogsRouter from "./routes/auditLogs";
 import commentsRouter from "./routes/comments";
 import riskScoresRouter from "./routes/riskScores";
+import notificationsRouter from "./routes/notifications";
 
 
 dotenv.config({ path: ".env.local" });
@@ -34,6 +35,7 @@ app.use("/api/disputes", disputesRouter);
 app.use("/api/audit-logs", auditLogsRouter);
 app.use("/api/comments", commentsRouter);
 app.use("/api/risk-scores", riskScoresRouter);
+app.use("/api/notifications", notificationsRouter);
 
 
 app.get("/api/health", async (_req, res) => {
