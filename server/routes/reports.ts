@@ -204,7 +204,7 @@ router.get("/", async (req, res) => {
        JOIN users u ON u.id = r.reporter_id
        JOIN social_accounts sa ON sa.id = r.social_account_id
        ${whereClause}
-       ORDER BY r.created_at DESC
+       ORDER BY r.created_at DESC, r.id DESC
        LIMIT $${values.length + 1}
        OFFSET $${values.length + 2}`,
       [...values, limit, offset]
