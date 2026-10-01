@@ -1,9 +1,14 @@
 import { Pool } from "pg";
+import dotenv from "dotenv";
+
+dotenv.config({ path: ".env.local" });
 
 export const pool = new Pool({
-  connectionString:
-    process.env.DATABASE_URL ||
-    "postgresql://TASEEN@localhost:5432/shabdhan",
+  host: process.env.PGHOST || "localhost",
+  port: Number(process.env.PGPORT) || 5432,
+  database: process.env.PGDATABASE || "shabdhan",
+  user: process.env.PGUSER || "postgres",
+  password: process.env.PGPASSWORD,
 });
 
 pool.on("error", (error) => {
