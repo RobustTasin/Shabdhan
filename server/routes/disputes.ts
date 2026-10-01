@@ -43,6 +43,51 @@ router.get(
   }
 );
 
+// Get a single dispute
+router.get(
+  "/:id",
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      const result = await pool.query(
+        `SELECT
+           id,
+           report_id,
+           submitted_by,
+           reason,
+           result,
+           reviewed_by,
+           review_notes,
+           created_at,
+           updated_at
+         FROM disputes
+         WHERE id = $1`,
+        [id]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Dispute not found",
+        });
+      }
+
+      res.json({
+        status: "ok",
+        dispute: result.rows[0],
+      });
+    } catch (error) {
+      console.error("Failed to fetch dispute:", error);
+
+      res.status(500).json({
+        status: "error",
+        message: "Failed to fetch dispute",
+      });
+    }
+  }
+);
+
 // Submit a dispute
 router.post(
   "/",
