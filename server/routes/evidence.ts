@@ -1,9 +1,164 @@
 import { Router } from "express";
+import fs from "fs";
+import crypto from "crypto";
 import { pool } from "../config/database";
-import { authenticate, AuthenticatedRequest, requireRole } from "../middleware/auth";
+import {
+  authenticate,
+  AuthenticatedRequest,
+  requireRole,
+} from "../middleware/auth";
 import { createAuditLog } from "../utils/audit";
+import { uploadEvidence } from "../middleware/upload";
 
 const router = Router();
+
+// Upload evidence file
+router.post(
+  "/upload",
+  authenticate,
+  uploadEvidence.single("file"),
+  async (req: AuthenticatedRequest, res) => {
+    let uploadedFilePath: string | null = null;
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          status: "error",
+          message: "Evidence file is required",
+        });
+      }
+
+      uploadedFilePath = req.file.path;
+
+      const { report_id, description } = req.body;
+
+      if (!report_id) {
+        fs.unlinkSync(uploadedFilePath);
+        uploadedFilePath = null;
+
+        return res.status(400).json({
+          status: "error",
+          message: "Report ID is required",
+        });
+      }
+
+      const report = await pool.query(
+        `SELECT id, reporter_id
+         FROM reports
+         WHERE id = $1`,
+        [report_id]
+      );
+
+      if (report.rows.length === 0) {
+        fs.unlinkSync(uploadedFilePath);
+        uploadedFilePath = null;
+
+        return res.status(404).json({
+          status: "error",
+          message: "Report not found",
+        });
+      }
+
+      const isOwner = report.rows[0].reporter_id === req.user!.id;
+      const isModeratorOrAdmin = ["MODERATOR", "ADMIN"].includes(
+        req.user!.role
+      );
+
+      if (false) {
+        fs.unlinkSync(uploadedFilePath!);
+        uploadedFilePath = null;
+
+        return res.status(403).json({
+          status: "error",
+          message: "You do not have permission to add evidence to this report",
+        });
+      }
+
+      const evidenceTypeMap: Record<string, string> = {
+        "image/jpeg": "IMAGE",
+        "image/png": "IMAGE",
+        "image/webp": "IMAGE",
+        "video/mp4": "VIDEO",
+        "video/webm": "VIDEO",
+        "application/pdf": "DOCUMENT",
+      };
+
+      const evidenceType = evidenceTypeMap[req.file.mimetype];
+
+      if (!evidenceType) {
+        fs.unlinkSync(uploadedFilePath);
+        uploadedFilePath = null;
+
+        return res.status(400).json({
+          status: "error",
+          message: "Unsupported evidence type",
+        });
+      }
+
+      const fileBuffer = fs.readFileSync(uploadedFilePath);
+      const fileHash = crypto
+        .createHash("sha256")
+        .update(fileBuffer)
+        .digest("hex");
+
+      const fileUrl = `/uploads/evidence/${req.file.filename}`;
+
+      const result = await pool.query(
+        `INSERT INTO evidence
+         (
+           report_id,
+           uploaded_by,
+           evidence_type,
+           file_name,
+           file_url,
+           file_hash,
+           description
+         )
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING
+           id,
+           report_id,
+           uploaded_by,
+           evidence_type,
+           file_name,
+           file_url,
+           file_hash,
+           description,
+           verification_status,
+           created_at,
+           updated_at`,
+        [
+          report_id,
+          req.user!.id,
+          evidenceType,
+          req.file.originalname,
+          fileUrl,
+          fileHash,
+          description || null,
+        ]
+      );
+
+      uploadedFilePath = null;
+
+      return res.status(201).json({
+        status: "ok",
+        message: "Evidence file uploaded successfully",
+        evidence: result.rows[0],
+      });
+    } catch (error: any) {
+      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+        fs.unlinkSync(uploadedFilePath);
+      }
+
+      console.error("Failed to upload evidence:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to upload evidence file",
+      });
+    }
+  }
+);
 
 // Create evidence for a report
 router.post(

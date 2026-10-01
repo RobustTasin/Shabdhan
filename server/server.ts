@@ -14,6 +14,7 @@ import auditLogsRouter from "./routes/auditLogs";
 import commentsRouter from "./routes/comments";
 import riskScoresRouter from "./routes/riskScores";
 import notificationsRouter from "./routes/notifications";
+import path from "path";
 
 
 dotenv.config({ path: ".env.local" });
@@ -23,6 +24,10 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+app.use(
+  "/uploads",
+  express.static(path.join(process.cwd(), "uploads"))
+);
 
 app.use("/api/categories", categoriesRouter);
 app.use("/api/reports", reportsRouter);
@@ -36,6 +41,7 @@ app.use("/api/audit-logs", auditLogsRouter);
 app.use("/api/comments", commentsRouter);
 app.use("/api/risk-scores", riskScoresRouter);
 app.use("/api/notifications", notificationsRouter);
+app.use(express.json());
 
 
 app.get("/api/health", async (_req, res) => {
