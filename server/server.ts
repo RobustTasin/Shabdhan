@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { pool } from "./config/database";
 import categoriesRouter from "./routes/categories";
+import reportsRouter from "./routes/reports";
+import authRouter from "./routes/auth";
 
 dotenv.config({ path: ".env.local" });
 
@@ -13,6 +15,8 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/api/categories", categoriesRouter);
+app.use("/api/reports", reportsRouter);
+app.use("/api/auth", authRouter);
 
 app.get("/api/health", async (_req, res) => {
   try {
