@@ -123,8 +123,47 @@ router.get("/:id", async (req, res) => {
 });
 
 // Get all reports
-router.get("/", async (_req, res) => {
+router.get("/", async (req, res) => {
   try {
+    const { status, verification_status, social_account_id, search } =
+      req.query;
+
+    const conditions: string[] = [];
+    const values: string[] = [];
+
+    if (status) {
+      values.push(String(status));
+      conditions.push(`r.status = $${values.length}`);
+    }
+
+    if (verification_status) {
+      values.push(String(verification_status));
+      conditions.push(`r.verification_status = $${values.length}`);
+    }
+
+    if (social_account_id) {
+      values.push(String(social_account_id));
+      conditions.push(`r.social_account_id = $${values.length}`);
+    }
+
+    if (search) {
+      values.push(`%${String(search)}%`);
+      conditions.push(`
+        (
+          r.title ILIKE $${values.length}
+          OR r.description ILIKE $${values.length}
+          OR u.username ILIKE $${values.length}
+          OR sa.username ILIKE $${values.length}
+          OR sa.display_name ILIKE $${values.length}
+        )
+      `);
+    }
+
+    const whereClause =
+      conditions.length > 0
+        ? `WHERE ${conditions.join(" AND ")}`
+        : "";
+
     const result = await pool.query(
       `SELECT
          r.id,
@@ -149,7 +188,9 @@ router.get("/", async (_req, res) => {
        FROM reports r
        JOIN users u ON u.id = r.reporter_id
        JOIN social_accounts sa ON sa.id = r.social_account_id
-       ORDER BY r.created_at DESC`
+       ${whereClause}
+       ORDER BY r.created_at DESC`,
+      values
     );
 
     res.json({
@@ -166,5 +207,3 @@ router.get("/", async (_req, res) => {
     });
   }
 });
-
-export default router;
