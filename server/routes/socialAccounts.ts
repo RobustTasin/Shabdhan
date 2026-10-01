@@ -91,7 +91,146 @@ router.get(
     }
   }
 );
+// Update a social account
+router.patch(
+  "/:id",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = String(req.params.id);
 
+      const {
+        platform,
+        username,
+        profile_url,
+        display_name,
+        account_id,
+      } = req.body;
+
+      if (!platform || !username) {
+        return res.status(400).json({
+          status: "error",
+          message: "Platform and username are required",
+        });
+      }
+
+      const existing = await pool.query(
+        `SELECT id
+         FROM social_accounts
+         WHERE id = $1`,
+        [id]
+      );
+
+      if (existing.rows.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Social account not found",
+        });
+      }
+
+      const result = await pool.query(
+        `UPDATE social_accounts
+         SET
+           platform = $1,
+           username = $2,
+           profile_url = $3,
+           display_name = $4,
+           account_id = $5,
+           updated_at = NOW()
+         WHERE id = $6
+         RETURNING
+           id,
+           platform,
+           username,
+           profile_url,
+           display_name,
+           account_id,
+           created_at,
+           updated_at`,
+        [
+          platform,
+          username,
+          profile_url || null,
+          display_name || null,
+          account_id || null,
+          id,
+        ]
+      );
+
+      return res.json({
+        status: "ok",
+        message: "Social account updated successfully",
+        social_account: result.rows[0],
+      });
+    } catch (error: any) {
+      if (error.code === "23505") {
+        return res.status(409).json({
+          status: "error",
+          message: "This social account already exists",
+        });
+      }
+
+      console.error("Failed to update social account:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to update social account",
+      });
+    }
+  }
+);
+
+// Delete a social account
+router.delete(
+  "/:id",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = String(req.params.id);
+
+      const existing = await pool.query(
+        `SELECT id
+         FROM social_accounts
+         WHERE id = $1`,
+        [id]
+      );
+
+      if (existing.rows.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Social account not found",
+        });
+      }
+
+      await pool.query(
+        `DELETE FROM social_accounts
+         WHERE id = $1`,
+        [id]
+      );
+
+      return res.json({
+        status: "ok",
+        message: "Social account deleted successfully",
+      });
+    } catch (error: any) {
+      // Foreign-key violation means this account is still
+      // referenced by one or more reports.
+      if (error.code === "23503") {
+        return res.status(409).json({
+          status: "error",
+          message: "Cannot delete social account because it is used by one or more reports",
+        });
+      }
+
+      console.error("Failed to delete social account:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to delete social account",
+      });
+    }
+  }
+);
 // Get one social account
 router.get(
   "/:id",
