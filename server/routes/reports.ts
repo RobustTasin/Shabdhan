@@ -128,6 +128,10 @@ router.get("/", async (req, res) => {
     const { status, verification_status, social_account_id, search } =
       req.query;
 
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 10, 1), 100);
+    const offset = (page - 1) * limit;
+
     const conditions: string[] = [];
     const values: string[] = [];
 
@@ -164,6 +168,17 @@ router.get("/", async (req, res) => {
         ? `WHERE ${conditions.join(" AND ")}`
         : "";
 
+    const countResult = await pool.query(
+      `SELECT COUNT(*)::int AS total
+       FROM reports r
+       JOIN users u ON u.id = r.reporter_id
+       JOIN social_accounts sa ON sa.id = r.social_account_id
+       ${whereClause}`,
+      values
+    );
+
+    const total = countResult.rows[0].total;
+
     const result = await pool.query(
       `SELECT
          r.id,
@@ -189,12 +204,18 @@ router.get("/", async (req, res) => {
        JOIN users u ON u.id = r.reporter_id
        JOIN social_accounts sa ON sa.id = r.social_account_id
        ${whereClause}
-       ORDER BY r.created_at DESC`,
-      values
+       ORDER BY r.created_at DESC
+       LIMIT $${values.length + 1}
+       OFFSET $${values.length + 2}`,
+      [...values, limit, offset]
     );
 
     res.json({
       status: "ok",
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
       count: result.rows.length,
       reports: result.rows,
     });
@@ -207,3 +228,5 @@ router.get("/", async (req, res) => {
     });
   }
 });
+
+export default router;
