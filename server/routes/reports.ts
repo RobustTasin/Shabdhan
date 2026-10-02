@@ -104,27 +104,27 @@ router.get(
       const conditions = ["r.reporter_id = $1"];
 
       if (search) {
-        values.push(`%${search}%`);
+        values.push("%" + search + "%");
         conditions.push(
-          `(r.title ILIKE ${values.length} OR r.description ILIKE ${values.length})`
+          "(r.title ILIKE $" + values.length + " OR r.description ILIKE $" + values.length + ")"
         );
       }
 
       if (status) {
         values.push(status);
-        conditions.push(`r.status::text = ${values.length}`);
+        conditions.push("r.status::text = $" + values.length);
       }
 
       const where = conditions.join(" AND ");
+      const limitParam = values.length + 1;
+      const offsetParam = values.length + 2;
 
       const countResult = await pool.query(
-        `SELECT COUNT(*)::int AS count
-         FROM reports r
-         WHERE ${where}`,
+        "SELECT COUNT(*)::int AS count FROM reports r WHERE " + where,
         values
       );
 
-      values.push(limit, offset);
+      const listValues = [...values, limit, offset];
 
       const result = await pool.query(
         `SELECT
@@ -160,9 +160,9 @@ router.get(
          LEFT JOIN categories c ON c.id = r.category_id
          WHERE ${where}
          ORDER BY r.created_at DESC
-         LIMIT ${values.length - 1}
-         OFFSET ${values.length}`,
-        values
+         LIMIT $${limitParam}
+         OFFSET $${offsetParam}`,
+        listValues
       );
 
       return res.json({
