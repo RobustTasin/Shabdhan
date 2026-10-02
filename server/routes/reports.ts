@@ -5,8 +5,8 @@ import {
   AuthenticatedRequest,
   requireRole,
 } from "../middleware/auth";
-
 import { createAuditLog } from "../utils/audit";
+import { createNotification } from "../utils/notifications";
 
 const router = Router();
 
@@ -127,6 +127,181 @@ router.get("/:id", async (req, res) => {
     });
   }
 });
+
+// Get complete moderation details for a report
+router.get(
+  "/:id/moderation",
+  authenticate,
+  requireRole("MODERATOR", "ADMIN"),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = String(req.params.id);
+
+      const reportResult = await pool.query(
+        `SELECT
+           r.id,
+           r.title,
+           r.description,
+           r.status,
+           r.verification_status,
+           r.published_at,
+           r.created_at,
+           r.updated_at,
+           json_build_object(
+             'id', u.id,
+             'username', u.username,
+             'email', u.email,
+             'role', u.role,
+             'is_verified', u.is_verified
+           ) AS reporter,
+           json_build_object(
+             'id', sa.id,
+             'platform', sa.platform,
+             'username', sa.username,
+             'profile_url', sa.profile_url,
+             'display_name', sa.display_name,
+             'account_id', sa.account_id
+           ) AS social_account
+         FROM reports r
+         JOIN users u ON u.id = r.reporter_id
+         JOIN social_accounts sa ON sa.id = r.social_account_id
+         WHERE r.id = $1`,
+        [id]
+      );
+
+      if (reportResult.rows.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Report not found",
+        });
+      }
+
+      const evidenceResult = await pool.query(
+        `SELECT
+           e.id,
+           e.evidence_type,
+           e.file_name,
+           e.file_url,
+           e.file_hash,
+           e.description,
+           e.verification_status,
+           e.created_at,
+           e.updated_at,
+           json_build_object(
+             'id', u.id,
+             'username', u.username,
+             'role', u.role
+           ) AS uploaded_by
+         FROM evidence e
+         JOIN users u ON u.id = e.uploaded_by
+         WHERE e.report_id = $1
+         ORDER BY e.created_at DESC, e.id DESC`,
+        [id]
+      );
+
+      const corroborationResult = await pool.query(
+        `SELECT
+           c.id,
+           c.comment,
+           c.created_at,
+           json_build_object(
+             'id', u.id,
+             'username', u.username,
+             'role', u.role
+           ) AS user
+         FROM corroborations c
+         JOIN users u ON u.id = c.user_id
+         WHERE c.report_id = $1
+         ORDER BY c.created_at DESC, c.id DESC`,
+        [id]
+      );
+
+      const disputeResult = await pool.query(
+        `SELECT
+           d.id,
+           d.reason,
+           d.result,
+           d.review_notes,
+           d.created_at,
+           d.updated_at,
+           json_build_object(
+             'id', submitter.id,
+             'username', submitter.username,
+             'role', submitter.role
+           ) AS submitted_by,
+           CASE
+             WHEN reviewer.id IS NULL THEN NULL
+             ELSE json_build_object(
+               'id', reviewer.id,
+               'username', reviewer.username,
+               'role', reviewer.role
+             )
+           END AS reviewed_by
+         FROM disputes d
+         JOIN users submitter ON submitter.id = d.submitted_by
+         LEFT JOIN users reviewer ON reviewer.id = d.reviewed_by
+         WHERE d.report_id = $1
+         ORDER BY d.created_at DESC, d.id DESC`,
+        [id]
+      );
+
+      const riskScoreResult = await pool.query(
+        `SELECT
+           id,
+           score,
+           explanation,
+           calculated_at
+         FROM risk_scores
+         WHERE report_id = $1
+         ORDER BY calculated_at DESC, id DESC
+         LIMIT 1`,
+        [id]
+      );
+
+      const auditLogResult = await pool.query(
+        `SELECT
+           a.id,
+           a.action,
+           a.entity_type,
+           a.entity_id,
+           a.old_data,
+           a.new_data,
+           a.created_at,
+           json_build_object(
+             'id', u.id,
+             'username', u.username,
+             'role', u.role
+           ) AS user
+         FROM audit_logs a
+         LEFT JOIN users u ON u.id = a.user_id
+         WHERE a.entity_type = 'report'
+           AND a.entity_id = $1
+         ORDER BY a.created_at DESC, a.id DESC
+         LIMIT 50`,
+        [id]
+      );
+
+      return res.json({
+        status: "ok",
+        moderation: {
+          report: reportResult.rows[0],
+          evidence: evidenceResult.rows,
+          corroborations: corroborationResult.rows,
+          disputes: disputeResult.rows,
+          risk_score: riskScoreResult.rows[0] || null,
+          audit_logs: auditLogResult.rows,
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch moderation details:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to fetch moderation details",
+      });
+    }
+  }
+);
 
 // Get all reports
 router.get("/", async (req, res) => {
@@ -306,6 +481,47 @@ router.patch(
         },
         req,
       });
+
+if (oldVerificationStatus !== verification_status) {
+  try {
+    const reportDetails = await pool.query(
+      `SELECT
+         reporter_id,
+         title
+       FROM reports
+       WHERE id = $1`,
+      [id]
+    );
+
+    if (reportDetails.rows.length > 0) {
+      const { reporter_id, title } = reportDetails.rows[0];
+
+      await createNotification({
+        userId: reporter_id,
+        type:
+          verification_status === "VERIFIED"
+            ? "REPORT_VERIFIED"
+            : verification_status === "REJECTED"
+              ? "REPORT_REJECTED"
+              : "REPORT_STATUS_UPDATED",
+        title:
+          verification_status === "VERIFIED"
+            ? "Report verified"
+            : verification_status === "REJECTED"
+              ? "Report rejected"
+              : "Report status updated",
+        message: `Your report "${title}" is now ${verification_status.toLowerCase()}.`,
+        entityType: "report",
+        entityId: id,
+      });
+    }
+  } catch (notificationError) {
+    console.error(
+      "Failed to create report notification:",
+      notificationError
+    );
+  }
+}
 
       return res.json({
         status: "ok",

@@ -9,6 +9,7 @@ import {
 } from "../middleware/auth";
 import { createAuditLog } from "../utils/audit";
 import { uploadEvidence } from "../middleware/upload";
+import { createNotification } from "../utils/notifications";
 
 const router = Router();
 
@@ -60,17 +61,19 @@ router.post(
       }
 
       const isOwner = report.rows[0].reporter_id === req.user!.id;
+
       const isModeratorOrAdmin = ["MODERATOR", "ADMIN"].includes(
         req.user!.role
       );
 
-      if (false) {
-        fs.unlinkSync(uploadedFilePath!);
+      if (!isOwner && !isModeratorOrAdmin) {
+        fs.unlinkSync(uploadedFilePath);
         uploadedFilePath = null;
 
         return res.status(403).json({
           status: "error",
-          message: "You do not have permission to add evidence to this report",
+          message:
+            "You do not have permission to add evidence to this report",
         });
       }
 
@@ -96,6 +99,7 @@ router.post(
       }
 
       const fileBuffer = fs.readFileSync(uploadedFilePath);
+
       const fileHash = crypto
         .createHash("sha256")
         .update(fileBuffer)
@@ -198,6 +202,7 @@ router.post(
       }
 
       const isOwner = report.rows[0].reporter_id === req.user!.id;
+
       const isModeratorOrAdmin = ["MODERATOR", "ADMIN"].includes(
         req.user!.role
       );
@@ -205,7 +210,8 @@ router.post(
       if (!isOwner && !isModeratorOrAdmin) {
         return res.status(403).json({
           status: "error",
-          message: "You do not have permission to add evidence to this report",
+          message:
+            "You do not have permission to add evidence to this report",
         });
       }
 
@@ -340,6 +346,49 @@ router.patch(
         },
         req,
       });
+
+      // Notify the user who uploaded the evidence
+      if (oldVerificationStatus !== verification_status) {
+        try {
+          const evidenceDetails = await pool.query(
+            `SELECT
+               e.uploaded_by,
+               r.title
+             FROM evidence e
+             JOIN reports r ON r.id = e.report_id
+             WHERE e.id = $1`,
+            [id]
+          );
+
+          if (evidenceDetails.rows.length > 0) {
+            const { uploaded_by, title } = evidenceDetails.rows[0];
+
+            await createNotification({
+              userId: uploaded_by,
+              type:
+                verification_status === "VERIFIED"
+                  ? "EVIDENCE_VERIFIED"
+                  : verification_status === "REJECTED"
+                    ? "EVIDENCE_REJECTED"
+                    : "EVIDENCE_STATUS_UPDATED",
+              title:
+                verification_status === "VERIFIED"
+                  ? "Evidence verified"
+                  : verification_status === "REJECTED"
+                    ? "Evidence rejected"
+                    : "Evidence status updated",
+              message: `Your evidence for the report "${title}" is now ${verification_status.toLowerCase()}.`,
+              entityType: "evidence",
+              entityId: id,
+            });
+          }
+        } catch (notificationError) {
+          console.error(
+            "Failed to create evidence notification:",
+            notificationError
+          );
+        }
+      }
 
       return res.json({
         status: "ok",

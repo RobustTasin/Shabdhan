@@ -1,6 +1,11 @@
 import { Router } from "express";
 import { pool } from "../config/database";
-import { authenticate, AuthenticatedRequest, requireRole } from "../middleware/auth";
+import {
+  authenticate,
+  AuthenticatedRequest,
+  requireRole,
+} from "../middleware/auth";
+import { createNotification } from "../utils/notifications";
 
 const router = Router();
 
@@ -189,13 +194,14 @@ router.post(
   }
 );
 
+// Review a dispute
 router.patch(
   "/:id/review",
   authenticate,
   requireRole("MODERATOR", "ADMIN"),
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { id } = req.params;
+      const id = String(req.params.id);
       const { result, review_notes } = req.body;
 
       const allowedResults = ["PENDING", "UPHELD", "REJECTED"];
@@ -226,7 +232,8 @@ router.patch(
          SET
            result = $1,
            reviewed_by = $2,
-           review_notes = $3
+           review_notes = $3,
+           updated_at = NOW()
          WHERE id = $4
          RETURNING
            id,
@@ -240,6 +247,47 @@ router.patch(
            updated_at`,
         [result, req.user!.id, review_notes ?? null, id]
       );
+
+      // Notify the user who submitted the dispute
+      try {
+        const disputeDetails = await pool.query(
+          `SELECT
+             d.submitted_by,
+             r.title
+           FROM disputes d
+           JOIN reports r ON r.id = d.report_id
+           WHERE d.id = $1`,
+          [id]
+        );
+
+        if (disputeDetails.rows.length > 0) {
+          const { submitted_by, title } = disputeDetails.rows[0];
+
+          await createNotification({
+            userId: submitted_by,
+            type:
+              result === "UPHELD"
+                ? "DISPUTE_UPHELD"
+                : result === "REJECTED"
+                  ? "DISPUTE_REJECTED"
+                  : "DISPUTE_STATUS_UPDATED",
+            title:
+              result === "UPHELD"
+                ? "Dispute upheld"
+                : result === "REJECTED"
+                  ? "Dispute rejected"
+                  : "Dispute status updated",
+            message: `Your dispute for the report "${title}" is now ${result.toLowerCase()}.`,
+            entityType: "dispute",
+            entityId: id,
+          });
+        }
+      } catch (notificationError) {
+        console.error(
+          "Failed to create dispute notification:",
+          notificationError
+        );
+      }
 
       res.json({
         status: "ok",
