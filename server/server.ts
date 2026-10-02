@@ -41,7 +41,6 @@ app.use("/api/audit-logs", auditLogsRouter);
 app.use("/api/comments", commentsRouter);
 app.use("/api/risk-scores", riskScoresRouter);
 app.use("/api/notifications", notificationsRouter);
-app.use(express.json());
 
 
 app.get("/api/health", async (_req, res) => {
@@ -66,6 +65,6 @@ app.get("/api/health", async (_req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`Shabdhan API running on http://localhost:${PORT}`);
+app.listen(Number(PORT), "0.0.0.0", () => {
+  console.log(`Shabdhan API running on port ${PORT}`);
 });
