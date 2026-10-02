@@ -54,16 +54,28 @@ app.get("/api/health", async (_req, res) => {
       service: "Shabdhan API",
       database: result.rows[0].database,
     });
-} catch (error) {
-  console.error("Database health check failed:", error);
+    } catch (error) {
+    console.error("Database health check failed:", error);
 
-  res.status(503).json({
-    status: "error",
-    service: "Shabdhan API",
-    database: "unavailable",
-    error: error instanceof Error ? error.message : String(error),
-  });
-}
+    const dbError = error as {
+      message?: string;
+      code?: string;
+      detail?: string;
+      hint?: string;
+    };
+
+    res.status(503).json({
+      status: "error",
+      service: "Shabdhan API",
+      database: "unavailable",
+      error: {
+        message: dbError.message || null,
+        code: dbError.code || null,
+        detail: dbError.detail || null,
+        hint: dbError.hint || null,
+      },
+    });
+  }
 });
 
 app.listen(Number(PORT), "0.0.0.0", () => {
