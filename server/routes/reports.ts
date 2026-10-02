@@ -16,7 +16,7 @@ router.post(
   authenticate,
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { social_account_id, title, description } = req.body;
+      const { social_account_id, category_id, title, description } = req.body;
 
       if (!social_account_id || !title || !description) {
         return res.status(400).json({
@@ -40,18 +40,33 @@ router.post(
         });
       }
 
+      if (category_id) {
+        const category = await pool.query(
+          `SELECT id FROM categories WHERE id = $1 AND is_active = true`,
+          [category_id]
+        );
+
+        if (category.rows.length === 0) {
+          return res.status(404).json({
+            status: "error",
+            message: "Category not found",
+          });
+        }
+      }
+
       // reporter_id comes from the authenticated user
       const result = await pool.query(
         `INSERT INTO reports
-         (reporter_id, social_account_id, title, description)
-         VALUES ($1, $2, $3, $4)
-         RETURNING id, reporter_id, social_account_id,
+         (reporter_id, social_account_id, category_id, title, description)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING id, reporter_id, social_account_id, category_id,
                    title, description, status,
                    verification_status, published_at,
                    created_at, updated_at`,
         [
           req.user!.id,
           social_account_id,
+          category_id || null,
           title,
           description,
         ]
@@ -68,6 +83,104 @@ router.post(
       res.status(500).json({
         status: "error",
         message: "Failed to create report",
+      });
+    }
+  }
+);
+
+// List reports for the authenticated user.
+router.get(
+  "/",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const page = Math.max(Number(req.query.page) || 1, 1);
+      const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+      const offset = (page - 1) * limit;
+      const search = String(req.query.search || "").trim();
+      const status = String(req.query.status || "").trim();
+
+      const values: unknown[] = [req.user!.id];
+      const conditions = ["r.reporter_id = $1"];
+
+      if (search) {
+        values.push(`%${search}%`);
+        conditions.push(
+          `(r.title ILIKE ${values.length} OR r.description ILIKE ${values.length})`
+        );
+      }
+
+      if (status) {
+        values.push(status);
+        conditions.push(`r.status::text = ${values.length}`);
+      }
+
+      const where = conditions.join(" AND ");
+
+      const countResult = await pool.query(
+        `SELECT COUNT(*)::int AS count
+         FROM reports r
+         WHERE ${where}`,
+        values
+      );
+
+      values.push(limit, offset);
+
+      const result = await pool.query(
+        `SELECT
+           r.id,
+           r.reporter_id,
+           r.social_account_id,
+           r.category_id,
+           r.title,
+           r.description,
+           r.status,
+           r.verification_status,
+           r.published_at,
+           r.created_at,
+           r.updated_at,
+           json_build_object(
+             'id', sa.id,
+             'platform', sa.platform,
+             'username', sa.username,
+             'profile_url', sa.profile_url,
+             'display_name', sa.display_name,
+             'account_id', sa.account_id
+           ) AS social_account,
+           CASE
+             WHEN c.id IS NULL THEN NULL
+             ELSE json_build_object(
+               'id', c.id,
+               'name', c.name,
+               'description', c.description
+             )
+           END AS category
+         FROM reports r
+         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN categories c ON c.id = r.category_id
+         WHERE ${where}
+         ORDER BY r.created_at DESC
+         LIMIT ${values.length - 1}
+         OFFSET ${values.length}`,
+        values
+      );
+
+      return res.json({
+        status: "ok",
+        reports: result.rows,
+        pagination: {
+          page,
+          limit,
+          total: countResult.rows[0].count,
+          total_pages: Math.ceil(countResult.rows[0].count / limit),
+        },
+      });
+    } catch (error) {
+      console.error("Failed to fetch reports:", error);
+
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to fetch reports",
       });
     }
   }
@@ -99,10 +212,19 @@ router.get("/:id", async (req, res) => {
            'profile_url', sa.profile_url,
            'display_name', sa.display_name,
            'account_id', sa.account_id
-         ) AS social_account
+         ) AS social_account,
+         CASE
+           WHEN c.id IS NULL THEN NULL
+           ELSE json_build_object(
+             'id', c.id,
+             'name', c.name,
+             'description', c.description
+           )
+         END AS category
        FROM reports r
        JOIN users u ON u.id = r.reporter_id
        JOIN social_accounts sa ON sa.id = r.social_account_id
+       LEFT JOIN categories c ON c.id = r.category_id
        WHERE r.id = $1`,
       [req.params.id]
     );
