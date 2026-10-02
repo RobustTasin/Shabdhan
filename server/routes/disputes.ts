@@ -6,7 +6,7 @@ import {
   requireRole,
 } from "../middleware/auth";
 import { createNotification } from "../utils/notifications";
-
+import { createAuditLog } from "../utils/audit";
 const router = Router();
 
 // Get all disputes (Moderator/Admin)
@@ -247,6 +247,19 @@ router.patch(
            updated_at`,
         [result, req.user!.id, review_notes ?? null, id]
       );
+
+      await createAuditLog({
+        userId: req.user!.id,
+        action: "DISPUTE_REVIEWED",
+        entityType: "dispute",
+        entityId: id,
+        newData: {
+          result,
+          review_notes: review_notes ?? null,
+          reviewed_by: req.user!.id,
+        },
+        req,
+      });
 
       // Notify the user who submitted the dispute
       try {

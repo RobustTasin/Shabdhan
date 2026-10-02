@@ -259,27 +259,47 @@ router.get(
       );
 
       const auditLogResult = await pool.query(
-        `SELECT
-           a.id,
-           a.action,
-           a.entity_type,
-           a.entity_id,
-           a.old_data,
-           a.new_data,
-           a.created_at,
-           json_build_object(
-             'id', u.id,
-             'username', u.username,
-             'role', u.role
-           ) AS user
-         FROM audit_logs a
-         LEFT JOIN users u ON u.id = a.user_id
-         WHERE a.entity_type = 'report'
-           AND a.entity_id = $1
-         ORDER BY a.created_at DESC, a.id DESC
-         LIMIT 50`,
-        [id]
-      );
+  `SELECT
+     a.id,
+     a.action,
+     a.entity_type,
+     a.entity_id,
+     a.old_data,
+     a.new_data,
+     a.created_at,
+     json_build_object(
+       'id', u.id,
+       'username', u.username,
+       'role', u.role
+     ) AS user
+   FROM audit_logs a
+   LEFT JOIN users u ON u.id = a.user_id
+   WHERE
+     (a.entity_type = 'report' AND a.entity_id = $1)
+     OR
+     (
+       a.entity_type = 'evidence'
+       AND EXISTS (
+         SELECT 1
+         FROM evidence e
+         WHERE e.id = a.entity_id
+           AND e.report_id = $1
+       )
+     )
+     OR
+     (
+       a.entity_type = 'dispute'
+       AND EXISTS (
+         SELECT 1
+         FROM disputes d
+         WHERE d.id = a.entity_id
+           AND d.report_id = $1
+       )
+     )
+   ORDER BY a.created_at DESC, a.id DESC
+   LIMIT 100`,
+  [id]
+);
 
       return res.json({
         status: "ok",
