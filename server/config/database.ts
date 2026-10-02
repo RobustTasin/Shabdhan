@@ -1,16 +1,24 @@
 import { Pool } from "pg";
-import dotenv from "dotenv";
 
-dotenv.config({ path: ".env.local" });
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  throw new Error("DATABASE_URL is not configured");
+}
 
 export const pool = new Pool({
-  host: process.env.PGHOST || "localhost",
-  port: Number(process.env.PGPORT) || 5432,
-  database: process.env.PGDATABASE || "shabdhan",
-  user: process.env.PGUSER || "postgres",
-  password: process.env.PGPASSWORD,
+  connectionString: databaseUrl,
+  ssl: {
+    rejectUnauthorized: false,
+  },
+  connectionTimeoutMillis: 10000,
+  idleTimeoutMillis: 30000,
+  max: 10,
 });
 
 pool.on("error", (error) => {
-  console.error("Unexpected PostgreSQL pool error:", error);
+  console.error(
+    "Unexpected PostgreSQL pool error:",
+    error
+  );
 });
