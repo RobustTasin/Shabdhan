@@ -1,43 +1,109 @@
 "use client";
 
+"use client";
+
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
-  defaultReports,
+  createReport,
+  createSocialAccount,
+  getCategories,
   getReports,
-  saveReports,
-  type Report,
-} from "../lib/reports";
+  getSocialAccounts,
+  reportStatusLabel,
+  type ApiReport,
+  type Category,
+  type SocialAccount,
+} from "../lib/reports-api";
 
 export default function ReportsPage() {
-  const [reports, setReports] = useState<Report[]>(defaultReports);
+  const [reports, setReports] = useState<ApiReport[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [showSocialAccount, setShowSocialAccount] = useState(false);
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState("General");
+  const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [socialAccountId, setSocialAccountId] = useState("");
+  const [platform, setPlatform] = useState("Facebook");
+  const [username, setUsername] = useState("");
+  const [profileUrl, setProfileUrl] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
 
-  useEffect(() => {
-    setReports(getReports());
-  }, []);
+  async function loadData() {
+    try {
+      setLoading(true);
+      setError("");
+      const [rr, cr, sr] = await Promise.all([
+        getReports({ limit: 100 }),
+        getCategories(),
+        getSocialAccounts(),
+      ]);
+      setReports(rr.reports);
+      setCategories(cr.categories);
+      setSocialAccounts(sr.social_accounts);
+      if (!categoryId && cr.categories[0]) setCategoryId(cr.categories[0].id);
+      if (!socialAccountId && sr.social_accounts[0]) setSocialAccountId(sr.social_accounts[0].id);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load reports");
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  function createReport() {
-    if (!title.trim()) return;
+  useEffect(() => { void loadData(); }, []);
 
-    const newReport: Report = {
-      id: Date.now(),
-      title: title.trim(),
-      category,
-      status: "Draft",
-      updated: "Just now",
-    };
+  async function handleCreateReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!title.trim() || !description.trim() || !socialAccountId) return;
+    try {
+      setSubmitting(true);
+      setError("");
+      await createReport({
+        social_account_id: socialAccountId,
+        category_id: categoryId || null,
+        title: title.trim(),
+        description: description.trim(),
+      });
+      setTitle("");
+      setDescription("");
+      setShowCreate(false);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create report");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
-    const updatedReports = [newReport, ...reports];
-
-    setReports(updatedReports);
-    saveReports(updatedReports);
-
-    setTitle("");
-    setCategory("General");
-    setShowCreate(false);
+  async function handleCreateSocialAccount(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!platform.trim() || !username.trim()) return;
+    try {
+      setCreatingAccount(true);
+      setError("");
+      const response = await createSocialAccount({
+        platform: platform.trim(),
+        username: username.trim(),
+        profile_url: profileUrl.trim() || undefined,
+        display_name: displayName.trim() || undefined,
+      });
+      setSocialAccounts((current) => [response.social_account, ...current]);
+      setSocialAccountId(response.social_account.id);
+      setUsername("");
+      setProfileUrl("");
+      setDisplayName("");
+      setShowSocialAccount(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create social account");
+    } finally {
+      setCreatingAccount(false);
+    }
   }
 
   return (
