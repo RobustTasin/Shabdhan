@@ -46,6 +46,46 @@ router.get(
   }
 );
 
+// Get disputes against reports owned by the authenticated user
+router.get(
+  "/mine",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT
+           d.id,
+           d.report_id,
+           d.submitted_by,
+           d.reason,
+           d.result,
+           d.reviewed_by,
+           d.review_notes,
+           d.created_at,
+           d.updated_at,
+           r.title AS report_title
+         FROM disputes d
+         JOIN reports r ON r.id = d.report_id
+         WHERE r.reporter_id = $1
+         ORDER BY d.created_at DESC, d.id DESC`,
+        [req.user!.id]
+      );
+
+      res.json({
+        status: "ok",
+        disputes: result.rows,
+      });
+    } catch (error) {
+      console.error("Failed to fetch user disputes:", error);
+
+      res.status(500).json({
+        status: "error",
+        message: "Failed to fetch disputes",
+      });
+    }
+  }
+);
+
 // Get disputes for a report
 router.get(
   "/report/:reportId",
