@@ -164,7 +164,9 @@ export default function ResponsiveShell({
               aria-label="Open navigation"
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-lg text-slate-700 hover:bg-slate-50 md:hidden"
             >
-              MENU
+              <span aria-hidden="true" className="text-2xl leading-none">
+                ☰
+              </span>
             </button>
 
             <Link
