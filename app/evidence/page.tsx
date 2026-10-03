@@ -2,19 +2,80 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getEvidence, type EvidenceFile } from "../lib/reports";
 
-function formatFileSize(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+import {
+  getUserEvidence,
+  type UserEvidence,
+} from "../lib/evidence-api";
+
+function formatEvidenceType(type: UserEvidence["evidence_type"]) {
+  switch (type) {
+    case "IMAGE":
+      return "Image";
+    case "VIDEO":
+      return "Video";
+    case "DOCUMENT":
+      return "Document";
+    case "LINK":
+      return "Link";
+    case "OTHER":
+      return "Other";
+    default:
+      return type;
+  }
+}
+
+function verificationBadgeClass(
+  status: UserEvidence["verification_status"]
+) {
+  switch (status) {
+    case "VERIFIED":
+      return "bg-green-100 text-green-800";
+    case "REJECTED":
+      return "bg-red-100 text-red-800";
+    default:
+      return "bg-yellow-100 text-yellow-800";
+  }
 }
 
 export default function EvidencePage() {
-  const [evidence, setEvidence] = useState<EvidenceFile[]>([]);
+  const [evidence, setEvidence] = useState<UserEvidence[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    setEvidence(getEvidence());
+    let cancelled = false;
+
+    async function loadEvidence() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const response = await getUserEvidence();
+
+        if (!cancelled) {
+          setEvidence(response.evidence);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Failed to load evidence"
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadEvidence();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -33,14 +94,26 @@ export default function EvidencePage() {
         </p>
       </div>
 
-      {evidence.length === 0 ? (
+      {loading ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center">
+          <p className="text-sm text-slate-500">
+            Loading evidence...
+          </p>
+        </div>
+      ) : error ? (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-5">
+          <p className="text-sm font-medium text-red-800">
+            {error}
+          </p>
+        </div>
+      ) : evidence.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
           <h2 className="text-lg font-semibold text-slate-950">
             No evidence yet
           </h2>
 
           <p className="mt-2 text-sm text-slate-500">
-            Add evidence from a report's details page.
+            Add evidence from a report&apos;s details page.
           </p>
 
           <Link
@@ -59,26 +132,60 @@ export default function EvidencePage() {
                 className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-950">
-                    {file.name}
+                  <p className="break-words text-sm font-semibold text-slate-950">
+                    {file.file_name || "Evidence file"}
                   </p>
 
                   <p className="mt-1 text-xs text-slate-500">
-                    {file.type} · {formatFileSize(file.size)}
+                    {formatEvidenceType(file.evidence_type)}
+                    {" · "}
+                    {new Date(
+                      file.created_at
+                    ).toLocaleString()}
                   </p>
+
+                  {file.description && (
+                    <p className="mt-2 text-sm leading-6 text-slate-700">
+                      {file.description}
+                    </p>
+                  )}
 
                   <p className="mt-2 text-xs text-slate-400">
-                    Report: {file.reportTitle}
+                    Report: {file.report_title}
                   </p>
+
+                  {file.uploader && (
+                    <p className="mt-1 text-xs text-slate-400">
+                      Uploaded by {file.uploader.username}
+                    </p>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <span className="text-xs text-slate-400">
-                    {file.uploadedAt}
+                <div className="flex flex-wrap items-center gap-4">
+                  <span
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${verificationBadgeClass(
+                      file.verification_status
+                    )}`}
+                  >
+                    {file.verification_status}
                   </span>
 
+                  {file.file_url && (
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_API_URL?.replace(
+                        /\/api$/,
+                        ""
+                      )}${file.file_url}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-medium text-slate-900 hover:underline"
+                    >
+                      Open evidence
+                    </a>
+                  )}
+
                   <Link
-                    href={`/reports/${file.reportId}`}
+                    href={`/reports/${file.report_id}`}
                     className="text-sm font-medium text-slate-900 hover:underline"
                   >
                     View report →

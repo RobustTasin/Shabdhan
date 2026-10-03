@@ -13,6 +13,57 @@ import { createNotification } from "../utils/notifications";
 
 const router = Router();
 
+// Get evidence attached to reports owned by the authenticated user
+router.get(
+  "/",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT
+           e.id,
+           e.report_id,
+           e.uploaded_by,
+           e.evidence_type,
+           e.file_name,
+           e.file_url,
+           e.file_hash,
+           e.description,
+           e.verification_status,
+           e.created_at,
+           e.updated_at,
+           r.title AS report_title,
+           json_build_object(
+             'id', u.id,
+             'username', u.username
+           ) AS uploader
+         FROM evidence e
+         JOIN reports r ON r.id = e.report_id
+         JOIN users u ON u.id = e.uploaded_by
+         WHERE r.reporter_id = $1
+         ORDER BY e.created_at DESC, e.id DESC`,
+        [req.user!.id]
+      );
+
+      return res.json({
+        status: "ok",
+        count: result.rows.length,
+        evidence: result.rows,
+      });
+    } catch (error) {
+      console.error(
+        "Failed to fetch user evidence:",
+        error
+      );
+
+      return res.status(500).json({
+        status: "error",
+        message: "Failed to fetch evidence",
+      });
+    }
+  }
+);
+
 // Upload evidence file
 router.post(
   "/upload",

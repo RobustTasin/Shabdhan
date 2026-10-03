@@ -21,19 +21,8 @@ export type Dispute = {
   status: "Open" | "Resolved";
 };
 
-export type EvidenceFile = {
-  id: number;
-  reportId: number;
-  reportTitle: string;
-  name: string;
-  size: number;
-  type: string;
-  uploadedAt: string;
-};
-
 const REPORTS_STORAGE_KEY = "shabdhan-reports";
 const DISPUTES_STORAGE_KEY = "shabdhan-disputes";
-const EVIDENCE_STORAGE_KEY = "shabdhan-evidence";
 
 export const defaultReports: Report[] = [
   {
@@ -46,8 +35,6 @@ export const defaultReports: Report[] = [
 ];
 
 export const defaultDisputes: Dispute[] = [];
-
-export const defaultEvidence: EvidenceFile[] = [];
 
 export function getReports(): Report[] {
   if (typeof window === "undefined") {
@@ -106,35 +93,5 @@ export function saveDisputes(disputes: Dispute[]) {
   localStorage.setItem(
     DISPUTES_STORAGE_KEY,
     JSON.stringify(disputes)
-  );
-}
-
-export function getEvidence(): EvidenceFile[] {
-  if (typeof window === "undefined") {
-    return defaultEvidence;
-  }
-
-  const stored = localStorage.getItem(EVIDENCE_STORAGE_KEY);
-
-  if (!stored) {
-    localStorage.setItem(
-      EVIDENCE_STORAGE_KEY,
-      JSON.stringify(defaultEvidence)
-    );
-
-    return defaultEvidence;
-  }
-
-  try {
-    return JSON.parse(stored);
-  } catch {
-    return defaultEvidence;
-  }
-}
-
-export function saveEvidence(evidence: EvidenceFile[]) {
-  localStorage.setItem(
-    EVIDENCE_STORAGE_KEY,
-    JSON.stringify(evidence)
   );
 }
