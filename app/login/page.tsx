@@ -2,27 +2,29 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { login } from "../lib/auth";
+import { useAuth } from "../components/AuthProvider";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { loginUser } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     setError("");
     setLoading(true);
 
     try {
-      await login(email, password);
+      await loginUser(email, password);
       router.replace("/dashboard");
-      router.refresh();
     } catch (err) {
       setError(
         err instanceof Error

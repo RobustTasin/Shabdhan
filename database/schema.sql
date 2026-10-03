@@ -109,6 +109,8 @@ CREATE TABLE reports (
         REFERENCES social_accounts(id)
         ON DELETE CASCADE,
 
+    category_id UUID,
+
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
 

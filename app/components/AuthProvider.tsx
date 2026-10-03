@@ -7,18 +7,22 @@ import {
   useState,
   type ReactNode,
 } from "react";
+
 import { usePathname, useRouter } from "next/navigation";
+
 import {
   clearAuth,
   getCurrentUser,
   getStoredUser,
   getToken,
+  login,
   type AuthUser,
 } from "../lib/auth";
 
 type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
+  loginUser: (email: string, password: string) => Promise<AuthUser>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
@@ -55,6 +59,17 @@ export function AuthProvider({
       clearAuth();
       setUser(null);
     }
+  }
+
+  async function loginUser(
+    email: string,
+    password: string
+  ): Promise<AuthUser> {
+    const loggedInUser = await login(email, password);
+
+    setUser(loggedInUser);
+
+    return loggedInUser;
   }
 
   useEffect(() => {
@@ -107,6 +122,7 @@ export function AuthProvider({
       value={{
         user,
         loading,
+        loginUser,
         logout,
         refreshUser,
       }}
