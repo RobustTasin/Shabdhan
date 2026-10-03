@@ -7,6 +7,7 @@ import { useAuth } from "./AuthProvider";
 const navigation = [
   { name: "Dashboard", href: "/dashboard" },
   { name: "Reports", href: "/reports" },
+  { name: "Search", href: "/search" },
   { name: "Evidence", href: "/evidence" },
   { name: "Disputes", href: "/disputes" },
   { name: "Notifications", href: "/notifications" },

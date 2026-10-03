@@ -186,6 +186,120 @@ router.get(
   }
 );
 
+
+// Public report search
+router.get("/search", async (req, res) => {
+  try {
+    const search = String(req.query.search || "").trim();
+    const categoryId = String(req.query.category_id || "").trim();
+    const platform = String(req.query.platform || "").trim();
+
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
+    const offset = (page - 1) * limit;
+
+    const conditions: string[] = [
+      "r.status = 'PUBLISHED'",
+      "r.verification_status = 'VERIFIED'",
+    ];
+
+    const values: unknown[] = [];
+
+    if (search) {
+      values.push(`%${search}%`);
+      const searchParam = values.length;
+
+      conditions.push(`
+        (
+          r.title ILIKE $${searchParam}
+          OR r.description ILIKE $${searchParam}
+          OR sa.username ILIKE $${searchParam}
+          OR sa.display_name ILIKE $${searchParam}
+        )
+      `);
+    }
+
+    if (categoryId) {
+      values.push(categoryId);
+      conditions.push(`r.category_id = $${values.length}`);
+    }
+
+    if (platform) {
+      values.push(platform);
+      conditions.push(`LOWER(sa.platform) = LOWER($${values.length})`);
+    }
+
+    const whereClause = `WHERE ${conditions.join(" AND ")}`;
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*)::int AS total
+       FROM reports r
+       JOIN social_accounts sa ON sa.id = r.social_account_id
+       LEFT JOIN categories c ON c.id = r.category_id
+       ${whereClause}`,
+      values
+    );
+
+    const total = countResult.rows[0].total;
+
+    const limitParam = values.length + 1;
+    const offsetParam = values.length + 2;
+
+    const result = await pool.query(
+      `SELECT
+         r.id,
+         r.title,
+         r.description,
+         r.status,
+         r.verification_status,
+         r.published_at,
+         r.created_at,
+         r.updated_at,
+         json_build_object(
+           'id', sa.id,
+           'platform', sa.platform,
+           'username', sa.username,
+           'profile_url', sa.profile_url,
+           'display_name', sa.display_name
+         ) AS social_account,
+         CASE
+           WHEN c.id IS NULL THEN NULL
+           ELSE json_build_object(
+             'id', c.id,
+             'name', c.name,
+             'description', c.description
+           )
+         END AS category
+       FROM reports r
+       JOIN social_accounts sa ON sa.id = r.social_account_id
+       LEFT JOIN categories c ON c.id = r.category_id
+       ${whereClause}
+       ORDER BY r.created_at DESC, r.id DESC
+       LIMIT $${limitParam}
+       OFFSET $${offsetParam}`,
+      [...values, limit, offset]
+    );
+
+    return res.json({
+      status: "ok",
+      reports: result.rows,
+      pagination: {
+        page,
+        limit,
+        total,
+        total_pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("Failed to search reports:", error);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to search reports",
+    });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const result = await pool.query(
