@@ -73,6 +73,26 @@ export async function getReports(params: {
   });
 }
 
+export async function searchReports(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  categoryId?: string;
+  platform?: string;
+} = {}): Promise<ReportListResponse> {
+  const query = new URLSearchParams();
+
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.search) query.set("search", params.search);
+  if (params.categoryId) query.set("category_id", params.categoryId);
+  if (params.platform) query.set("platform", params.platform);
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+
+  return apiFetch<ReportListResponse>(`/reports/search${suffix}`);
+}
+
 export async function getReport(id: string): Promise<{
   status: string;
   report: ApiReport;
