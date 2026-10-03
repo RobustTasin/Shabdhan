@@ -1,6 +1,4 @@
 import multer from "multer";
-import path from "path";
-import crypto from "crypto";
 
 const allowedMimeTypes = new Set([
   "image/jpeg",
@@ -11,18 +9,7 @@ const allowedMimeTypes = new Set([
   "application/pdf",
 ]);
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    cb(null, path.join(process.cwd(), "uploads", "evidence"));
-  },
-
-  filename: (_req, file, cb) => {
-    const extension = path.extname(file.originalname).toLowerCase();
-    const uniqueName = `${crypto.randomUUID()}${extension}`;
-
-    cb(null, uniqueName);
-  },
-});
+const storage = multer.memoryStorage();
 
 export const uploadEvidence = multer({
   storage,
