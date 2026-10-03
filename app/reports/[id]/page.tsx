@@ -14,6 +14,13 @@ import {
   reportStatusLabel,
   type ApiReport,
 } from "../../lib/reports-api";
+import {
+  createComment,
+  deleteComment,
+  getCommentsForReport,
+  updateComment,
+  type ApiComment,
+} from "../../lib/comments-api";
 
 function formatFileSizeFromType(file: File) {
   const bytes = file.size;
@@ -74,6 +81,18 @@ export default function ReportDetailsPage() {
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
 
+  const [comments, setComments] = useState<ApiComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(true);
+
+  const [commentText, setCommentText] = useState("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingText, setEditingText] = useState("");
+  const [commentActionError, setCommentActionError] = useState("");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -85,10 +104,12 @@ export default function ReportDetailsPage() {
     void Promise.all([
       getReport(id),
       getEvidenceForReport(id),
+      getCommentsForReport(id),
     ])
-      .then(([reportResponse, evidenceResponse]) => {
+      .then(([reportResponse, evidenceResponse, commentsResponse]) => {
         setReport(reportResponse.report);
         setEvidence(evidenceResponse.evidence);
+        setComments(commentsResponse.comments);
       })
       .catch((err) => {
         const message =
@@ -101,6 +122,7 @@ export default function ReportDetailsPage() {
       .finally(() => {
         setLoading(false);
         setEvidenceLoading(false);
+        setCommentsLoading(false);
       });
   }, [id]);
 
@@ -145,6 +167,120 @@ export default function ReportDetailsPage() {
       );
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleCreateComment() {
+    if (!id || !commentText.trim()) {
+      return;
+    }
+
+    setSubmittingComment(true);
+    setCommentActionError("");
+
+    try {
+      const response = await createComment({
+        report_id: id,
+        content: commentText.trim(),
+      });
+
+      setComments((current) => [...current, response.comment]);
+      setCommentText("");
+    } catch (err) {
+      setCommentActionError(
+        err instanceof Error
+          ? err.message
+          : "Failed to post comment"
+      );
+    } finally {
+      setSubmittingComment(false);
+    }
+  }
+
+  async function handleCreateReply(parentCommentId: string) {
+    if (!id || !replyText.trim()) {
+      return;
+    }
+
+    setSubmittingComment(true);
+    setCommentActionError("");
+
+    try {
+      const response = await createComment({
+        report_id: id,
+        parent_comment_id: parentCommentId,
+        content: replyText.trim(),
+      });
+
+      setComments((current) => [...current, response.comment]);
+      setReplyText("");
+      setReplyingTo(null);
+    } catch (err) {
+      setCommentActionError(
+        err instanceof Error
+          ? err.message
+          : "Failed to post reply"
+      );
+    } finally {
+      setSubmittingComment(false);
+    }
+  }
+
+  async function handleUpdateComment(commentId: string) {
+    if (!editingText.trim()) {
+      return;
+    }
+
+    setSubmittingComment(true);
+    setCommentActionError("");
+
+    try {
+      const response = await updateComment(
+        commentId,
+        editingText.trim()
+      );
+
+      setComments((current) =>
+        current.map((comment) =>
+          comment.id === commentId ? response.comment : comment
+        )
+      );
+
+      setEditingCommentId(null);
+      setEditingText("");
+    } catch (err) {
+      setCommentActionError(
+        err instanceof Error
+          ? err.message
+          : "Failed to update comment"
+      );
+    } finally {
+      setSubmittingComment(false);
+    }
+  }
+
+  async function handleDeleteComment(commentId: string) {
+    setSubmittingComment(true);
+    setCommentActionError("");
+
+    try {
+      await deleteComment(commentId);
+
+      setComments((current) =>
+        current.filter(
+          (comment) =>
+            comment.id !== commentId &&
+            comment.parent_comment_id !== commentId
+        )
+      );
+    } catch (err) {
+      setCommentActionError(
+        err instanceof Error
+          ? err.message
+          : "Failed to delete comment"
+      );
+    } finally {
+      setSubmittingComment(false);
     }
   }
 
@@ -316,7 +452,7 @@ export default function ReportDetailsPage() {
               <a
                 href={report.social_account.profile_url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="inline-block text-sm font-medium text-slate-700 underline"
               >
                 Open profile
@@ -479,17 +615,323 @@ export default function ReportDetailsPage() {
                   </div>
 
                   {item.file_url && (
-  <a
-    href={`${process.env.NEXT_PUBLIC_API_URL?.replace(/\/api$/, "")}${item.file_url}`}
-    target="_blank"
-    rel="noreferrer"
-    className="mt-4 inline-block text-sm font-medium text-slate-700 underline"
-  >
-    Open evidence
-  </a>
-)}
+                    <a
+                      href={item.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 inline-block text-sm font-medium text-slate-700 underline"
+                    >
+                      Open evidence
+                    </a>
+                  )}
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-950">
+            Comments
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            Discuss this report, provide context, or respond to other users.
+          </p>
+        </div>
+
+        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+          <h3 className="text-sm font-semibold text-slate-950">
+            Add a comment
+          </h3>
+
+          <textarea
+            value={commentText}
+            onChange={(event) => setCommentText(event.target.value)}
+            placeholder="Write a comment..."
+            rows={4}
+            className="mt-4 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+            disabled={submittingComment}
+          />
+
+          <div className="mt-3 flex items-center justify-between gap-4">
+            {commentActionError ? (
+              <p className="text-sm text-red-600">
+                {commentActionError}
+              </p>
+            ) : (
+              <span />
+            )}
+
+            <button
+              type="button"
+              onClick={() => void handleCreateComment()}
+              disabled={submittingComment || !commentText.trim()}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submittingComment ? "Posting..." : "Post comment"}
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-6">
+          {commentsLoading ? (
+            <p className="text-sm text-slate-500">
+              Loading comments...
+            </p>
+          ) : comments.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center">
+              <p className="text-sm text-slate-500">
+                No comments yet.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              {comments
+                .filter((comment) => !comment.parent_comment_id)
+                .map((comment) => {
+                  const replies = comments.filter(
+                    (reply) => reply.parent_comment_id === comment.id
+                  );
+
+                  return (
+                    <div key={comment.id} className="space-y-3">
+                      <div className="rounded-xl border border-slate-200 p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-950">
+                              {comment.username}
+                            </p>
+
+                            <p className="mt-1 text-xs text-slate-400">
+                              {new Date(comment.created_at).toLocaleString()}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center gap-3 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReplyingTo(comment.id);
+                                setReplyText("");
+                                setCommentActionError("");
+                              }}
+                              className="font-medium text-slate-600 hover:text-slate-950"
+                            >
+                              Reply
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingCommentId(comment.id);
+                                setEditingText(comment.content);
+                                setCommentActionError("");
+                              }}
+                              className="font-medium text-slate-600 hover:text-slate-950"
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteComment(comment.id)}
+                              disabled={submittingComment}
+                              className="font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+
+                        {editingCommentId === comment.id ? (
+                          <div className="mt-4">
+                            <textarea
+                              value={editingText}
+                              onChange={(event) =>
+                                setEditingText(event.target.value)
+                              }
+                              rows={3}
+                              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                              disabled={submittingComment}
+                            />
+
+                            <div className="mt-3 flex gap-3">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void handleUpdateComment(comment.id)
+                                }
+                                disabled={
+                                  submittingComment || !editingText.trim()
+                                }
+                                className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Save
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setEditingCommentId(null);
+                                  setEditingText("");
+                                }}
+                                disabled={submittingComment}
+                                className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 disabled:opacity-50"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                            {comment.content}
+                          </p>
+                        )}
+
+                        {replyingTo === comment.id && (
+                          <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                            <textarea
+                              value={replyText}
+                              onChange={(event) =>
+                                setReplyText(event.target.value)
+                              }
+                              placeholder="Write a reply..."
+                              rows={3}
+                              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                              disabled={submittingComment}
+                            />
+
+                            <div className="mt-3 flex gap-3">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void handleCreateReply(comment.id)
+                                }
+                                disabled={
+                                  submittingComment || !replyText.trim()
+                                }
+                                className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                Reply
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReplyingTo(null);
+                                  setReplyText("");
+                                }}
+                                disabled={submittingComment}
+                                className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 disabled:opacity-50"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {replies.length > 0 && (
+                        <div className="ml-6 space-y-3 border-l-2 border-slate-200 pl-5">
+                          {replies.map((reply) => (
+                            <div
+                              key={reply.id}
+                              className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                            >
+                              <div className="flex items-start justify-between gap-4">
+                                <div>
+                                  <p className="text-sm font-semibold text-slate-950">
+                                    {reply.username}
+                                  </p>
+
+                                  <p className="mt-1 text-xs text-slate-400">
+                                    {new Date(
+                                      reply.created_at
+                                    ).toLocaleString()}
+                                  </p>
+                                </div>
+
+                                <div className="flex items-center gap-3 text-xs">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingCommentId(reply.id);
+                                      setEditingText(reply.content);
+                                      setCommentActionError("");
+                                    }}
+                                    className="font-medium text-slate-600 hover:text-slate-950"
+                                  >
+                                    Edit
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void handleDeleteComment(reply.id)
+                                    }
+                                    disabled={submittingComment}
+                                    className="font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+
+                              {editingCommentId === reply.id ? (
+                                <div className="mt-4">
+                                  <textarea
+                                    value={editingText}
+                                    onChange={(event) =>
+                                      setEditingText(event.target.value)
+                                    }
+                                    rows={3}
+                                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                                    disabled={submittingComment}
+                                  />
+
+                                  <div className="mt-3 flex gap-3">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        void handleUpdateComment(reply.id)
+                                      }
+                                      disabled={
+                                        submittingComment ||
+                                        !editingText.trim()
+                                      }
+                                      className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+                                    >
+                                      Save
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setEditingCommentId(null);
+                                        setEditingText("");
+                                      }}
+                                      disabled={submittingComment}
+                                      className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700 disabled:opacity-50"
+                                    >
+                                      Cancel
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                                  {reply.content}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           )}
         </div>

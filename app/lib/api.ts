@@ -1,20 +1,27 @@
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-type ApiOptions = RequestInit & {
+type ApiOptions = Omit<RequestInit, "body"> & {
   token?: string;
+  body?: unknown;
 };
 
 export async function apiFetch<T>(
   path: string,
   options: ApiOptions = {}
 ): Promise<T> {
-  const { token, headers, ...fetchOptions } = options;
+  const { token, headers, body, ...fetchOptions } = options;
 
   const response = await fetch(`${API_BASE_URL}${path}`, {
-  ...fetchOptions,
-  cache: "no-store",
-  headers: {
+    ...fetchOptions,
+    cache: "no-store",
+    body:
+      body === undefined
+        ? undefined
+        : typeof body === "string"
+          ? body
+          : JSON.stringify(body),
+    headers: {
       "Content-Type": "application/json",
       ...(token
         ? {

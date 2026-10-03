@@ -2,13 +2,38 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getDisputes, type Dispute } from "../lib/reports";
+import {
+  getMyDisputes,
+  type ApiDispute,
+} from "../lib/disputes-api";
+
+function disputeStatusLabel(result: ApiDispute["result"]): string {
+  if (result === "UPHELD") return "Upheld";
+  if (result === "REJECTED") return "Rejected";
+  return "Pending";
+}
+
+function disputeStatusClass(result: ApiDispute["result"]): string {
+  if (result === "UPHELD") {
+    return "bg-emerald-100 text-emerald-800";
+  }
+
+  if (result === "REJECTED") {
+    return "bg-red-100 text-red-800";
+  }
+
+  return "bg-amber-100 text-amber-800";
+}
 
 export default function DisputesPage() {
-  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [disputes, setDisputes] = useState<ApiDispute[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setDisputes(getDisputes());
+    void getMyDisputes()
+      .then((response) => setDisputes(response.disputes))
+      .catch(() => setDisputes([]))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -27,7 +52,13 @@ export default function DisputesPage() {
         </p>
       </div>
 
-      {disputes.length === 0 ? (
+      {loading ? (
+        <div className="rounded-xl border border-slate-200 bg-white p-10 text-center">
+          <p className="text-sm text-slate-500">
+            Loading disputes...
+          </p>
+        </div>
+      ) : disputes.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
           <h2 className="text-lg font-semibold text-slate-950">
             No disputes
@@ -55,22 +86,20 @@ export default function DisputesPage() {
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                    Report #{dispute.reportId}
+                    Report #{dispute.report_id}
                   </p>
 
                   <h2 className="mt-1 text-lg font-semibold text-slate-950">
-                    {dispute.reportTitle}
+                    {dispute.report_title}
                   </h2>
                 </div>
 
                 <span
-                  className={`inline-flex w-fit rounded-full px-3 py-1 text-sm font-medium ${
-                    dispute.status === "Open"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-emerald-100 text-emerald-800"
-                  }`}
+                  className={`inline-flex w-fit rounded-full px-3 py-1 text-sm font-medium ${disputeStatusClass(
+                    dispute.result
+                  )}`}
                 >
-                  {dispute.status}
+                  {disputeStatusLabel(dispute.result)}
                 </span>
               </div>
 
@@ -86,7 +115,7 @@ export default function DisputesPage() {
 
               <div className="mt-5 flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-slate-500">
-                  Submitted {dispute.createdAt}
+                  Submitted {dispute.created_at}
                 </p>
 
                 <span className="font-medium text-slate-900">
