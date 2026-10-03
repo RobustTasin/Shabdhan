@@ -1,6 +1,6 @@
 import { Router } from "express";
-import fs from "fs";
 import crypto from "crypto";
+import { cloudinary } from "../config/cloudinary";
 import { pool } from "../config/database";
 import {
   authenticate,
@@ -70,7 +70,7 @@ router.post(
   authenticate,
   uploadEvidence.single("file"),
   async (req: AuthenticatedRequest, res) => {
-    let uploadedFilePath: string | null = null;
+    let cloudinaryPublicId: string | null = null;
 
     try {
       if (!req.file) {
@@ -80,14 +80,9 @@ router.post(
         });
       }
 
-      uploadedFilePath = req.file.path;
-
       const { report_id, description } = req.body;
 
       if (!report_id) {
-        fs.unlinkSync(uploadedFilePath);
-        uploadedFilePath = null;
-
         return res.status(400).json({
           status: "error",
           message: "Report ID is required",
@@ -102,9 +97,6 @@ router.post(
       );
 
       if (report.rows.length === 0) {
-        fs.unlinkSync(uploadedFilePath);
-        uploadedFilePath = null;
-
         return res.status(404).json({
           status: "error",
           message: "Report not found",
@@ -118,9 +110,6 @@ router.post(
       );
 
       if (!isOwner && !isModeratorOrAdmin) {
-        fs.unlinkSync(uploadedFilePath);
-        uploadedFilePath = null;
-
         return res.status(403).json({
           status: "error",
           message:
@@ -140,23 +129,50 @@ router.post(
       const evidenceType = evidenceTypeMap[req.file.mimetype];
 
       if (!evidenceType) {
-        fs.unlinkSync(uploadedFilePath);
-        uploadedFilePath = null;
-
         return res.status(400).json({
           status: "error",
           message: "Unsupported evidence type",
         });
       }
 
-      const fileBuffer = fs.readFileSync(uploadedFilePath);
-
       const fileHash = crypto
         .createHash("sha256")
-        .update(fileBuffer)
+        .update(req.file.buffer)
         .digest("hex");
 
-      const fileUrl = `/uploads/evidence/${req.file.filename}`;
+      const resourceType =
+        req.file.mimetype === "application/pdf"
+          ? "raw"
+          : evidenceType === "VIDEO"
+            ? "video"
+            : "image";
+
+      const uploadResult = await new Promise<{
+        secure_url: string;
+        public_id: string;
+      }>((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: "shabdhan/evidence",
+            resource_type: resourceType,
+          },
+          (error, result) => {
+            if (error || !result) {
+              reject(error || new Error("Cloudinary upload failed"));
+              return;
+            }
+
+            resolve({
+              secure_url: result.secure_url,
+              public_id: result.public_id,
+            });
+          }
+        );
+
+        uploadStream.end(req.file.buffer);
+      });
+
+      cloudinaryPublicId = uploadResult.public_id;
 
       const result = await pool.query(
         `INSERT INTO evidence
@@ -167,9 +183,10 @@ router.post(
            file_name,
            file_url,
            file_hash,
+           cloudinary_public_id,
            description
          )
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING
            id,
            report_id,
@@ -178,6 +195,7 @@ router.post(
            file_name,
            file_url,
            file_hash,
+           cloudinary_public_id,
            description,
            verification_status,
            created_at,
@@ -187,13 +205,14 @@ router.post(
           req.user!.id,
           evidenceType,
           req.file.originalname,
-          fileUrl,
+          uploadResult.secure_url,
           fileHash,
+          cloudinaryPublicId,
           description || null,
         ]
       );
 
-      uploadedFilePath = null;
+      cloudinaryPublicId = null;
 
       return res.status(201).json({
         status: "ok",
@@ -201,8 +220,24 @@ router.post(
         evidence: result.rows[0],
       });
     } catch (error: any) {
-      if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
-        fs.unlinkSync(uploadedFilePath);
+      if (cloudinaryPublicId) {
+        try {
+          const resourceType =
+            req.file?.mimetype === "application/pdf"
+              ? "raw"
+              : req.file?.mimetype?.startsWith("video/")
+                ? "video"
+                : "image";
+
+          await cloudinary.uploader.destroy(cloudinaryPublicId, {
+            resource_type: resourceType,
+          });
+        } catch (cleanupError) {
+          console.error(
+            "Failed to clean up Cloudinary upload:",
+            cleanupError
+          );
+        }
       }
 
       console.error("Failed to upload evidence:", error);
