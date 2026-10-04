@@ -3,28 +3,30 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { pool } from "../config/database";
 import { JWT_EXPIRES_IN, JWT_SECRET } from "../config/auth";
-import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import {
+  authenticate,
+  AuthenticatedRequest,
+} from "../middleware/auth";
+import {
+  loginSchema,
+  registerSchema,
+} from "../validation/auth";
 
 const router = Router();
 
 router.post("/register", async (req, res) => {
+  const validation = registerSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    return res.status(400).json({
+      status: "error",
+      message: validation.error.issues[0]?.message ?? "Invalid registration data",
+    });
+  }
+
+  const { username, email, password } = validation.data;
+
   try {
-    const { username, email, password } = req.body;
-
-    if (!username || !email || !password) {
-      return res.status(400).json({
-        status: "error",
-        message: "Username, email, and password are required",
-      });
-    }
-
-    if (password.length < 8) {
-      return res.status(400).json({
-        status: "error",
-        message: "Password must be at least 8 characters",
-      });
-    }
-
     const existing = await pool.query(
       "SELECT id FROM users WHERE username = $1 OR email = $2",
       [username, email]
@@ -58,16 +60,22 @@ router.post("/register", async (req, res) => {
       { expiresIn: JWT_EXPIRES_IN }
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       status: "ok",
       message: "Registration successful",
-      user,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        is_verified: user.is_verified,
+      },
       token,
     });
   } catch (error) {
     console.error("Registration failed:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       status: "error",
       message: "Registration failed",
     });
@@ -75,16 +83,18 @@ router.post("/register", async (req, res) => {
 });
 
 router.post("/login", async (req, res) => {
+  const validation = loginSchema.safeParse(req.body);
+
+  if (!validation.success) {
+    return res.status(400).json({
+      status: "error",
+      message: validation.error.issues[0]?.message ?? "Invalid login data",
+    });
+  }
+
+  const { email, password } = validation.data;
+
   try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        status: "error",
-        message: "Email and password are required",
-      });
-    }
-
     const result = await pool.query(
       `SELECT id, username, email, password_hash, role, is_active, is_verified
        FROM users
@@ -130,7 +140,7 @@ router.post("/login", async (req, res) => {
       { expiresIn: JWT_EXPIRES_IN }
     );
 
-    res.json({
+    return res.json({
       status: "ok",
       message: "Login successful",
       user: {
@@ -145,7 +155,7 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     console.error("Login failed:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       status: "error",
       message: "Login failed",
     });
@@ -178,14 +188,14 @@ router.get(
         });
       }
 
-      res.json({
+      return res.json({
         status: "ok",
         user: result.rows[0],
       });
     } catch (error) {
       console.error("Failed to fetch current user:", error);
 
-      res.status(500).json({
+      return res.status(500).json({
         status: "error",
         message: "Failed to fetch current user",
       });

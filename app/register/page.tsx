@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { register } from "../lib/auth";
+import { useAuth } from "../components/AuthProvider";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { registerUser } = useAuth();
 
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -36,7 +37,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await register(username, email, password);
+      await registerUser(username, email, password);
       router.replace("/dashboard");
       router.refresh();
     } catch (err) {
