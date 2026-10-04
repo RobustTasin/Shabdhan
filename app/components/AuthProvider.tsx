@@ -16,6 +16,7 @@ import {
   getStoredUser,
   getToken,
   login,
+  register,
   type AuthUser,
 } from "../lib/auth";
 
@@ -23,6 +24,11 @@ type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   loginUser: (email: string, password: string) => Promise<AuthUser>;
+  registerUser: (
+    username: string,
+    email: string,
+    password: string
+  ) => Promise<AuthUser>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
@@ -70,6 +76,22 @@ export function AuthProvider({
     setUser(loggedInUser);
 
     return loggedInUser;
+  }
+
+  async function registerUser(
+    username: string,
+    email: string,
+    password: string
+  ): Promise<AuthUser> {
+    const registeredUser = await register(
+      username,
+      email,
+      password
+    );
+
+    setUser(registeredUser);
+
+    return registeredUser;
   }
 
   useEffect(() => {
@@ -123,6 +145,7 @@ export function AuthProvider({
         user,
         loading,
         loginUser,
+        registerUser,
         logout,
         refreshUser,
       }}
