@@ -123,18 +123,11 @@ export default function ReportDetailsPage() {
       getCommentsForReport(id),
       getCorroborationsForReport(id),
     ])
-      .then(
-        ([
-          reportResponse,
-          evidenceResponse,
-          commentsResponse,
-          corroborationsResponse,
-        ]) => {
-          setReport(reportResponse.report);
-          setEvidence(evidenceResponse.evidence);
-          setComments(commentsResponse.comments);
-          setCorroborations(corroborationsResponse.corroborations);
-        }
+      .then(([reportResponse, evidenceResponse, commentsResponse, corroborationsResponse]) => {
+        setReport(reportResponse.report);
+        setEvidence(evidenceResponse.evidence);
+        setComments(commentsResponse.comments);
+        setCorroborations(corroborationsResponse.corroborations);
       })
       .catch((err) => {
         const message =
