@@ -2,19 +2,29 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { getNotifications } from "../lib/notifications";
+import { getUnreadNotificationCount } from "../lib/notifications-api";
 
 export default function NotificationLink() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    const notifications = getNotifications();
+    let cancelled = false;
 
-    setUnreadCount(
-      notifications.filter(
-        (notification) => !notification.read
-      ).length
-    );
+    void getUnreadNotificationCount()
+      .then((response) => {
+        if (!cancelled) {
+          setUnreadCount(response.unread_count);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setUnreadCount(0);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

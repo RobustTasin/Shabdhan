@@ -6,41 +6,78 @@ import {
   getNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
-  type Notification,
-} from "../lib/notifications";
+  type ApiNotification,
+} from "../lib/notifications-api";
 
-export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-
-  useEffect(() => {
-    setNotifications(getNotifications());
-  }, []);
-
-  function handleMarkAsRead(id: number) {
-    markNotificationAsRead(id);
-
-    setNotifications((current) =>
-      current.map((notification) =>
-        notification.id === id
-          ? { ...notification, read: true }
-          : notification
-      )
-    );
+function notificationHref(notification: ApiNotification) {
+  if (!notification.entity_type || !notification.entity_id) {
+    return undefined;
   }
 
-  function handleMarkAllAsRead() {
-    markAllNotificationsAsRead();
+  if (notification.entity_type === "report") {
+    return `/reports/${notification.entity_id}`;
+  }
 
-    setNotifications((current) =>
-      current.map((notification) => ({
-        ...notification,
-        read: true,
-      }))
-    );
+  if (notification.entity_type === "dispute") {
+    return `/disputes/${notification.entity_id}`;
+  }
+
+  if (notification.entity_type === "evidence") {
+    return `/evidence`;
+  }
+
+  return undefined;
+}
+
+export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState<ApiNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    void getNotifications()
+      .then((response) => setNotifications(response.notifications))
+      .catch(() => setNotifications([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleMarkAsRead(id: string) {
+    try {
+      await markNotificationAsRead(id);
+
+      setNotifications((current) =>
+        current.map((notification) =>
+          notification.id === id
+            ? {
+                ...notification,
+                is_read: true,
+                read_at: new Date().toISOString(),
+              }
+            : notification
+        )
+      );
+    } catch {
+      // Keep the current UI state if the API request fails.
+    }
+  }
+
+  async function handleMarkAllAsRead() {
+    try {
+      await markAllNotificationsAsRead();
+
+      setNotifications((current) =>
+        current.map((notification) => ({
+          ...notification,
+          is_read: true,
+          read_at: notification.read_at ?? new Date().toISOString(),
+        }))
+      );
+    } catch {
+      // Keep the current UI state if the API request fails.
+    }
   }
 
   const unreadCount = notifications.filter(
-    (notification) => !notification.read
+    (notification) => !notification.is_read
   ).length;
 
   return (
@@ -71,7 +108,13 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {notifications.length === 0 ? (
+      {loading ? (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
+          <p className="text-sm text-slate-500">
+            Loading notifications...
+          </p>
+        </div>
+      ) : notifications.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
           <h2 className="text-lg font-semibold text-slate-950">
             No notifications
@@ -92,17 +135,19 @@ export default function NotificationsPage() {
         <div className="rounded-xl border border-slate-200 bg-white">
           <div className="divide-y divide-slate-100">
             {notifications.map((notification) => {
+              const href = notificationHref(notification);
+
               const content = (
                 <div
                   className={`flex gap-4 p-5 transition ${
-                    notification.read
+                    notification.is_read
                       ? "bg-white"
                       : "bg-slate-50"
                   }`}
                 >
                   <div
                     className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${
-                      notification.read
+                      notification.is_read
                         ? "bg-slate-200"
                         : "bg-slate-900"
                     }`}
@@ -115,7 +160,9 @@ export default function NotificationsPage() {
                       </h2>
 
                       <span className="text-xs text-slate-400">
-                        {notification.createdAt}
+                        {new Date(
+                          notification.created_at
+                        ).toLocaleString()}
                       </span>
                     </div>
 
@@ -123,13 +170,13 @@ export default function NotificationsPage() {
                       {notification.message}
                     </p>
 
-                    {!notification.read && (
+                    {!notification.is_read && (
                       <button
                         type="button"
                         onClick={(event) => {
                           event.preventDefault();
                           event.stopPropagation();
-                          handleMarkAsRead(notification.id);
+                          void handleMarkAsRead(notification.id);
                         }}
                         className="mt-3 text-xs font-medium text-slate-700 hover:text-slate-950 hover:underline"
                       >
@@ -140,14 +187,16 @@ export default function NotificationsPage() {
                 </div>
               );
 
-              if (notification.href) {
+              if (href) {
                 return (
                   <Link
                     key={notification.id}
-                    href={notification.href}
-                    onClick={() =>
-                      handleMarkAsRead(notification.id)
-                    }
+                    href={href}
+                    onClick={() => {
+                      if (!notification.is_read) {
+                        void handleMarkAsRead(notification.id);
+                      }
+                    }}
                     className="block"
                   >
                     {content}
