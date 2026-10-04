@@ -171,6 +171,13 @@ router.get(
         });
       }
 
+      if (!result.rows[0].is_active) {
+        return res.status(403).json({
+          status: "error",
+          message: "Account is inactive",
+        });
+      }
+
       res.json({
         status: "ok",
         user: result.rows[0],
