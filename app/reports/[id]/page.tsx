@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useAuth } from "../../components/AuthProvider";
 import { useEffect, useState } from "react";
 
 import {
@@ -21,6 +22,11 @@ import {
   updateComment,
   type ApiComment,
 } from "../../lib/comments-api";
+import {
+  calculateRiskScore,
+  getRiskScoreForReport,
+  type ApiRiskScore,
+} from "../../lib/risk-scores-api";
 
 function formatFileSizeFromType(file: File) {
   const bytes = file.size;
@@ -67,6 +73,7 @@ function verificationBadgeClass(
 export default function ReportDetailsPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const { user } = useAuth();
 
   const [report, setReport] = useState<ApiReport | null>(null);
 
@@ -83,6 +90,11 @@ export default function ReportDetailsPage() {
 
   const [comments, setComments] = useState<ApiComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
+
+  const [riskScore, setRiskScore] = useState<ApiRiskScore | null>(null);
+  const [riskScoreLoading, setRiskScoreLoading] = useState(true);
+  const [riskScoreError, setRiskScoreError] = useState("");
+  const [calculatingRiskScore, setCalculatingRiskScore] = useState(false);
 
   const [commentText, setCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -106,11 +118,33 @@ export default function ReportDetailsPage() {
       getEvidenceForReport(id),
       getCommentsForReport(id),
     ])
-      .then(([reportResponse, evidenceResponse, commentsResponse]) => {
-        setReport(reportResponse.report);
-        setEvidence(evidenceResponse.evidence);
-        setComments(commentsResponse.comments);
-      })
+      .then(
+        ([reportResponse, evidenceResponse, commentsResponse]) => {
+          setReport(reportResponse.report);
+          setEvidence(evidenceResponse.evidence);
+          setComments(commentsResponse.comments);
+
+          return getRiskScoreForReport(id)
+            .then((riskScoreResponse) => {
+              setRiskScore(riskScoreResponse.risk_score);
+            })
+            .catch((err) => {
+              const message =
+                err instanceof Error
+                  ? err.message
+                  : "Failed to load risk score";
+
+              if (message !== "Risk score not found") {
+                setRiskScoreError(message);
+              }
+
+              setRiskScore(null);
+            })
+            .finally(() => {
+              setRiskScoreLoading(false);
+            });
+        }
+      )
       .catch((err) => {
         const message =
           err instanceof Error
@@ -125,6 +159,29 @@ export default function ReportDetailsPage() {
         setCommentsLoading(false);
       });
   }, [id]);
+
+  async function handleCalculateRiskScore() {
+    if (!id) {
+      return;
+    }
+
+    setCalculatingRiskScore(true);
+    setRiskScoreError("");
+
+    try {
+      const response = await calculateRiskScore(id);
+      setRiskScore(response.risk_score);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Failed to calculate risk score";
+
+      setRiskScoreError(message);
+    } finally {
+      setCalculatingRiskScore(false);
+    }
+  }
 
   async function handleUpload() {
     if (!id || !selectedFile) {
@@ -461,6 +518,93 @@ export default function ReportDetailsPage() {
           </div>
         </section>
       </div>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Risk Score
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Higher scores indicate stronger supporting signals for this report.
+            </p>
+          </div>
+
+          {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
+            <button
+              type="button"
+              onClick={handleCalculateRiskScore}
+              disabled={calculatingRiskScore}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {calculatingRiskScore
+                ? "Calculating..."
+                : riskScore
+                  ? "Recalculate Risk Score"
+                  : "Calculate Risk Score"}
+            </button>
+          )}
+        </div>
+
+        {riskScoreLoading ? (
+          <div className="mt-6 text-sm text-slate-500">
+            Loading risk score...
+          </div>
+        ) : riskScore ? (
+          <div className="mt-6">
+            <div className="flex items-end justify-between gap-4">
+              <div>
+                <div className="text-4xl font-bold text-slate-900">
+                  {Number(riskScore.score)}
+                  <span className="ml-1 text-lg font-medium text-slate-400">
+                    / 100
+                  </span>
+                </div>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Calculated{" "}
+                  {new Date(riskScore.calculated_at).toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
+              <div
+                className="h-full rounded-full bg-slate-900 transition-all"
+                style={{
+                  width: `${Math.max(
+                    0,
+                    Math.min(100, Number(riskScore.score))
+                  )}%`,
+                }}
+              />
+            </div>
+
+            <div className="mt-5 rounded-xl bg-slate-50 p-4">
+              <p className="text-sm font-medium text-slate-700">
+                Score explanation
+              </p>
+
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                {riskScore.explanation}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-6 rounded-xl bg-slate-50 p-4">
+            <p className="text-sm text-slate-600">
+              No risk score has been calculated for this report yet.
+            </p>
+          </div>
+        )}
+
+        {riskScoreError && (
+          <p className="mt-4 text-sm text-red-600">
+            {riskScoreError}
+          </p>
+        )}
+      </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-6">
         <div>
