@@ -27,6 +27,12 @@ import {
   getRiskScoreForReport,
   type ApiRiskScore,
 } from "../../lib/risk-scores-api";
+import {
+  createCorroboration,
+  deleteCorroboration,
+  getCorroborationsForReport,
+  type ApiCorroboration,
+} from "../../lib/corroborations-api";
 
 function formatFileSizeFromType(file: File) {
   const bytes = file.size;
@@ -95,6 +101,12 @@ export default function ReportDetailsPage() {
   const [riskScoreLoading, setRiskScoreLoading] = useState(true);
   const [riskScoreError, setRiskScoreError] = useState("");
   const [calculatingRiskScore, setCalculatingRiskScore] = useState(false);
+  const [corroborations, setCorroborations] = useState<ApiCorroboration[]>([]);
+  const [corroborationsLoading, setCorroborationsLoading] = useState(true);
+  const [corroborationComment, setCorroborationComment] = useState("");
+  const [submittingCorroboration, setSubmittingCorroboration] = useState(false);
+  const [corroborationActionError, setCorroborationActionError] = useState("");
+  const [corroborationActionSuccess, setCorroborationActionSuccess] = useState("");
 
   const [commentText, setCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -117,12 +129,14 @@ export default function ReportDetailsPage() {
       getReport(id),
       getEvidenceForReport(id),
       getCommentsForReport(id),
+      getCorroborationsForReport(id),
     ])
       .then(
-        ([reportResponse, evidenceResponse, commentsResponse]) => {
+        ([reportResponse, evidenceResponse, commentsResponse, corroborationsResponse]) => {
           setReport(reportResponse.report);
           setEvidence(evidenceResponse.evidence);
           setComments(commentsResponse.comments);
+          setCorroborations(corroborationsResponse.corroborations);
 
           return getRiskScoreForReport(id)
             .then((riskScoreResponse) => {
@@ -157,6 +171,7 @@ export default function ReportDetailsPage() {
         setLoading(false);
         setEvidenceLoading(false);
         setCommentsLoading(false);
+        setCorroborationsLoading(false);
       });
   }, [id]);
 
@@ -226,6 +241,71 @@ export default function ReportDetailsPage() {
       setUploading(false);
     }
   }
+
+  async function refreshCorroborations() {
+    if (!id) {
+      return;
+    }
+
+    const response = await getCorroborationsForReport(id);
+    setCorroborations(response.corroborations);
+  }
+
+  async function handleCreateCorroboration() {
+    if (!id || !user || submittingCorroboration) {
+      return;
+    }
+
+    setSubmittingCorroboration(true);
+    setCorroborationActionError("");
+    setCorroborationActionSuccess("");
+
+    try {
+      await createCorroboration({
+        report_id: id,
+        comment: corroborationComment.trim() || undefined,
+      });
+
+      await refreshCorroborations();
+      setCorroborationComment("");
+      setCorroborationActionSuccess(
+        "Your corroboration was added successfully."
+      );
+    } catch (err) {
+      setCorroborationActionError(
+        err instanceof Error
+          ? err.message
+          : "Failed to add corroboration"
+      );
+    } finally {
+      setSubmittingCorroboration(false);
+    }
+  }
+
+  async function handleDeleteCorroboration(corroborationId: string) {
+    if (submittingCorroboration) {
+      return;
+    }
+
+    setSubmittingCorroboration(true);
+    setCorroborationActionError("");
+    setCorroborationActionSuccess("");
+
+    try {
+      await deleteCorroboration(corroborationId);
+      await refreshCorroborations();
+      setCorroborationActionSuccess("Your corroboration was removed.");
+    } catch (err) {
+      setCorroborationActionError(
+        err instanceof Error
+          ? err.message
+          : "Failed to remove corroboration"
+      );
+    } finally {
+      setSubmittingCorroboration(false);
+    }
+  }
+
 
   async function handleCreateComment() {
     if (!id || !commentText.trim()) {
@@ -774,6 +854,139 @@ export default function ReportDetailsPage() {
           )}
         </div>
       </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-6">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-950">
+              Corroborations
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              {corroborations.length}{" "}
+              {corroborations.length === 1
+                ? "user has"
+                : "users have"}{" "}
+              corroborated this report.
+            </p>
+          </div>
+        </div>
+
+        {user ? (
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <h3 className="text-sm font-semibold text-slate-950">
+              Corroborate this report
+            </h3>
+
+            <p className="mt-1 text-xs text-slate-500">
+              Confirm that you support the report. A comment is optional.
+            </p>
+
+            <textarea
+              value={corroborationComment}
+              onChange={(event) => {
+                setCorroborationComment(event.target.value);
+                setCorroborationActionError("");
+                setCorroborationActionSuccess("");
+              }}
+              rows={3}
+              placeholder="Add context about why you corroborate this report (optional)..."
+              disabled={submittingCorroboration}
+              className="mt-4 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:opacity-60"
+            />
+
+            {corroborationActionError && (
+              <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                {corroborationActionError}
+              </div>
+            )}
+
+            {corroborationActionSuccess && (
+              <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                {corroborationActionSuccess}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => void handleCreateCorroboration()}
+              disabled={submittingCorroboration}
+              className="mt-4 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {submittingCorroboration
+                ? "Saving..."
+                : "Corroborate report"}
+            </button>
+          </div>
+        ) : null}
+
+        <div className="mt-6">
+          {corroborationsLoading ? (
+            <p className="text-sm text-slate-500">
+              Loading corroborations...
+            </p>
+          ) : corroborations.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center">
+              <p className="text-sm font-medium text-slate-700">
+                No one has corroborated this report yet.
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">
+                Be the first to add independent support.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {corroborations.map((item) => (
+                <div
+                  key={item.id}
+                  className="rounded-lg border border-slate-200 p-4"
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-950">
+                          {item.user.username}
+                        </p>
+
+                        {item.user.is_verified && (
+                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                            Verified
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="mt-1 text-xs text-slate-400">
+                        {new Date(item.created_at).toLocaleString()}
+                      </p>
+
+                      {item.comment && (
+                        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                          {item.comment}
+                        </p>
+                      )}
+                    </div>
+
+                    {user?.id === item.user_id && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleDeleteCorroboration(item.id)
+                        }
+                        disabled={submittingCorroboration}
+                        className="w-fit text-xs font-medium text-red-600 hover:text-red-800 disabled:opacity-50"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
 
       <section className="rounded-xl border border-slate-200 bg-white p-6">
         <div>
