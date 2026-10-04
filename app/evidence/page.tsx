@@ -172,10 +172,7 @@ export default function EvidencePage() {
 
                   {file.file_url && (
                     <a
-                      href={`${process.env.NEXT_PUBLIC_API_URL?.replace(
-                        /\/api$/,
-                        ""
-                      )}${file.file_url}`}
+                      href={file.file_url}
                       target="_blank"
                       rel="noreferrer"
                       className="text-sm font-medium text-slate-900 hover:underline"
