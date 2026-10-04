@@ -9,18 +9,21 @@ import {
   type ApiReport,
 } from "../lib/reports-api";
 
-import { getDisputes, type Dispute } from "../lib/reports";
+import {
+  getMyDisputes,
+  type ApiDispute,
+} from "../lib/disputes-api";
 import { getUserEvidence } from "../lib/evidence-api";
 import {
   getNotifications,
-  type Notification,
-} from "../lib/notifications";
+  type ApiNotification,
+} from "../lib/notifications-api";
 
 export default function DashboardPage() {
   const [reports, setReports] = useState<ApiReport[]>([]);
-  const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [disputes, setDisputes] = useState<ApiDispute[]>([]);
   const [evidenceCount, setEvidenceCount] = useState(0);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<ApiNotification[]>([]);
   const [loadingReports, setLoadingReports] = useState(true);
 
   useEffect(() => {
@@ -29,21 +32,25 @@ export default function DashboardPage() {
       .catch(() => setReports([]))
       .finally(() => setLoadingReports(false));
 
-    setDisputes(getDisputes());
+    void getMyDisputes()
+      .then((response) => setDisputes(response.disputes))
+      .catch(() => setDisputes([]));
 
     void getUserEvidence()
       .then((response) => setEvidenceCount(response.count))
       .catch(() => setEvidenceCount(0));
 
-    setNotifications(getNotifications());
+    void getNotifications()
+      .then((response) => setNotifications(response.notifications))
+      .catch(() => setNotifications([]));
   }, []);
 
   const openDisputes = disputes.filter(
-    (dispute) => dispute.status === "Open"
+    (dispute) => dispute.result === "PENDING"
   );
 
   const unreadNotifications = notifications.filter(
-    (notification) => !notification.read
+    (notification) => !notification.is_read
   ).length;
 
   const recentReports = reports.slice(0, 5);

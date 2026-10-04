@@ -33,3 +33,22 @@ export async function getDispute(id: string): Promise<{
     token: getToken() ?? undefined,
   });
 }
+
+export async function reviewDispute(
+  id: string,
+  result: DisputeResult,
+  review_notes?: string
+): Promise<{
+  status: string;
+  message: string;
+  dispute: ApiDispute;
+}> {
+  return apiFetch(`/disputes/${id}/review`, {
+    method: "PATCH",
+    token: getToken() ?? undefined,
+    body: {
+      result,
+      review_notes,
+    },
+  });
+}

@@ -7,6 +7,7 @@ import { useAuth } from "./AuthProvider";
 const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: "⌂" },
   { name: "Reports", href: "/reports", icon: "▤" },
+  { name: "Social Accounts", href: "/social-accounts", icon: "◎" },
   { name: "Search", href: "/search", icon: "⌕" },
   { name: "Evidence", href: "/evidence", icon: "◈" },
   { name: "Disputes", href: "/disputes", icon: "⚖" },
@@ -72,6 +73,43 @@ export default function SidebarNav({
             </Link>
           );
         })}
+
+        {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
+          <Link
+            href="/moderation"
+            onClick={onNavigate}
+            title={compact ? "Moderation" : undefined}
+            aria-label="Moderation"
+            className={`flex items-center rounded-lg transition ${
+              compact
+                ? "justify-center px-2 py-3"
+                : "gap-3 px-3 py-2.5"
+            } ${
+              pathname === "/moderation" ||
+              pathname.startsWith("/moderation/")
+                ? "bg-slate-900 text-white"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+            }`}
+          >
+            <span
+              aria-hidden="true"
+              className={`flex h-6 w-6 shrink-0 items-center justify-center text-base ${
+                pathname === "/moderation" ||
+                pathname.startsWith("/moderation/")
+                  ? "text-white"
+                  : "text-slate-500"
+              }`}
+            >
+              ⚙
+            </span>
+
+            {!compact && (
+              <span className="truncate text-sm font-medium">
+                Moderation
+              </span>
+            )}
+          </Link>
+        )}
       </div>
 
       <div
