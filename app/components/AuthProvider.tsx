@@ -37,7 +37,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(
   undefined
 );
 
-const PUBLIC_PATHS = ["/login", "/register"];
+const PUBLIC_PATHS = ["/login", "/register", "/forgot-password"];
 
 export function AuthProvider({
   children,

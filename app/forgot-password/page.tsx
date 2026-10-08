@@ -1,148 +1,115 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "../components/AuthProvider";
 import {
-  sendVerification,
-  verifyEmail,
+  resetPassword,
+  sendPasswordReset,
+  verifyPasswordReset,
 } from "../lib/auth";
 
-type Step = "email" | "code" | "account";
+type Step = "email" | "code" | "password";
 
-export default function RegisterPage() {
+export default function ForgotPasswordPage() {
   const router = useRouter();
-  const { registerUser } = useAuth();
 
   const [step, setStep] = useState<Step>("email");
-
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
-
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendCooldown, setResendCooldown] = useState(0);
 
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
+  function startCooldown() {
+    setResendCooldown(60);
 
-    const timer = window.setInterval(() => {
-      setResendCooldown((current) =>
-        current > 0 ? current - 1 : 0
-      );
+    const interval = window.setInterval(() => {
+      setResendCooldown((current) => {
+        if (current <= 1) {
+          window.clearInterval(interval);
+          return 0;
+        }
+
+        return current - 1;
+      });
     }, 1000);
+  }
 
-    return () => window.clearInterval(timer);
-  }, [resendCooldown]);
-
-  async function handleSendCode(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  async function handleSendCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
-      await sendVerification(email.trim());
+      await sendPasswordReset(email);
 
       setStep("code");
-      setResendCooldown(60);
+      setSuccess(
+        "If an account exists for this email, a verification code has been sent."
+      );
+
+      startCooldown();
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to send verification code"
+          : "Unable to send password reset code"
       );
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleVerifyCode(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  async function handleVerifyCode(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setError("");
-
-    if (!/^\\d{6}$/.test(code.trim())) {
-      setError("Verification code must be 6 digits.");
+    if (!/^\d{6}$/.test(code)) {
+      setError("Verification code must be 6 digits");
       return;
     }
 
+    setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
-      await verifyEmail(email.trim(), code.trim());
+      await verifyPasswordReset(email, code);
 
-      setStep("account");
-      setError("");
+      setStep("password");
+      setSuccess("Code verified. You can now create a new password.");
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Unable to verify email"
+          : "Unable to verify reset code"
       );
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleCreateAccount(
-    event: FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault();
-
-    setError("");
-
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+  async function handleResendCode() {
+    if (resendCooldown > 0 || loading) {
       return;
     }
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      await registerUser(
-        username.trim(),
-        email.trim(),
-        password
-      );
-
-      router.replace("/dashboard");
-      router.refresh();
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to create account"
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleResend() {
-    if (resendCooldown > 0 || loading) return;
-
     setError("");
+    setSuccess("");
     setLoading(true);
 
     try {
-      await sendVerification(email.trim());
+      await sendPasswordReset(email);
+
       setCode("");
-      setResendCooldown(60);
+      setSuccess("A new verification code has been sent.");
+      startCooldown();
     } catch (err) {
       setError(
         err instanceof Error
@@ -154,14 +121,42 @@ export default function RegisterPage() {
     }
   }
 
-  function changeEmail() {
+  async function handleResetPassword(
+    event: FormEvent<HTMLFormElement>
+  ) {
+    event.preventDefault();
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
     setError("");
-    setCode("");
-    setStep("email");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      await resetPassword(email, password);
+
+      router.replace("/login?reset=success");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to reset password"
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <Link
@@ -178,64 +173,35 @@ export default function RegisterPage() {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
           <div>
-            <div className="mb-4 flex items-center gap-2">
-              {[
-                ["email", "1"],
-                ["code", "2"],
-                ["account", "3"],
-              ].map(([name, number]) => (
+            <h1 className="text-xl font-semibold text-slate-950">
+              Reset your password
+            </h1>
+
+            <p className="mt-1 text-sm text-slate-500">
+              {step === "email" &&
+                "Enter your email address to receive a reset code."}
+
+              {step === "code" &&
+                "Enter the 6-digit code sent to your email."}
+
+              {step === "password" &&
+                "Create a new password for your account."}
+            </p>
+          </div>
+
+          <div className="mt-6 flex gap-2">
+            {(["email", "code", "password"] as Step[]).map(
+              (item, index) => (
                 <div
-                  key={name}
+                  key={item}
                   className={`h-1.5 flex-1 rounded-full ${
-                    name === step ||
-                    (step === "code" && name === "email") ||
-                    step === "account"
+                    index <=
+                    ["email", "code", "password"].indexOf(step)
                       ? "bg-slate-900"
                       : "bg-slate-200"
                   }`}
                 />
-              ))}
-            </div>
-
-            {step === "email" && (
-              <>
-                <h1 className="text-xl font-semibold text-slate-950">
-                  Create account
-                </h1>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Start by verifying your email address.
-                </p>
-              </>
-            )}
-
-            {step === "code" && (
-              <>
-                <h1 className="text-xl font-semibold text-slate-950">
-                  Verify your email
-                </h1>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  We sent a 6-digit verification code to{" "}
-                  <span className="font-medium text-slate-700">
-                    {email}
-                  </span>
-                  .
-                </p>
-              </>
-            )}
-
-            {step === "account" && (
-              <>
-                <h1 className="text-xl font-semibold text-slate-950">
-                  Create your account
-                </h1>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Your email has been verified. Choose your
-                  username and password.
-                </p>
-              </>
+              )
             )}
           </div>
 
@@ -245,11 +211,14 @@ export default function RegisterPage() {
             </div>
           )}
 
+          {success && (
+            <div className="mt-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+              {success}
+            </div>
+          )}
+
           {step === "email" && (
-            <form
-              onSubmit={handleSendCode}
-              className="mt-6 space-y-5"
-            >
+            <form onSubmit={handleSendCode} className="mt-6 space-y-5">
               <div>
                 <label
                   htmlFor="email"
@@ -265,9 +234,7 @@ export default function RegisterPage() {
                   autoComplete="email"
                   required
                   value={email}
-                  onChange={(event) =>
-                    setEmail(event.target.value)
-                  }
+                  onChange={(event) => setEmail(event.target.value)}
                   className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                   placeholder="you@example.com"
                 />
@@ -278,16 +245,13 @@ export default function RegisterPage() {
                 disabled={loading}
                 className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "Sending code..." : "Send verification code"}
+                {loading ? "Sending..." : "Send reset code"}
               </button>
             </form>
           )}
 
           {step === "code" && (
-            <form
-              onSubmit={handleVerifyCode}
-              className="mt-6 space-y-5"
-            >
+            <form onSubmit={handleVerifyCode} className="mt-6 space-y-5">
               <div>
                 <label
                   htmlFor="code"
@@ -308,36 +272,41 @@ export default function RegisterPage() {
                   onChange={(event) =>
                     setCode(
                       event.target.value
-                        .replace(/\\D/g, "")
+                        .replace(/\D/g, "")
                         .slice(0, 6)
                     )
                   }
-                  className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 text-center text-xl font-semibold tracking-[0.35em] outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                  className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3 text-center text-xl font-semibold tracking-[0.5em] outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                   placeholder="000000"
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || code.length !== 6}
                 className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "Verifying..." : "Verify email"}
+                {loading ? "Verifying..." : "Verify code"}
               </button>
 
               <div className="flex items-center justify-between text-sm">
                 <button
                   type="button"
-                  onClick={changeEmail}
-                  className="font-medium text-slate-600 hover:text-slate-900 hover:underline"
+                  onClick={() => {
+                    setStep("email");
+                    setCode("");
+                    setError("");
+                    setSuccess("");
+                  }}
+                  className="font-medium text-slate-600 hover:text-slate-900"
                 >
                   Change email
                 </button>
 
                 <button
                   type="button"
-                  onClick={handleResend}
-                  disabled={loading || resendCooldown > 0}
+                  disabled={resendCooldown > 0 || loading}
+                  onClick={handleResendCode}
                   className="font-medium text-slate-900 hover:underline disabled:cursor-not-allowed disabled:text-slate-400 disabled:no-underline"
                 >
                   {resendCooldown > 0
@@ -348,40 +317,17 @@ export default function RegisterPage() {
             </form>
           )}
 
-          {step === "account" && (
+          {step === "password" && (
             <form
-              onSubmit={handleCreateAccount}
+              onSubmit={handleResetPassword}
               className="mt-6 space-y-5"
             >
-              <div>
-                <label
-                  htmlFor="username"
-                  className="block text-sm font-medium text-slate-700"
-                >
-                  Username
-                </label>
-
-                <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  autoComplete="username"
-                  required
-                  value={username}
-                  onChange={(event) =>
-                    setUsername(event.target.value)
-                  }
-                  className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                  placeholder="Choose a username"
-                />
-              </div>
-
               <div>
                 <label
                   htmlFor="password"
                   className="block text-sm font-medium text-slate-700"
                 >
-                  Password
+                  New password
                 </label>
 
                 <input
@@ -390,10 +336,10 @@ export default function RegisterPage() {
                   type="password"
                   autoComplete="new-password"
                   required
+                  minLength={8}
+                  maxLength={128}
                   value={password}
-                  onChange={(event) =>
-                    setPassword(event.target.value)
-                  }
+                  onChange={(event) => setPassword(event.target.value)}
                   className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
                   placeholder="At least 8 characters"
                 />
@@ -404,7 +350,7 @@ export default function RegisterPage() {
                   htmlFor="confirmPassword"
                   className="block text-sm font-medium text-slate-700"
                 >
-                  Confirm password
+                  Confirm new password
                 </label>
 
                 <input
@@ -413,12 +359,14 @@ export default function RegisterPage() {
                   type="password"
                   autoComplete="new-password"
                   required
+                  minLength={8}
+                  maxLength={128}
                   value={confirmPassword}
                   onChange={(event) =>
                     setConfirmPassword(event.target.value)
                   }
                   className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                  placeholder="Enter your password again"
+                  placeholder="Enter the password again"
                 />
               </div>
 
@@ -427,20 +375,17 @@ export default function RegisterPage() {
                 disabled={loading}
                 className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading
-                  ? "Creating account..."
-                  : "Create account"}
+                {loading ? "Resetting..." : "Reset password"}
               </button>
             </form>
           )}
 
           <div className="mt-6 border-t border-slate-100 pt-6 text-center text-sm text-slate-500">
-            Already have an account?{" "}
             <Link
               href="/login"
               className="font-medium text-slate-900 hover:underline"
             >
-              Sign in
+              Back to sign in
             </Link>
           </div>
         </div>
