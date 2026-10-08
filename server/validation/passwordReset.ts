@@ -9,6 +9,10 @@ export const forgotPasswordSchema = z.object({
     .email("Please provide a valid email address")
     .max(255, "Email must be at most 255 characters")
     .transform((value) => value.toLowerCase()),
+
+  destination: z
+    .enum(["user", "admin"])
+    .default("user"),
 });
 
 export const verifyResetCodeSchema = z.object({

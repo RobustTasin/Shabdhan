@@ -16,6 +16,7 @@ export default function ForgotPasswordPage() {
 
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
+  const [destination, setDestination] = useState<"user" | "admin">("user");
   const [code, setCode] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -48,11 +49,13 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      await sendPasswordReset(email);
+      await sendPasswordReset(email, destination);
 
       setStep("code");
       setSuccess(
-        "If an account exists for this email, a verification code has been sent."
+        destination === "admin"
+          ? "If an account exists for this email, the reset code has been sent to the project admin for demonstration."
+          : "If an account exists for this email, a verification code has been sent."
       );
 
       startCooldown();
@@ -105,10 +108,14 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      await sendPasswordReset(email);
+      await sendPasswordReset(email, destination);
 
       setCode("");
-      setSuccess("A new verification code has been sent.");
+      setSuccess(
+        destination === "admin"
+          ? "If an account exists for this email, a new reset code has been sent to the project admin for demonstration."
+          : "A new verification code has been sent."
+      );
       startCooldown();
     } catch (err) {
       setError(
@@ -182,7 +189,9 @@ export default function ForgotPasswordPage() {
                 "Enter your email address to receive a reset code."}
 
               {step === "code" &&
-                "Enter the 6-digit code sent to your email."}
+                (destination === "admin"
+                  ? "Enter the 6-digit code provided by the project admin."
+                  : "Enter the 6-digit code sent to your email.")}
 
               {step === "password" &&
                 "Create a new password for your account."}
@@ -239,6 +248,50 @@ export default function ForgotPasswordPage() {
                   placeholder="you@example.com"
                 />
               </div>
+
+              <fieldset className="space-y-3">
+                <legend className="block text-sm font-medium text-slate-700">
+                  Where should the reset code be sent?
+                </legend>
+
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 p-3">
+                  <input
+                    type="radio"
+                    name="destination"
+                    value="user"
+                    checked={destination === "user"}
+                    onChange={() => setDestination("user")}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-slate-800">
+                      Send to my email
+                    </span>
+                    <span className="block text-xs text-slate-500">
+                      Send the reset code to the email address above.
+                    </span>
+                  </span>
+                </label>
+
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <input
+                    type="radio"
+                    name="destination"
+                    value="admin"
+                    checked={destination === "admin"}
+                    onChange={() => setDestination("admin")}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-slate-800">
+                      Send to ADMIN (MT21)
+                    </span>
+                    <span className="block text-xs text-slate-600">
+                      Demo / project demonstration only. Ask the admin for the code.
+                    </span>
+                  </span>
+                </label>
+              </fieldset>
 
               <button
                 type="submit"

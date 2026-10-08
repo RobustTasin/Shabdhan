@@ -15,7 +15,10 @@ function generateResetCode(): string {
   return crypto.randomInt(100000, 1000000).toString();
 }
 
-export async function sendPasswordResetCode(email: string) {
+export async function sendPasswordResetCode(
+  email: string,
+  destination: "user" | "admin" = "user"
+) {
   const normalizedEmail = normalizeEmail(email);
 
   const recentReset = await pool.query(
@@ -46,15 +49,61 @@ export async function sendPasswordResetCode(email: string) {
     throw new Error("RESEND_API_KEY is not configured");
   }
 
+    const demoAdminEnabled =
+    process.env.DEMO_ADMIN_VERIFICATION === "true";
+
+  if (destination === "admin" && !demoAdminEnabled) {
+    throw new Error("Demo admin password reset is not enabled");
+  }
+
+  const demoAdminReset = destination === "admin";
+  const demoAdminEmail = process.env.DEMO_ADMIN_EMAIL?.trim();
+
+  if (demoAdminReset && !demoAdminEmail) {
+    throw new Error(
+      "DEMO_ADMIN_EMAIL is required when demo admin verification is enabled"
+    );
+  }
+
+  const recipientEmail = demoAdminReset
+    ? demoAdminEmail!
+    : normalizedEmail;
+
   const resend = new Resend(resendApiKey);
 
-  const { error } = await resend.emails.send({
-    from:
-      process.env.EMAIL_FROM ||
-      "Shabdhan <onboarding@resend.dev>",
-    to: normalizedEmail,
-    subject: "Reset your Shabdhan password",
-    html: `
+  const subject = demoAdminReset
+    ? "Shabdhan demo password reset code"
+    : "Reset your Shabdhan password";
+
+  const emailContent = demoAdminReset
+    ? `
+      <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto;">
+        <h2>Shabdhan Demo Password Reset</h2>
+
+        <p>A user requested a password reset for a project demonstration.</p>
+
+        <p><strong>User email:</strong> ${normalizedEmail}</p>
+
+        <p>The password reset code is:</p>
+
+        <div style="
+          font-size: 32px;
+          font-weight: bold;
+          letter-spacing: 8px;
+          margin: 24px 0;
+        ">
+          ${code}
+        </div>
+
+        <p>This code expires in ${RESET_CODE_EXPIRY_MINUTES} minutes.</p>
+
+        <p>
+          This message was sent through Shabdhan's
+          <strong>Demo / Project Demonstration</strong> reset mode.
+        </p>
+      </div>
+    `
+    : `
       <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto;">
         <h2>Reset your Shabdhan password</h2>
 
@@ -76,7 +125,15 @@ export async function sendPasswordResetCode(email: string) {
           this email.
         </p>
       </div>
-    `,
+    `;
+
+  const { error } = await resend.emails.send({
+    from:
+      process.env.EMAIL_FROM ||
+      "Shabdhan <onboarding@resend.dev>",
+    to: recipientEmail,
+    subject,
+    html: emailContent,
   });
 
   if (error) {
