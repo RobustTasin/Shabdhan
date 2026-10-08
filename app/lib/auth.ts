@@ -146,13 +146,14 @@ export function logout() {
 
 
 export async function sendPasswordReset(
-  email: string
+  email: string,
+  destination: "user" | "admin" = "user"
 ): Promise<void> {
   await apiFetch<{ status: string; message: string }>(
     "/auth/forgot-password",
     {
       method: "POST",
-      body: { email },
+      body: { email, destination },
     }
   );
 }

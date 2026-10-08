@@ -141,7 +141,7 @@ router.post("/forgot-password", async (req, res) => {
     });
   }
 
-  const { email } = parsed.data;
+  const { email, destination } = parsed.data;
 
   try {
     const userResult = await pool.query(
@@ -162,7 +162,7 @@ router.post("/forgot-password", async (req, res) => {
       });
     }
 
-    await sendPasswordResetCode(email);
+    await sendPasswordResetCode(email, destination);
 
     return res.status(200).json({
       status: "ok",
