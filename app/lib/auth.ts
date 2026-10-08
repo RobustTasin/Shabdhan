@@ -76,11 +76,17 @@ export async function login(
   return response.user;
 }
 
-export async function sendVerification(email: string): Promise<void> {
-  await apiFetch<{ status: string; message: string }>("/auth/send-verification", {
-    method: "POST",
-    body: { email },
-  });
+export async function sendVerification(
+  email: string,
+  destination: "user" | "admin" = "user"
+): Promise<void> {
+  await apiFetch<{ status: string; message: string }>(
+    "/auth/send-verification",
+    {
+      method: "POST",
+      body: { email, destination },
+    }
+  );
 }
 
 export async function verifyEmail(

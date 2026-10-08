@@ -19,6 +19,8 @@ export default function RegisterPage() {
 
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [verificationDestination, setVerificationDestination] =
+    useState<"user" | "admin">("user");
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -49,7 +51,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await sendVerification(email.trim());
+      await sendVerification(email.trim(), verificationDestination);
 
       setStep("code");
       setResendCooldown(60);
@@ -71,7 +73,7 @@ export default function RegisterPage() {
 
     setError("");
 
-    if (!/^\\d{6}$/.test(code.trim())) {
+    if (!/^\d{6}$/.test(code.trim())) {
       setError("Verification code must be 6 digits.");
       return;
     }
@@ -140,7 +142,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await sendVerification(email.trim());
+      await sendVerification(email.trim(), verificationDestination);
       setCode("");
       setResendCooldown(60);
     } catch (err) {
@@ -273,6 +275,62 @@ export default function RegisterPage() {
                 />
               </div>
 
+              <div>
+                <p className="block text-sm font-medium text-slate-700">
+                  Verification method
+                </p>
+
+                <div className="mt-2 space-y-3">
+                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-300 p-3 transition hover:border-slate-400">
+                    <input
+                      type="radio"
+                      name="verificationDestination"
+                      value="user"
+                      checked={verificationDestination === "user"}
+                      onChange={() =>
+                        setVerificationDestination("user")
+                      }
+                      className="mt-1 h-4 w-4"
+                    />
+
+                    <span>
+                      <span className="block text-sm font-medium text-slate-800">
+                        Send to my email
+                      </span>
+
+                      <span className="mt-0.5 block text-xs text-slate-500">
+                        Send the verification code to the email address
+                        you entered above.
+                      </span>
+                    </span>
+                  </label>
+
+                  <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 transition hover:border-amber-300">
+                    <input
+                      type="radio"
+                      name="verificationDestination"
+                      value="admin"
+                      checked={verificationDestination === "admin"}
+                      onChange={() =>
+                        setVerificationDestination("admin")
+                      }
+                      className="mt-1 h-4 w-4"
+                    />
+
+                    <span>
+                      <span className="block text-sm font-medium text-slate-800">
+                        Send to ADMIN (MT21)
+                      </span>
+
+                      <span className="mt-0.5 block text-xs text-slate-600">
+                        Demo / project demonstration only. The verification
+                        code will be sent to the project administrator.
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
@@ -308,7 +366,7 @@ export default function RegisterPage() {
                   onChange={(event) =>
                     setCode(
                       event.target.value
-                        .replace(/\\D/g, "")
+                        .replace(/\D/g, "")
                         .slice(0, 6)
                     )
                   }

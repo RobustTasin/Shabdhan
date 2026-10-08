@@ -15,7 +15,10 @@ function generateVerificationCode(): string {
   return crypto.randomInt(100000, 1000000).toString();
 }
 
-export async function sendVerificationCode(email: string) {
+export async function sendVerificationCode(
+  email: string,
+  destination: "user" | "admin" = "user"
+) {
   const normalizedEmail = normalizeEmail(email);
 
   const recentVerification = await pool.query(
@@ -46,13 +49,57 @@ export async function sendVerificationCode(email: string) {
     throw new Error("RESEND_API_KEY is not configured");
   }
 
+  const demoAdminVerification =
+    process.env.DEMO_ADMIN_VERIFICATION === "true" &&
+    destination === "admin";
+
+  const demoAdminEmail = process.env.DEMO_ADMIN_EMAIL?.trim();
+
+  if (demoAdminVerification && !demoAdminEmail) {
+    throw new Error(
+      "DEMO_ADMIN_EMAIL is required when demo admin verification is enabled"
+    );
+  }
+
+  const recipientEmail = demoAdminVerification
+    ? demoAdminEmail!
+    : normalizedEmail;
+
   const resend = new Resend(resendApiKey);
 
-  const { error } = await resend.emails.send({
-    from: process.env.EMAIL_FROM || "Shabdhan <onboarding@resend.dev>",
-    to: normalizedEmail,
-    subject: "Your Shabdhan verification code",
-    html: `
+  const subject = demoAdminVerification
+    ? "Shabdhan demo verification code"
+    : "Your Shabdhan verification code";
+
+  const emailContent = demoAdminVerification
+    ? `
+      <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto;">
+        <h2>Shabdhan Demo Verification</h2>
+
+        <p>A user requested email verification for a project demonstration.</p>
+
+        <p><strong>User email:</strong> ${normalizedEmail}</p>
+
+        <p>The verification code is:</p>
+
+        <div style="
+          font-size: 32px;
+          font-weight: bold;
+          letter-spacing: 8px;
+          margin: 24px 0;
+        ">
+          ${code}
+        </div>
+
+        <p>This code expires in ${VERIFICATION_CODE_EXPIRY_MINUTES} minutes.</p>
+
+        <p>
+          This message was sent through Shabdhan's
+          <strong>Demo / Project Demonstration</strong> verification mode.
+        </p>
+      </div>
+    `
+    : `
       <div style="font-family: Arial, sans-serif; max-width: 520px; margin: auto;">
         <h2>Verify your Shabdhan email</h2>
 
@@ -71,7 +118,13 @@ export async function sendVerificationCode(email: string) {
 
         <p>If you did not request this code, you can safely ignore this email.</p>
       </div>
-    `,
+    `;
+
+  const { error } = await resend.emails.send({
+    from: process.env.EMAIL_FROM || "Shabdhan <onboarding@resend.dev>",
+    to: recipientEmail,
+    subject,
+    html: emailContent,
   });
 
   if (error) {

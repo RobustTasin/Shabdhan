@@ -43,7 +43,7 @@ router.post("/send-verification", async (req, res) => {
     });
   }
 
-  const { email } = validation.data;
+  const { email, destination } = validation.data;
 
   try {
     const existingUser = await pool.query(
@@ -58,7 +58,7 @@ router.post("/send-verification", async (req, res) => {
       });
     }
 
-    await sendVerificationCode(email);
+    await sendVerificationCode(email, destination);
 
     return res.json({
       status: "ok",
