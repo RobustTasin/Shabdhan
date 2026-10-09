@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { getStoredUser } from "../lib/auth";
 import { FormEvent, useEffect, useState } from "react";
 import {
   createReport,
   createSocialAccount,
   getCategories,
+  getModerationReports,
   getReports,
   getSocialAccounts,
   reportStatusLabel,
@@ -15,6 +17,8 @@ import {
 } from "../lib/reports-api";
 
 export default function ReportsPage() {
+  const role = getStoredUser()?.role;
+  const isModerator = role === "MODERATOR" || role === "ADMIN";
   const [reports, setReports] = useState<ApiReport[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
@@ -37,8 +41,14 @@ export default function ReportsPage() {
     try {
       setLoading(true);
       setError("");
+      const role = getStoredUser()?.role;
+      const reportsRequest =
+        role === "MODERATOR" || role === "ADMIN"
+          ? getModerationReports({ limit: 100 })
+          : getReports({ limit: 100 });
+
       const [rr, cr, sr] = await Promise.all([
-        getReports({ limit: 100 }),
+        reportsRequest,
         getCategories(),
         getSocialAccounts(),
       ]);
@@ -111,7 +121,7 @@ export default function ReportsPage() {
           <div>
             <p className="text-sm font-medium text-slate-500">Shabdhan</p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight">Reports</h1>
-            <p className="mt-2 text-sm text-slate-600">Create, review, and manage your reports.</p>
+            <p className="mt-2 text-sm text-slate-600">{isModerator ? "Review and manage reports submitted by all users." : "Create, review, and manage your reports."}</p>
           </div>
           <button type="button" onClick={() => setShowCreate(true)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">
             + Create report
@@ -123,7 +133,7 @@ export default function ReportsPage() {
         <section className="mt-8">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-6 py-4">
-              <h2 className="text-sm font-semibold">My reports</h2>
+              <h2 className="text-sm font-semibold">{isModerator ? "All reports" : "My reports"}</h2>
               <p className="mt-1 text-xs text-slate-500">
                 {loading ? "Loading..." : reports.length + " report" + (reports.length === 1 ? "" : "s")}
               </p>
@@ -134,7 +144,7 @@ export default function ReportsPage() {
             ) : reports.length === 0 ? (
               <div className="p-10 text-center">
                 <p className="text-sm font-medium text-slate-700">No reports yet</p>
-                <p className="mt-1 text-sm text-slate-500">Create your first report to get started.</p>
+                <p className="mt-1 text-sm text-slate-500">{isModerator ? "No reports have been submitted yet." : "Create your first report to get started."}</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
@@ -144,6 +154,7 @@ export default function ReportsPage() {
                       <h3 className="truncate text-sm font-semibold text-slate-900">{report.title}</h3>
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                         <span>{report.category?.name ?? "Uncategorized"}</span>
+                        {isModerator && report.reporter?.username && <><span>•</span><span>Reporter: @{report.reporter.username}</span></>}
                         <span>•</span>
                         <span>{report.social_account?.platform} · @{report.social_account?.username}</span>
                         <span>•</span>

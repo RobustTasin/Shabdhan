@@ -38,6 +38,10 @@ export type ApiReport = {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  reporter?: {
+    id: string;
+    username: string;
+  };
   social_account?: SocialAccount;
   category?: Category | null;
 };
@@ -69,6 +73,46 @@ export async function getReports(params: {
   const suffix = query.toString() ? `?${query.toString()}` : "";
 
   return apiFetch<ReportListResponse>(`/reports${suffix}`, {
+    token: getToken() ?? undefined,
+  });
+}
+
+export type ModerationReportListResponse = {
+  status: string;
+  reports: (ApiReport & {
+    reporter: { id: string; username: string };
+  })[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  count: number;
+};
+
+export async function getModerationReports(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: ReportStatus;
+  verification_status?: VerificationStatus;
+  social_account_id?: string;
+} = {}): Promise<ModerationReportListResponse> {
+  const query = new URLSearchParams();
+
+  if (params.page) query.set("page", String(params.page));
+  if (params.limit) query.set("limit", String(params.limit));
+  if (params.search) query.set("search", params.search);
+  if (params.status) query.set("status", params.status);
+  if (params.verification_status) {
+    query.set("verification_status", params.verification_status);
+  }
+  if (params.social_account_id) {
+    query.set("social_account_id", params.social_account_id);
+  }
+
+  const suffix = query.toString() ? `?${query.toString()}` : "";
+
+  return apiFetch<ModerationReportListResponse>(`/reports/moderation${suffix}`, {
     token: getToken() ?? undefined,
   });
 }

@@ -18,17 +18,19 @@ router.get(
     try {
       const result = await pool.query(
         `SELECT
-           id,
-           report_id,
-           submitted_by,
-           reason,
-           result,
-           reviewed_by,
-           review_notes,
-           created_at,
-           updated_at
-         FROM disputes
-         ORDER BY created_at DESC`
+           d.id,
+           d.report_id,
+           d.submitted_by,
+           d.reason,
+           d.result,
+           d.reviewed_by,
+           d.review_notes,
+           d.created_at,
+           d.updated_at,
+           r.title AS report_title
+         FROM disputes d
+         JOIN reports r ON r.id = d.report_id
+         ORDER BY d.created_at DESC, d.id DESC`
       );
 
       res.json({
@@ -246,60 +248,121 @@ router.patch(
 
       const allowedResults = ["PENDING", "UPHELD", "REJECTED"];
 
-      if (!result || !allowedResults.includes(result)) {
+      if (typeof result !== "string" || !allowedResults.includes(result)) {
         return res.status(400).json({
           status: "error",
           message: "Result must be one of: PENDING, UPHELD, REJECTED",
         });
       }
 
-      const dispute = await pool.query(
-        `SELECT id
-         FROM disputes
-         WHERE id = $1`,
-        [id]
-      );
-
-      if (dispute.rows.length === 0) {
-        return res.status(404).json({
+      if (
+        review_notes !== undefined &&
+        review_notes !== null &&
+        typeof review_notes !== "string"
+      ) {
+        return res.status(400).json({
           status: "error",
-          message: "Dispute not found",
+          message: "Review notes must be a string or null",
         });
       }
 
-      const updated = await pool.query(
-        `UPDATE disputes
-         SET
-           result = $1,
-           reviewed_by = $2,
-           review_notes = $3,
-           updated_at = NOW()
-         WHERE id = $4
-         RETURNING
-           id,
-           report_id,
-           submitted_by,
-           reason,
-           result,
-           reviewed_by,
-           review_notes,
-           created_at,
-           updated_at`,
-        [result, req.user!.id, review_notes ?? null, id]
-      );
+      const normalizedNotes =
+        typeof review_notes === "string" ? review_notes.trim() : null;
 
-      await createAuditLog({
-        userId: req.user!.id,
-        action: "DISPUTE_REVIEWED",
-        entityType: "dispute",
-        entityId: id,
-        newData: {
-          result,
-          review_notes: review_notes ?? null,
-          reviewed_by: req.user!.id,
-        },
-        req,
-      });
+      if (normalizedNotes !== null && normalizedNotes.length > 5000) {
+        return res.status(400).json({
+          status: "error",
+          message: "Review notes must not exceed 5000 characters",
+        });
+      }
+
+      const client = await pool.connect();
+      let updatedDispute;
+
+      try {
+        await client.query("BEGIN");
+
+        const dispute = await client.query(
+          `SELECT
+             id,
+             report_id,
+             submitted_by,
+             reason,
+             result,
+             reviewed_by,
+             review_notes,
+             created_at,
+             updated_at
+           FROM disputes
+           WHERE id = $1
+           FOR UPDATE`,
+          [id]
+        );
+
+        if (dispute.rows.length === 0) {
+          await client.query("ROLLBACK");
+          return res.status(404).json({
+            status: "error",
+            message: "Dispute not found",
+          });
+        }
+
+        const previous = dispute.rows[0];
+
+        const updated = await client.query(
+          `UPDATE disputes
+           SET
+             result = $1,
+             reviewed_by = $2,
+             review_notes = $3,
+             updated_at = NOW()
+           WHERE id = $4
+           RETURNING
+             id,
+             report_id,
+             submitted_by,
+             reason,
+             result,
+             reviewed_by,
+             review_notes,
+             created_at,
+             updated_at`,
+          [result, req.user!.id, normalizedNotes, id]
+        );
+
+        updatedDispute = updated.rows[0];
+
+        await createAuditLog({
+          userId: req.user!.id,
+          action: "DISPUTE_REVIEWED",
+          entityType: "dispute",
+          entityId: id,
+          oldData: {
+            result: previous.result,
+            reviewed_by: previous.reviewed_by,
+            review_notes: previous.review_notes,
+          },
+          newData: {
+            result: updatedDispute.result,
+            reviewed_by: updatedDispute.reviewed_by,
+            review_notes: updatedDispute.review_notes,
+          },
+          req,
+          client,
+        });
+
+        await client.query("COMMIT");
+      } catch (transactionError) {
+        try {
+          await client.query("ROLLBACK");
+        } catch (rollbackError) {
+          console.error("Failed to roll back dispute review:", rollbackError);
+        }
+
+        throw transactionError;
+      } finally {
+        client.release();
+      }
 
       // Notify the user who submitted the dispute
       try {
@@ -342,15 +405,15 @@ router.patch(
         );
       }
 
-      res.json({
+      return res.json({
         status: "ok",
         message: "Dispute reviewed successfully",
-        dispute: updated.rows[0],
+        dispute: updatedDispute,
       });
     } catch (error) {
       console.error("Failed to review dispute:", error);
 
-      res.status(500).json({
+      return res.status(500).json({
         status: "error",
         message: "Failed to review dispute",
       });

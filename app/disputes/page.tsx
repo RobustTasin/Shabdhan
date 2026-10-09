@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
+  getAllDisputes,
   getMyDisputes,
   type ApiDispute,
 } from "../lib/disputes-api";
+import { getStoredUser } from "../lib/auth";
 
 function disputeStatusLabel(result: ApiDispute["result"]): string {
   if (result === "UPHELD") return "Upheld";
@@ -29,12 +31,17 @@ export default function DisputesPage() {
   const [disputes, setDisputes] = useState<ApiDispute[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const role = getStoredUser()?.role;
+  const isModerator = role === "MODERATOR" || role === "ADMIN";
+
   useEffect(() => {
-    void getMyDisputes()
+    const request = isModerator ? getAllDisputes() : getMyDisputes();
+
+    void request
       .then((response) => setDisputes(response.disputes))
       .catch(() => setDisputes([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isModerator]);
 
   return (
     <div className="space-y-6">
@@ -48,7 +55,7 @@ export default function DisputesPage() {
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-          Review disputes submitted against your reports.
+          {isModerator ? "Review disputes across all reports." : "Review disputes submitted against your reports."}
         </p>
       </div>
 

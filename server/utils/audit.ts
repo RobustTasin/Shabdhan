@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { PoolClient } from "pg";
 import { pool } from "../config/database";
 
 interface AuditLogInput {
@@ -9,6 +10,7 @@ interface AuditLogInput {
   oldData?: unknown;
   newData?: unknown;
   req?: Request;
+  client?: PoolClient;
 }
 
 export async function createAuditLog({
@@ -19,8 +21,11 @@ export async function createAuditLog({
   oldData,
   newData,
   req,
+  client,
 }: AuditLogInput) {
-  await pool.query(
+  const queryable = client ?? pool;
+
+  await queryable.query(
     `INSERT INTO audit_logs
       (
         user_id,
