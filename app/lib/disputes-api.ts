@@ -25,6 +25,15 @@ export async function getMyDisputes(): Promise<{
   });
 }
 
+export async function getAllDisputes(): Promise<{
+  status: string;
+  disputes: ApiDispute[];
+}> {
+  return apiFetch("/disputes", {
+    token: getToken() ?? undefined,
+  });
+}
+
 export async function getDispute(id: string): Promise<{
   status: string;
   dispute: ApiDispute;

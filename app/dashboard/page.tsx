@@ -5,21 +5,26 @@ import { useEffect, useState } from "react";
 
 import {
   getReports,
+  getModerationReports,
   reportStatusLabel,
   type ApiReport,
 } from "../lib/reports-api";
 
 import {
   getMyDisputes,
+  getAllDisputes,
   type ApiDispute,
 } from "../lib/disputes-api";
 import { getUserEvidence } from "../lib/evidence-api";
+import { getStoredUser } from "../lib/auth";
 import {
   getNotifications,
   type ApiNotification,
 } from "../lib/notifications-api";
 
 export default function DashboardPage() {
+  const role = getStoredUser()?.role;
+  const isModerator = role === "MODERATOR" || role === "ADMIN";
   const [reports, setReports] = useState<ApiReport[]>([]);
   const [disputes, setDisputes] = useState<ApiDispute[]>([]);
   const [evidenceCount, setEvidenceCount] = useState(0);
@@ -27,12 +32,17 @@ export default function DashboardPage() {
   const [loadingReports, setLoadingReports] = useState(true);
 
   useEffect(() => {
-    void getReports({ limit: 100 })
+    const reportsRequest = isModerator
+      ? getModerationReports({ limit: 100 })
+      : getReports({ limit: 100 });
+
+    void reportsRequest
       .then((response) => setReports(response.reports))
       .catch(() => setReports([]))
       .finally(() => setLoadingReports(false));
 
-    void getMyDisputes()
+    const disputesRequest = isModerator ? getAllDisputes() : getMyDisputes();
+    void disputesRequest
       .then((response) => setDisputes(response.disputes))
       .catch(() => setDisputes([]));
 
@@ -43,7 +53,7 @@ export default function DashboardPage() {
     void getNotifications()
       .then((response) => setNotifications(response.notifications))
       .catch(() => setNotifications([]));
-  }, []);
+  }, [isModerator]);
 
   const openDisputes = disputes.filter(
     (dispute) => dispute.result === "PENDING"
@@ -67,7 +77,9 @@ export default function DashboardPage() {
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-          Track your reports, verification progress, and disputes.
+          {isModerator
+            ? "Review reports and disputes across all users."
+            : "Track your reports, verification progress, and disputes."}
         </p>
       </div>
 
@@ -77,7 +89,7 @@ export default function DashboardPage() {
           className="rounded-xl border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-sm"
         >
           <p className="text-sm font-medium text-slate-500">
-            My reports
+            {isModerator ? "All reports" : "My reports"}
           </p>
 
           <p className="mt-2 text-3xl font-semibold text-slate-950">
@@ -85,7 +97,7 @@ export default function DashboardPage() {
           </p>
 
           <p className="mt-2 text-xs text-slate-400">
-            Total reports
+            {isModerator ? "Across all users" : "Total reports"}
           </p>
         </Link>
 
@@ -151,7 +163,9 @@ export default function DashboardPage() {
             </h2>
 
             <p className="mt-1 text-sm text-slate-500">
-              Your most recently created reports.
+              {isModerator
+                ? "The most recently submitted reports across all users."
+                : "Your most recently created reports."}
             </p>
           </div>
 
@@ -188,6 +202,9 @@ export default function DashboardPage() {
                     {report.category?.name ?? "Uncategorized"} ·{" "}
                     {report.social_account?.platform} · @
                     {report.social_account?.username}
+                    {isModerator && report.reporter?.username
+                      ? ` · Reporter: @${report.reporter.username}`
+                      : ""}
                   </p>
                 </div>
 
