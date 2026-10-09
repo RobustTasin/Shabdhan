@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { getStoredUser } from "../lib/auth";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   createReport,
   createSocialAccount,
@@ -37,7 +37,7 @@ export default function ReportsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [creatingAccount, setCreatingAccount] = useState(false);
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -55,16 +55,33 @@ export default function ReportsPage() {
       setReports(rr.reports);
       setCategories(cr.categories);
       setSocialAccounts(sr.social_accounts);
-      if (!categoryId && cr.categories[0]) setCategoryId(cr.categories[0].id);
-      if (!socialAccountId && sr.social_accounts[0]) setSocialAccountId(sr.social_accounts[0].id);
+
+      if (cr.categories[0]) {
+        setCategoryId((current) => current || cr.categories[0].id);
+      }
+      if (sr.social_accounts[0]) {
+        setSocialAccountId((current) => current || sr.social_accounts[0].id);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load reports");
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  useEffect(() => { void loadData(); }, []);
+  useEffect(() => {
+    let cancelled = false;
+
+    void Promise.resolve().then(() => {
+      if (!cancelled) {
+        void loadData();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loadData]);
 
   async function handleCreateReport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
