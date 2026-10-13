@@ -8,7 +8,11 @@ import {
   requireRole,
 } from "../middleware/auth";
 import { createAuditLog } from "../utils/audit";
-import { uploadEvidence } from "../middleware/upload";
+import {
+  formatLimit,
+  handleEvidenceUpload,
+  maxBytesForMime,
+} from "../middleware/upload";
 import { createNotification } from "../utils/notifications";
 import { withTransaction } from "../utils/transaction";
 
@@ -69,7 +73,7 @@ router.get(
 router.post(
   "/upload",
   authenticate,
-  uploadEvidence.single("file"),
+  handleEvidenceUpload,
   async (req: AuthenticatedRequest, res) => {
     let cloudinaryPublicId: string | null = null;
 
@@ -136,6 +140,22 @@ router.post(
         });
       }
 
+      // Reject oversize files here, before spending an upload on them
+      const maxBytes = maxBytesForMime(req.file.mimetype);
+
+      if (req.file.size > maxBytes) {
+        return res.status(400).json({
+          status: "error",
+          message: `${
+            evidenceType === "VIDEO"
+              ? "Videos"
+              : evidenceType === "IMAGE"
+                ? "Images"
+                : "PDFs"
+          } can be at most ${formatLimit(maxBytes)}`,
+        });
+      }
+
       const fileHash = crypto
         .createHash("sha256")
         .update(req.file.buffer)
@@ -148,30 +168,49 @@ router.post(
             ? "video"
             : "image";
 
-      const uploadResult = await new Promise<{
-        secure_url: string;
-        public_id: string;
-      }>((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: "shabdhan/evidence",
-            resource_type: resourceType,
-          },
-          (error, result) => {
-            if (error || !result) {
-              reject(error || new Error("Cloudinary upload failed"));
-              return;
+      // Captured here because TypeScript loses the earlier req.file check
+      // inside the callback below
+      const fileBuffer = req.file.buffer;
+
+      let uploadResult: { secure_url: string; public_id: string };
+
+      try {
+        uploadResult = await new Promise<{
+          secure_url: string;
+          public_id: string;
+        }>((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder: "shabdhan/evidence",
+              resource_type: resourceType,
+            },
+            (error, result) => {
+              if (error || !result) {
+                reject(error || new Error("Cloudinary upload failed"));
+                return;
+              }
+
+              resolve({
+                secure_url: result.secure_url,
+                public_id: result.public_id,
+              });
             }
+          );
 
-            resolve({
-              secure_url: result.secure_url,
-              public_id: result.public_id,
-            });
-          }
-        );
+          uploadStream.end(fileBuffer);
+        });
+      } catch (storageError: any) {
+        // Cloudinary refused the file (plan limit, corrupt file, ...):
+        // tell the user why instead of a generic 500
+        console.error("Cloudinary upload failed:", storageError);
 
-        uploadStream.end(req.file.buffer);
-      });
+        return res.status(502).json({
+          status: "error",
+          message: `File storage rejected the upload${
+            storageError?.message ? `: ${storageError.message}` : ""
+          }`,
+        });
+      }
 
       cloudinaryPublicId = uploadResult.public_id;
 
