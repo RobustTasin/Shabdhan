@@ -396,6 +396,8 @@ router.get(
   }
 );
 
+// Public endpoint: the reporter's email and role are deliberately NOT
+// returned here. Moderators get them from GET /:id/moderation instead.
 router.get("/:id", async (req, res) => {
   try {
     const result = await pool.query(
@@ -411,8 +413,6 @@ router.get("/:id", async (req, res) => {
          json_build_object(
            'id', u.id,
            'username', u.username,
-           'email', u.email,
-           'role', u.role,
            'is_verified', u.is_verified
          ) AS reporter,
          json_build_object(
