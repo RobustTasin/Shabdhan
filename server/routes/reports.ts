@@ -7,6 +7,7 @@ import {
 } from "../middleware/auth";
 import { createAuditLog } from "../utils/audit";
 import { createNotification } from "../utils/notifications";
+import { withTransaction } from "../utils/transaction";
 
 const router = Router();
 
@@ -396,6 +397,8 @@ router.get(
   }
 );
 
+// Public endpoint: the reporter's email and role are deliberately NOT
+// returned here. Moderators get them from GET /:id/moderation instead.
 router.get("/:id", async (req, res) => {
   try {
     const result = await pool.query(
@@ -411,8 +414,6 @@ router.get("/:id", async (req, res) => {
          json_build_object(
            'id', u.id,
            'username', u.username,
-           'email', u.email,
-           'role', u.role,
            'is_verified', u.is_verified
          ) AS reporter,
          json_build_object(
@@ -800,38 +801,50 @@ router.patch(
 
       const oldVerificationStatus = report.rows[0].verification_status;
 
-      const updated = await pool.query(
-        `UPDATE reports
-         SET
-           verification_status = $1,
-           updated_at = NOW()
-         WHERE id = $2
-         RETURNING
-           id,
-           reporter_id,
-           social_account_id,
-           title,
-           description,
-           status,
-           verification_status,
-           published_at,
-           created_at,
-           updated_at`,
-        [verification_status, id]
-      );
+      const updated = await withTransaction(async (client) => {
+        // Lock the row so the audit entry records the true previous value
+        const current = await client.query(
+          `SELECT verification_status FROM reports WHERE id = $1 FOR UPDATE`,
+          [id]
+        );
 
-      await createAuditLog({
-        userId: req.user!.id,
-        action: "REPORT_VERIFICATION_UPDATED",
-        entityType: "report",
-        entityId: id,
-        oldData: {
-          verification_status: oldVerificationStatus,
-        },
-        newData: {
-          verification_status,
-        },
-        req,
+        const result = await client.query(
+          `UPDATE reports
+           SET
+             verification_status = $1,
+             updated_at = NOW()
+           WHERE id = $2
+           RETURNING
+             id,
+             reporter_id,
+             social_account_id,
+             title,
+             description,
+             status,
+             verification_status,
+             published_at,
+             created_at,
+             updated_at`,
+          [verification_status, id]
+        );
+
+        await createAuditLog({
+          userId: req.user!.id,
+          action: "REPORT_VERIFICATION_UPDATED",
+          entityType: "report",
+          entityId: id,
+          oldData: {
+            verification_status:
+              current.rows[0]?.verification_status ?? oldVerificationStatus,
+          },
+          newData: {
+            verification_status,
+          },
+          req,
+          client,
+        });
+
+        return result;
       });
 
 if (oldVerificationStatus !== verification_status) {

@@ -872,7 +872,7 @@ export default function ReportDetailsPage() {
           </div>
         </div>
 
-        {user ? (
+        {user && user.id !== report.reporter?.id ? (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
             <h3 className="text-sm font-semibold text-slate-950">
               Corroborate this report
@@ -918,6 +918,10 @@ export default function ReportDetailsPage() {
                 : "Corroborate report"}
             </button>
           </div>
+        ) : user ? (
+          <p className="mt-6 text-sm text-slate-500">
+            You can&apos;t corroborate your own report.
+          </p>
         ) : null}
 
         <div className="mt-6">
