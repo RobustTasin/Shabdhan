@@ -10,6 +10,7 @@ import {
 import { createAuditLog } from "../utils/audit";
 import { uploadEvidence } from "../middleware/upload";
 import { createNotification } from "../utils/notifications";
+import { withTransaction } from "../utils/transaction";
 
 const router = Router();
 
@@ -398,39 +399,51 @@ router.patch(
 
       const oldVerificationStatus = evidence.rows[0].verification_status;
 
-      const updated = await pool.query(
-        `UPDATE evidence
-         SET
-           verification_status = $1,
-           updated_at = NOW()
-         WHERE id = $2
-         RETURNING
-           id,
-           report_id,
-           uploaded_by,
-           evidence_type,
-           file_name,
-           file_url,
-           file_hash,
-           description,
-           verification_status,
-           created_at,
-           updated_at`,
-        [verification_status, id]
-      );
+      const updated = await withTransaction(async (client) => {
+        // Lock the row so the audit entry records the true previous value
+        const current = await client.query(
+          `SELECT verification_status FROM evidence WHERE id = $1 FOR UPDATE`,
+          [id]
+        );
 
-      await createAuditLog({
-        userId: req.user!.id,
-        action: "EVIDENCE_VERIFICATION_UPDATED",
-        entityType: "evidence",
-        entityId: id,
-        oldData: {
-          verification_status: oldVerificationStatus,
-        },
-        newData: {
-          verification_status,
-        },
-        req,
+        const result = await client.query(
+          `UPDATE evidence
+           SET
+             verification_status = $1,
+             updated_at = NOW()
+           WHERE id = $2
+           RETURNING
+             id,
+             report_id,
+             uploaded_by,
+             evidence_type,
+             file_name,
+             file_url,
+             file_hash,
+             description,
+             verification_status,
+             created_at,
+             updated_at`,
+          [verification_status, id]
+        );
+
+        await createAuditLog({
+          userId: req.user!.id,
+          action: "EVIDENCE_VERIFICATION_UPDATED",
+          entityType: "evidence",
+          entityId: id,
+          oldData: {
+            verification_status:
+              current.rows[0]?.verification_status ?? oldVerificationStatus,
+          },
+          newData: {
+            verification_status,
+          },
+          req,
+          client,
+        });
+
+        return result;
       });
 
       // Notify the user who uploaded the evidence
