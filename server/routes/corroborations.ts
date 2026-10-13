@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { pool } from "../config/database";
 import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import { createNotification } from "../utils/notifications";
 
 const router = Router();
 
@@ -17,7 +18,7 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
     }
 
     const report = await pool.query(
-      `SELECT id FROM reports WHERE id = $1`,
+      `SELECT id, reporter_id, title FROM reports WHERE id = $1`,
       [report_id]
     );
 
@@ -28,12 +29,37 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
       });
     }
 
+    // A reporter backing their own report would inflate its credibility
+    if (report.rows[0].reporter_id === req.user!.id) {
+      return res.status(403).json({
+        status: "error",
+        message: "You cannot corroborate your own report",
+      });
+    }
+
     const result = await pool.query(
       `INSERT INTO corroborations (report_id, user_id, comment)
        VALUES ($1, $2, $3)
        RETURNING id, report_id, user_id, comment, created_at`,
       [report_id, req.user!.id, comment || null]
     );
+
+    // Let the report owner know (a failure here must not undo the corroboration)
+    try {
+      await createNotification({
+        userId: report.rows[0].reporter_id,
+        type: "REPORT_CORROBORATED",
+        title: "Your report was corroborated",
+        message: `${req.user!.username} corroborated your report "${report.rows[0].title}".`,
+        entityType: "report",
+        entityId: report_id,
+      });
+    } catch (notificationError) {
+      console.error(
+        "Failed to create corroboration notification:",
+        notificationError
+      );
+    }
 
     res.status(201).json({
       status: "ok",
