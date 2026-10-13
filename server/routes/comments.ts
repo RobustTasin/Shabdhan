@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { pool } from "../config/database";
 import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import { createAuditLog } from "../utils/audit";
+import { createNotification } from "../utils/notifications";
+import { withTransaction } from "../utils/transaction";
 
 const router = Router();
 
@@ -25,7 +28,7 @@ router.post(
 
       // Make sure the report exists
       const report = await pool.query(
-        `SELECT id
+        `SELECT id, reporter_id, title
          FROM reports
          WHERE id = $1`,
         [report_id]
@@ -40,9 +43,11 @@ router.post(
 
       // If this is a reply, make sure the parent comment belongs
       // to the same report.
+      let parentAuthorId: string | null = null;
+
       if (parent_comment_id) {
         const parentComment = await pool.query(
-          `SELECT id
+          `SELECT id, user_id
            FROM comments
            WHERE id = $1
              AND report_id = $2`,
@@ -55,6 +60,8 @@ router.post(
             message: "Parent comment not found for this report",
           });
         }
+
+        parentAuthorId = parentComment.rows[0].user_id;
       }
 
       const result = await pool.query(
@@ -81,6 +88,42 @@ router.post(
           content.trim(),
         ]
       );
+
+      // Notify the people involved (never the commenter themselves). A
+      // failure here must not undo the comment.
+      try {
+        const actorId = req.user!.id;
+        const { reporter_id: ownerId, title } = report.rows[0];
+
+        if (parentAuthorId && parentAuthorId !== actorId) {
+          await createNotification({
+            userId: parentAuthorId,
+            type: "REPORT_COMMENT_REPLY",
+            title: "New reply to your comment",
+            message: `${req.user!.username} replied to your comment on "${title}".`,
+            entityType: "report",
+            entityId: report_id,
+          });
+        }
+
+        // The owner already got the reply notice above if they wrote the
+        // parent comment
+        if (ownerId !== actorId && ownerId !== parentAuthorId) {
+          await createNotification({
+            userId: ownerId,
+            type: "REPORT_COMMENTED",
+            title: "New comment on your report",
+            message: `${req.user!.username} commented on your report "${title}".`,
+            entityType: "report",
+            entityId: report_id,
+          });
+        }
+      } catch (notificationError) {
+        console.error(
+          "Failed to create comment notification:",
+          notificationError
+        );
+      }
 
       return res.status(201).json({
         status: "ok",
@@ -220,37 +263,85 @@ router.delete(
     try {
       const id = String(req.params.id);
 
-      const existing = await pool.query(
-        `SELECT id, user_id
-         FROM comments
-         WHERE id = $1`,
-        [id]
-      );
+      const outcome = await withTransaction(async (client) => {
+        const existing = await client.query(
+          `SELECT id, report_id, user_id, parent_comment_id, content
+           FROM comments
+           WHERE id = $1
+           FOR UPDATE`,
+          [id]
+        );
 
-      if (existing.rows.length === 0) {
+        if (existing.rows.length === 0) {
+          return { kind: "not_found" as const };
+        }
+
+        const comment = existing.rows[0];
+
+        const isOwner = comment.user_id === req.user!.id;
+        const isModeratorOrAdmin = ["MODERATOR", "ADMIN"].includes(
+          req.user!.role
+        );
+
+        if (!isOwner && !isModeratorOrAdmin) {
+          return { kind: "forbidden" as const };
+        }
+
+        // Deleting a comment also deletes every reply under it (ON DELETE
+        // CASCADE), so count them for the record
+        const replies = await client.query(
+          `WITH RECURSIVE thread AS (
+             SELECT id FROM comments WHERE parent_comment_id = $1
+             UNION ALL
+             SELECT c.id FROM comments c
+             JOIN thread t ON c.parent_comment_id = t.id
+           )
+           SELECT COUNT(*)::int AS count FROM thread`,
+          [id]
+        );
+
+        await client.query(
+          `DELETE FROM comments
+           WHERE id = $1`,
+          [id]
+        );
+
+        // Removing someone else's comment is a moderation action: keep a
+        // record of what was removed and who removed it
+        if (!isOwner) {
+          await createAuditLog({
+            userId: req.user!.id,
+            action: "COMMENT_REMOVED_BY_MODERATOR",
+            entityType: "comment",
+            entityId: id,
+            oldData: {
+              report_id: comment.report_id,
+              author_id: comment.user_id,
+              parent_comment_id: comment.parent_comment_id,
+              content: comment.content,
+              replies_removed: replies.rows[0].count,
+            },
+            req,
+            client,
+          });
+        }
+
+        return { kind: "ok" as const };
+      });
+
+      if (outcome.kind === "not_found") {
         return res.status(404).json({
           status: "error",
           message: "Comment not found",
         });
       }
 
-      const isOwner = existing.rows[0].user_id === req.user!.id;
-      const isModeratorOrAdmin = ["MODERATOR", "ADMIN"].includes(
-        req.user!.role
-      );
-
-      if (!isOwner && !isModeratorOrAdmin) {
+      if (outcome.kind === "forbidden") {
         return res.status(403).json({
           status: "error",
           message: "You do not have permission to delete this comment",
         });
       }
-
-      await pool.query(
-        `DELETE FROM comments
-         WHERE id = $1`,
-        [id]
-      );
 
       return res.json({
         status: "ok",
