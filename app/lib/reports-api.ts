@@ -159,6 +159,17 @@ export async function createReport(input: {
   });
 }
 
+export async function updateReportVerification(
+  id: string,
+  verification_status: VerificationStatus
+): Promise<{ status: string; report: ApiReport }> {
+  return apiFetch(`/reports/${id}/verify`, {
+    method: "PATCH",
+    token: getToken() ?? undefined,
+    body: JSON.stringify({ verification_status }),
+  });
+}
+
 export async function getCategories(): Promise<{
   status: string;
   categories: Category[];
