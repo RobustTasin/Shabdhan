@@ -62,16 +62,16 @@ function configureUser(role: "MODERATOR" | "USER") {
       return { rows: [user], rowCount: 1 } as never;
     }
 
-    if (text.includes("SELECT") && text.includes("FROM reports") && text.includes("WHERE id = $1")) {
+    if (text.includes("SELECT") && text.includes("reporter_id") && text.includes("FROM reports")) {
       return {
-        rows: [{ id: REPORT_ID, verification_status: "PENDING" }],
+        rows: [{ reporter_id: USER_ID, title: "Test report" }],
         rowCount: 1,
       } as never;
     }
 
-    if (text.includes("SELECT") && text.includes("reporter_id") && text.includes("FROM reports")) {
+    if (text.includes("SELECT") && text.includes("FROM reports") && text.includes("WHERE id = $1")) {
       return {
-        rows: [{ reporter_id: USER_ID, title: "Test report" }],
+        rows: [{ id: REPORT_ID, verification_status: "PENDING" }],
         rowCount: 1,
       } as never;
     }
