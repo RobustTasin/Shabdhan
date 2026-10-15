@@ -12,6 +12,7 @@ import {
 } from "../../lib/evidence-api";
 import {
   getReport,
+  updateReportVerification,
   reportStatusLabel,
   type ApiReport,
 } from "../../lib/reports-api";
@@ -82,6 +83,9 @@ export default function ReportDetailsPage() {
   const { user } = useAuth();
 
   const [report, setReport] = useState<ApiReport | null>(null);
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewError, setReviewError] = useState("");
+  const [reviewSuccess, setReviewSuccess] = useState("");
 
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [evidenceLoading, setEvidenceLoading] = useState(true);
@@ -195,6 +199,43 @@ export default function ReportDetailsPage() {
       setRiskScoreError(message);
     } finally {
       setCalculatingRiskScore(false);
+    }
+  }
+
+  async function handleReportReview(
+    verificationStatus: "VERIFIED" | "REJECTED"
+  ) {
+    if (!id || reviewing) {
+      return;
+    }
+
+    setReviewing(true);
+    setReviewError("");
+    setReviewSuccess("");
+
+    try {
+      const response = await updateReportVerification(id, verificationStatus);
+      setReport((current) =>
+        current
+          ? {
+              ...current,
+              status: response.report.status,
+              verification_status: response.report.verification_status,
+              updated_at: response.report.updated_at,
+            }
+          : current
+      );
+      setReviewSuccess(
+        verificationStatus === "VERIFIED"
+          ? "Report marked as verified."
+          : "Report rejected."
+      );
+    } catch (err) {
+      setReviewError(
+        err instanceof Error ? err.message : "Failed to update report review."
+      );
+    } finally {
+      setReviewing(false);
     }
   }
 
@@ -481,6 +522,47 @@ export default function ReportDetailsPage() {
           </span>
         </div>
       </div>
+
+      {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-semibold text-slate-950">Moderator review</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Current verification status: {report.verification_status}
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => void handleReportReview("VERIFIED")}
+                disabled={reviewing || report.verification_status === "VERIFIED"}
+                className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {reviewing ? "Saving..." : "Verify report"}
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleReportReview("REJECTED")}
+                disabled={reviewing || report.verification_status === "REJECTED"}
+                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Reject report
+              </button>
+            </div>
+          </div>
+          {reviewError && (
+            <p role="alert" className="mt-3 text-sm text-red-700">
+              {reviewError}
+            </p>
+          )}
+          {reviewSuccess && (
+            <p role="status" className="mt-3 text-sm text-emerald-700">
+              {reviewSuccess}
+            </p>
+          )}
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <section className="rounded-xl border border-slate-200 bg-white p-6 lg:col-span-2">
