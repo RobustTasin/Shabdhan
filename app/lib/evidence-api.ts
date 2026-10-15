@@ -48,7 +48,10 @@ export async function getEvidenceForReport(
   reportId: string
 ): Promise<EvidenceListResponse> {
   return apiFetch<EvidenceListResponse>(
-    `/evidence/report/${reportId}`
+    `/evidence/report/${reportId}`,
+    {
+      token: getToken() ?? undefined,
+    }
   );
 }
 
@@ -56,7 +59,10 @@ export async function getEvidence(
   id: string
 ): Promise<EvidenceResponse> {
   return apiFetch<EvidenceResponse>(
-    `/evidence/${id}`
+    `/evidence/${id}`,
+    {
+      token: getToken() ?? undefined,
+    }
   );
 }
 
@@ -110,20 +116,6 @@ export async function uploadEvidence(
   }
 
   return response.json();
-}
-
-export async function createEvidence(data: {
-  report_id: string;
-  evidence_type: EvidenceType;
-  file_name?: string;
-  file_url?: string;
-  file_hash?: string;
-  description?: string;
-}): Promise<EvidenceResponse> {
-  return apiFetch<EvidenceResponse>("/evidence", {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
 }
 
 export async function updateEvidenceVerification(

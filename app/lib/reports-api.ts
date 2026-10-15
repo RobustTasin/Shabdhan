@@ -141,7 +141,9 @@ export async function getReport(id: string): Promise<{
   status: string;
   report: ApiReport;
 }> {
-  return apiFetch(`/reports/${id}`);
+  return apiFetch(`/reports/${id}`, {
+    token: getToken() ?? undefined,
+  });
 }
 
 export async function createReport(input: {

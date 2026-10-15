@@ -19,7 +19,9 @@ export async function getCommentsForReport(
   count: number;
   comments: ApiComment[];
 }> {
-  return apiFetch(`/comments/report/${reportId}`);
+  return apiFetch(`/comments/report/${reportId}`, {
+    token: getToken() ?? undefined,
+  });
 }
 
 export async function createComment(input: {
