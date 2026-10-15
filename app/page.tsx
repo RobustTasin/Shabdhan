@@ -21,12 +21,14 @@ export default function Home() {
   const [activeType, setActiveType] = useState("Everything");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [loadMoreError, setLoadMoreError] = useState("");
 
   const PAGE_SIZE = 20;
 
   const loadData = useCallback(async (search = "", categoryId = "") => {
     setLoading(true);
     setError("");
+    setLoadMoreError("");
     setPage(1);
 
     try {
@@ -57,7 +59,7 @@ export default function Home() {
 
     const nextPage = page + 1;
     setLoadingMore(true);
-    setError("");
+    setLoadMoreError("");
 
     try {
       const response = await searchReports({
@@ -78,7 +80,7 @@ export default function Home() {
       setPage(nextPage);
       setTotal(response.pagination.total);
     } catch {
-      setError("We couldn't load more reports. Please try again.");
+      setLoadMoreError("We couldn't load more reports. Please try again.");
     } finally {
       setLoadingMore(false);
     }
@@ -374,6 +376,9 @@ export default function Home() {
 
         {!loading && !error && reports.length > 0 && reports.length < total && (
           <div className="mt-8 flex flex-col items-center gap-2">
+            {loadMoreError && (
+              <p role="alert" className="text-sm text-red-700">{loadMoreError}</p>
+            )}
             <p className="text-sm text-slate-500">
               Showing {reports.length} of {total} matching reports
             </p>
@@ -383,7 +388,7 @@ export default function Home() {
               disabled={loadingMore}
               className="rounded-xl bg-blue-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loadingMore ? "Loading reports…" : "Load more reports"}
+              {loadingMore ? "Loading reports…" : loadMoreError ? "Try again" : "Load more reports"}
             </button>
           </div>
         )}

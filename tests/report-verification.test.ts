@@ -82,15 +82,17 @@ function configureUser(role: "MODERATOR" | "USER") {
   transactionQuery.mockImplementation(async (sql: unknown) => {
     const text = String(sql);
     if (text.includes("FOR UPDATE")) {
-      return { rows: [{ verification_status: "PENDING" }], rowCount: 1 };
+      return { rows: [{ status: "DRAFT", verification_status: "PENDING" }], rowCount: 1 };
     }
     if (text.includes("UPDATE reports")) {
       return {
         rows: [{
           id: REPORT_ID,
           reporter_id: USER_ID,
+          title: "Test report",
           status: "PUBLISHED",
           verification_status: "VERIFIED",
+          published_at: "2026-10-16T00:00:00.000Z",
           updated_at: "2026-10-16T00:00:00.000Z",
         }],
         rowCount: 1,
@@ -119,11 +121,14 @@ describe("PATCH /api/reports/:id/verify", () => {
 
     expect(response.status).toBe(200);
     expect(response.body.report.verification_status).toBe("VERIFIED");
+    expect(response.body.report.status).toBe("PUBLISHED");
+    expect(response.body.report.published_at).toBeTruthy();
     expect(createNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: USER_ID,
         type: "REPORT_VERIFIED",
         entityId: REPORT_ID,
+        message: 'Your report "Test report" is now verified.',
       })
     );
   });

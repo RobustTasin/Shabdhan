@@ -717,19 +717,32 @@ router.patch(
         });
       }
 
-      const oldVerificationStatus = report.rows[0].verification_status;
+      let oldVerificationStatus = report.rows[0].verification_status;
 
       const updated = await withTransaction(async (client) => {
         // Lock the row so the audit entry records the true previous value
         const current = await client.query(
-          `SELECT verification_status FROM reports WHERE id = $1 FOR UPDATE`,
+          `SELECT status, verification_status FROM reports WHERE id = $1 FOR UPDATE`,
           [id]
         );
+
+        oldVerificationStatus = current.rows[0]?.verification_status ?? oldVerificationStatus;
 
         const result = await client.query(
           `UPDATE reports
            SET
              verification_status = $1,
+             status = CASE
+               WHEN $1 = 'VERIFIED' AND status <> 'RESOLVED' THEN 'PUBLISHED'
+               WHEN $1 = 'REJECTED' THEN 'REJECTED'
+               WHEN $1 = 'PENDING' AND status = 'PUBLISHED' THEN 'DRAFT'
+               ELSE status
+             END,
+             published_at = CASE
+               WHEN $1 = 'VERIFIED' AND status <> 'RESOLVED' THEN COALESCE(published_at, NOW())
+               WHEN $1 <> 'VERIFIED' AND status = 'PUBLISHED' THEN NULL
+               ELSE published_at
+             END,
              updated_at = NOW()
            WHERE id = $2
            RETURNING
@@ -752,10 +765,12 @@ router.patch(
           entityType: "report",
           entityId: id,
           oldData: {
+            status: current.rows[0]?.status,
             verification_status:
               current.rows[0]?.verification_status ?? oldVerificationStatus,
           },
           newData: {
+            status: result.rows[0]?.status,
             verification_status,
           },
           req,
@@ -765,46 +780,31 @@ router.patch(
         return result;
       });
 
-if (oldVerificationStatus !== verification_status) {
-  try {
-    const reportDetails = await pool.query(
-      `SELECT
-         reporter_id,
-         title
-       FROM reports
-       WHERE id = $1`,
-      [id]
-    );
-
-    if (reportDetails.rows.length > 0) {
-      const { reporter_id, title } = reportDetails.rows[0];
-
-      await createNotification({
-        userId: reporter_id,
-        type:
-          verification_status === "VERIFIED"
-            ? "REPORT_VERIFIED"
-            : verification_status === "REJECTED"
-              ? "REPORT_REJECTED"
-              : "REPORT_STATUS_UPDATED",
-        title:
-          verification_status === "VERIFIED"
-            ? "Report verified"
-            : verification_status === "REJECTED"
-              ? "Report rejected"
-              : "Report status updated",
-        message: `Your report "${title}" is now ${verification_status.toLowerCase()}.`,
-        entityType: "report",
-        entityId: id,
-      });
-    }
-  } catch (notificationError) {
-    console.error(
-      "Failed to create report notification:",
-      notificationError
-    );
-  }
-}
+      if (oldVerificationStatus !== verification_status) {
+        try {
+          const updatedReport = updated.rows[0];
+          await createNotification({
+            userId: updatedReport.reporter_id,
+            type:
+              verification_status === "VERIFIED"
+                ? "REPORT_VERIFIED"
+                : verification_status === "REJECTED"
+                  ? "REPORT_REJECTED"
+                  : "REPORT_STATUS_UPDATED",
+            title:
+              verification_status === "VERIFIED"
+                ? "Report verified"
+                : verification_status === "REJECTED"
+                  ? "Report rejected"
+                  : "Report status updated",
+            message: `Your report "${updatedReport.title}" is now ${verification_status.toLowerCase()}.`,
+            entityType: "report",
+            entityId: id,
+          });
+        } catch (notificationError) {
+          console.error("Failed to create report notification:", notificationError);
+        }
+      }
 
       return res.json({
         status: "ok",

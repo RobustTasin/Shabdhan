@@ -222,12 +222,15 @@ export default function ReportDetailsPage() {
               status: response.report.status,
               verification_status: response.report.verification_status,
               updated_at: response.report.updated_at,
+              published_at: response.report.published_at,
             }
           : current
       );
       setReviewSuccess(
         verificationStatus === "VERIFIED"
-          ? "Report marked as verified."
+          ? response.report.status === "PUBLISHED"
+            ? "Report verified and published."
+            : "Report verified."
           : "Report rejected."
       );
     } catch (err) {
@@ -536,10 +539,10 @@ export default function ReportDetailsPage() {
               <button
                 type="button"
                 onClick={() => void handleReportReview("VERIFIED")}
-                disabled={reviewing || report.verification_status === "VERIFIED"}
+                disabled={reviewing || (report.verification_status === "VERIFIED" && report.status === "PUBLISHED")}
                 className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {reviewing ? "Saving..." : "Verify report"}
+                {reviewing ? "Saving..." : report.status === "RESOLVED" ? "Verify report" : "Verify and publish"}
               </button>
               <button
                 type="button"
