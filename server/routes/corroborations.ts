@@ -1,7 +1,13 @@
 import { Router } from "express";
 import { pool } from "../config/database";
-import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import {
+  authenticate,
+  optionalAuthenticate,
+  AuthenticatedRequest,
+} from "../middleware/auth";
 import { createNotification } from "../utils/notifications";
+import { createAuditLog } from "../utils/audit";
+import { withTransaction } from "../utils/transaction";
 
 const router = Router();
 
@@ -18,8 +24,19 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
     }
 
     const report = await pool.query(
-      `SELECT id, reporter_id, title FROM reports WHERE id = $1`,
-      [report_id]
+      `SELECT id, reporter_id, title
+       FROM reports r
+       WHERE r.id = $1
+         AND (
+           (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+           OR r.reporter_id = $2
+           OR $3 = TRUE
+         )`,
+      [
+        report_id,
+        req.user!.id,
+        ["MODERATOR", "ADMIN"].includes(req.user!.role),
+      ]
     );
 
     if (report.rows.length === 0) {
@@ -84,121 +101,218 @@ router.post("/", authenticate, async (req: AuthenticatedRequest, res) => {
 });
 
 // Get all corroborations for a report
-router.get("/report/:reportId", async (req, res) => {
-  try {
-    const report = await pool.query(
-      `SELECT id FROM reports WHERE id = $1`,
-      [req.params.reportId]
-    );
+router.get(
+  "/report/:reportId",
+  optionalAuthenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const report = await pool.query(
+        `SELECT id
+         FROM reports r
+         WHERE r.id = $1
+           AND (
+             (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+             OR r.reporter_id = $2
+             OR $3 = TRUE
+           )`,
+        [
+          req.params.reportId,
+          req.user?.id ?? null,
+          ["MODERATOR", "ADMIN"].includes(req.user?.role ?? ""),
+        ]
+      );
 
-    if (report.rows.length === 0) {
-      return res.status(404).json({
+      if (report.rows.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Report not found",
+        });
+      }
+
+      const result = await pool.query(
+        `SELECT
+           c.id,
+           c.report_id,
+           c.user_id,
+           c.comment,
+           c.created_at,
+           json_build_object(
+             'id', u.id,
+             'username', u.username,
+             'is_verified', u.is_verified
+           ) AS user
+         FROM corroborations c
+         JOIN users u ON u.id = c.user_id
+         WHERE c.report_id = $1
+         ORDER BY c.created_at DESC`,
+        [req.params.reportId]
+      );
+
+      res.json({
+        status: "ok",
+        count: result.rows.length,
+        corroborations: result.rows,
+      });
+    } catch (error) {
+      console.error("Failed to fetch corroborations:", error);
+
+      res.status(500).json({
         status: "error",
-        message: "Report not found",
+        message: "Failed to fetch corroborations",
       });
     }
-
-    const result = await pool.query(
-      `SELECT
-         c.id,
-         c.report_id,
-         c.user_id,
-         c.comment,
-         c.created_at,
-         json_build_object(
-           'id', u.id,
-           'username', u.username,
-           'is_verified', u.is_verified
-         ) AS user
-       FROM corroborations c
-       JOIN users u ON u.id = c.user_id
-       WHERE c.report_id = $1
-       ORDER BY c.created_at DESC`,
-      [req.params.reportId]
-    );
-
-    res.json({
-      status: "ok",
-      count: result.rows.length,
-      corroborations: result.rows,
-    });
-  } catch (error) {
-    console.error("Failed to fetch corroborations:", error);
-
-    res.status(500).json({
-      status: "error",
-      message: "Failed to fetch corroborations",
-    });
   }
-});
+);
 
 // Get one corroboration
-router.get("/:id", async (req, res) => {
+router.get(
+  "/:id",
+  optionalAuthenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const result = await pool.query(
+        `SELECT
+           c.id,
+           c.report_id,
+           c.user_id,
+           c.comment,
+           c.created_at,
+           json_build_object(
+             'id', u.id,
+             'username', u.username,
+             'is_verified', u.is_verified
+           ) AS user
+         FROM corroborations c
+         JOIN users u ON u.id = c.user_id
+         JOIN reports r ON r.id = c.report_id
+         WHERE c.id = $1
+           AND (
+             (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+             OR r.reporter_id = $2
+             OR $3 = TRUE
+           )`,
+        [
+          req.params.id,
+          req.user?.id ?? null,
+          ["MODERATOR", "ADMIN"].includes(req.user?.role ?? ""),
+        ]
+      );
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Corroboration not found",
+        });
+      }
+
+      res.json({
+        status: "ok",
+        corroboration: result.rows[0],
+      });
+    } catch (error) {
+      console.error("Failed to fetch corroboration:", error);
+
+      res.status(500).json({
+        status: "error",
+        message: "Failed to fetch corroboration",
+      });
+    }
+  }
+);
+
+// Delete your own corroboration or moderate another user's corroboration
+router.delete("/:id", authenticate, async (req: AuthenticatedRequest, res) => {
   try {
-    const result = await pool.query(
-      `SELECT
-         c.id,
-         c.report_id,
-         c.user_id,
-         c.comment,
-         c.created_at,
-         json_build_object(
-           'id', u.id,
-           'username', u.username,
-           'is_verified', u.is_verified
-         ) AS user
-       FROM corroborations c
-       JOIN users u ON u.id = c.user_id
-       WHERE c.id = $1`,
-      [req.params.id]
+    const userId = req.user!.id;
+    const isModeratorOrAdmin = ["MODERATOR", "ADMIN"].includes(
+      req.user!.role
     );
 
-    if (result.rows.length === 0) {
+    const outcome = await withTransaction(async (client) => {
+      const existing = await client.query(
+        `SELECT id, report_id, user_id, comment, created_at
+         FROM corroborations
+         WHERE id = $1
+         FOR UPDATE`,
+        [req.params.id]
+      );
+
+      if (existing.rows.length === 0) {
+        return { kind: "not_found" as const };
+      }
+
+      const corroboration = existing.rows[0];
+      const isOwner = corroboration.user_id === userId;
+
+      const accessibleReport = await client.query(
+        `SELECT id
+         FROM reports r
+         WHERE r.id = $1
+           AND (
+             (r.status = 'PUBLISHED'
+               AND r.verification_status = 'VERIFIED')
+             OR r.reporter_id = $2
+             OR $3 = TRUE
+           )`,
+        [corroboration.report_id, userId, isModeratorOrAdmin]
+      );
+
+      if (accessibleReport.rows.length === 0) {
+        return { kind: "not_found" as const };
+      }
+
+      if (!isOwner && !isModeratorOrAdmin) {
+        return { kind: "forbidden" as const };
+      }
+
+      await client.query(
+        `DELETE FROM corroborations
+         WHERE id = $1`,
+        [corroboration.id]
+      );
+
+      if (!isOwner) {
+        await createAuditLog({
+          userId,
+          action: "CORROBORATION_REMOVED_BY_MODERATOR",
+          entityType: "corroboration",
+          entityId: corroboration.id,
+          oldData: {
+            report_id: corroboration.report_id,
+            author_id: corroboration.user_id,
+            comment: corroboration.comment,
+            created_at: corroboration.created_at,
+          },
+          req,
+          client,
+        });
+      }
+
+      return { kind: "ok" as const };
+    });
+
+    if (outcome.kind === "not_found") {
       return res.status(404).json({
         status: "error",
         message: "Corroboration not found",
       });
     }
 
-    res.json({
-      status: "ok",
-      corroboration: result.rows[0],
-    });
-  } catch (error) {
-    console.error("Failed to fetch corroboration:", error);
-
-    res.status(500).json({
-      status: "error",
-      message: "Failed to fetch corroboration",
-    });
-  }
-});
-
-// Delete your own corroboration
-router.delete("/:id", authenticate, async (req: AuthenticatedRequest, res) => {
-  try {
-    const result = await pool.query(
-      `DELETE FROM corroborations
-       WHERE id = $1 AND user_id = $2
-       RETURNING id`,
-      [req.params.id, req.user!.id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({
+    if (outcome.kind === "forbidden") {
+      return res.status(403).json({
         status: "error",
-        message: "Corroboration not found or you are not the owner",
+        message: "You are not authorized to delete this corroboration",
       });
     }
 
-    res.json({
+    return res.json({
       status: "ok",
       message: "Corroboration deleted successfully",
     });
   } catch (error) {
     console.error("Failed to delete corroboration:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       status: "error",
       message: "Failed to delete corroboration",
     });

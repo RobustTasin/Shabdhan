@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { pool } from "../config/database";
-import { authenticate, AuthenticatedRequest } from "../middleware/auth";
+import {
+  authenticate,
+  optionalAuthenticate,
+  AuthenticatedRequest,
+} from "../middleware/auth";
 import { createAuditLog } from "../utils/audit";
 import { createNotification } from "../utils/notifications";
 import { withTransaction } from "../utils/transaction";
@@ -29,9 +33,18 @@ router.post(
       // Make sure the report exists
       const report = await pool.query(
         `SELECT id, reporter_id, title
-         FROM reports
-         WHERE id = $1`,
-        [report_id]
+         FROM reports r
+         WHERE r.id = $1
+           AND (
+             (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+             OR r.reporter_id = $2
+             OR $3 = TRUE
+           )`,
+        [
+          report_id,
+          req.user!.id,
+          ["MODERATOR", "ADMIN"].includes(req.user!.role),
+        ]
       );
 
       if (report.rows.length === 0) {
@@ -144,9 +157,33 @@ router.post(
 // Get all comments for a report
 router.get(
   "/report/:reportId",
-  async (req, res) => {
+  optionalAuthenticate,
+  async (req: AuthenticatedRequest, res) => {
     try {
       const reportId = String(req.params.reportId);
+
+      const accessibleReport = await pool.query(
+        `SELECT id
+         FROM reports r
+         WHERE r.id = $1
+           AND (
+             (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+             OR r.reporter_id = $2
+             OR $3 = TRUE
+           )`,
+        [
+          reportId,
+          req.user?.id ?? null,
+          ["MODERATOR", "ADMIN"].includes(req.user?.role ?? ""),
+        ]
+      );
+
+      if (accessibleReport.rows.length === 0) {
+        return res.status(404).json({
+          status: "error",
+          message: "Report not found",
+        });
+      }
 
       const result = await pool.query(
         `SELECT
@@ -198,10 +235,20 @@ router.patch(
       }
 
       const existing = await pool.query(
-        `SELECT id, user_id
-         FROM comments
-         WHERE id = $1`,
-        [id]
+        `SELECT c.id, c.user_id
+         FROM comments c
+         JOIN reports r ON r.id = c.report_id
+         WHERE c.id = $1
+           AND (
+             (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+             OR r.reporter_id = $2
+             OR $3 = TRUE
+           )`,
+        [
+          id,
+          req.user!.id,
+          ["MODERATOR", "ADMIN"].includes(req.user!.role),
+        ]
       );
 
       if (existing.rows.length === 0) {
@@ -283,6 +330,26 @@ router.delete(
           req.user!.role
         );
 
+        const accessibleReport = await client.query(
+          `SELECT id
+           FROM reports r
+           WHERE r.id = $1
+             AND (
+               (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+               OR r.reporter_id = $2
+               OR $3 = TRUE
+             )`,
+          [
+            comment.report_id,
+            req.user!.id,
+            ["MODERATOR", "ADMIN"].includes(req.user!.role),
+          ]
+        );
+
+        if (accessibleReport.rows.length === 0) {
+          return { kind: "not_found" as const };
+        }
+
         if (!isOwner && !isModeratorOrAdmin) {
           return { kind: "forbidden" as const };
         }
@@ -360,7 +427,8 @@ router.delete(
 // Get one comment
 router.get(
   "/:id",
-  async (req, res) => {
+  optionalAuthenticate,
+  async (req: AuthenticatedRequest, res) => {
     try {
       const id = String(req.params.id);
 
@@ -376,8 +444,18 @@ router.get(
            c.updated_at
          FROM comments c
          JOIN users u ON u.id = c.user_id
-         WHERE c.id = $1`,
-        [id]
+         JOIN reports r ON r.id = c.report_id
+         WHERE c.id = $1
+           AND (
+             (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+             OR r.reporter_id = $2
+             OR $3 = TRUE
+           )`,
+        [
+          id,
+          req.user?.id ?? null,
+          ["MODERATOR", "ADMIN"].includes(req.user?.role ?? ""),
+        ]
       );
 
       if (result.rows.length === 0) {

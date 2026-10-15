@@ -11,6 +11,11 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
+/**
+ * Required authentication.
+ * Rejects anonymous requests, invalid tokens, missing users,
+ * and inactive accounts.
+ */
 export async function authenticate(
   req: AuthenticatedRequest,
   res: Response,
@@ -66,13 +71,14 @@ export async function authenticate(
       });
     }
 
+    // Trust current database values, not token role claims.
     req.user = {
       id: user.id,
       username: user.username,
       role: user.role,
     };
 
-    next();
+    return next();
   } catch (error) {
     if (
       error instanceof jwt.TokenExpiredError ||
@@ -93,6 +99,103 @@ export async function authenticate(
   }
 }
 
+/**
+ * Optional authentication.
+ * Allows anonymous requests but validates any supplied token.
+ * If authenticated, loads the current user and role from the database.
+ */
+export async function optionalAuthenticate(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+) {
+  const header = req.headers.authorization;
+
+  // No credentials: continue as an anonymous visitor.
+  if (!header) {
+    return next();
+  }
+
+  if (!header.startsWith("Bearer ")) {
+    return res.status(401).json({
+      status: "error",
+      message: "Invalid authorization header",
+    });
+  }
+
+  const token = header.substring(7);
+
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as {
+      id?: string;
+    };
+
+    if (!payload.id) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid authentication token",
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT
+         id,
+         username,
+         role,
+         is_active
+       FROM users
+       WHERE id = $1`,
+      [payload.id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(401).json({
+        status: "error",
+        message: "User account not found",
+      });
+    }
+
+    const user = result.rows[0];
+
+    if (!user.is_active) {
+      return res.status(403).json({
+        status: "error",
+        message: "Account is inactive",
+      });
+    }
+
+    req.user = {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+    };
+
+    return next();
+  } catch (error) {
+    if (
+      error instanceof jwt.TokenExpiredError ||
+      error instanceof jwt.JsonWebTokenError
+    ) {
+      return res.status(401).json({
+        status: "error",
+        message: "Invalid or expired token",
+      });
+    }
+
+    console.error("Optional authentication failed:", error);
+
+    return res.status(500).json({
+      status: "error",
+      message: "Authentication service unavailable",
+    });
+  }
+}
+
+/**
+ * Role-based authorization.
+ * Must be used after authenticate or optionalAuthenticate
+ * when the route requires a specific role.
+ */
 export function requireRole(...roles: string[]) {
   return (
     req: AuthenticatedRequest,
@@ -106,6 +209,6 @@ export function requireRole(...roles: string[]) {
       });
     }
 
-    next();
+    return next();
   };
 }

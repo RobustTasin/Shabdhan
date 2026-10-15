@@ -2,6 +2,7 @@ import { Router } from "express";
 import { pool } from "../config/database";
 import {
   authenticate,
+  optionalAuthenticate,
   AuthenticatedRequest,
   requireRole,
 } from "../middleware/auth";
@@ -46,7 +47,7 @@ function calculateRiskScore(data: {
 // Get latest risk score for a report
 router.get(
   "/:reportId",
-  authenticate,
+  optionalAuthenticate,
   async (req: AuthenticatedRequest, res) => {
     try {
       const result = await pool.query(
@@ -57,10 +58,20 @@ router.get(
            rs.explanation,
            rs.calculated_at
          FROM risk_scores rs
+         JOIN reports r ON r.id = rs.report_id
          WHERE rs.report_id = $1
+           AND (
+             (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+             OR r.reporter_id = $2
+             OR $3 = TRUE
+           )
          ORDER BY rs.calculated_at DESC
          LIMIT 1`,
-        [req.params.reportId]
+        [
+          req.params.reportId,
+          req.user?.id ?? null,
+          ["MODERATOR", "ADMIN"].includes(req.user?.role ?? ""),
+        ]
       );
 
       if (result.rows.length === 0) {

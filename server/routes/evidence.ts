@@ -4,6 +4,7 @@ import { cloudinary } from "../config/cloudinary";
 import { pool } from "../config/database";
 import {
   authenticate,
+  optionalAuthenticate,
   AuthenticatedRequest,
   requireRole,
 } from "../middleware/auth";
@@ -11,6 +12,7 @@ import { createAuditLog } from "../utils/audit";
 import {
   formatLimit,
   handleEvidenceUpload,
+  hasMatchingFileSignature,
   maxBytesForMime,
 } from "../middleware/upload";
 import { createNotification } from "../utils/notifications";
@@ -82,6 +84,13 @@ router.post(
         return res.status(400).json({
           status: "error",
           message: "Evidence file is required",
+        });
+      }
+
+      if (!hasMatchingFileSignature(req.file.buffer, req.file.mimetype)) {
+        return res.status(400).json({
+          status: "error",
+          message: "File contents do not match the declared file type",
         });
       }
 
@@ -290,115 +299,6 @@ router.post(
   }
 );
 
-// Create evidence for a report
-router.post(
-  "/",
-  authenticate,
-  async (req: AuthenticatedRequest, res) => {
-    try {
-      const {
-        report_id,
-        evidence_type,
-        file_name,
-        file_url,
-        file_hash,
-        description,
-      } = req.body;
-
-      if (!report_id || !evidence_type) {
-        return res.status(400).json({
-          status: "error",
-          message: "Report ID and evidence type are required",
-        });
-      }
-
-      // Make sure the report exists and check evidence creation access
-      const report = await pool.query(
-        `SELECT id, reporter_id
-         FROM reports
-         WHERE id = $1`,
-        [report_id]
-      );
-
-      if (report.rows.length === 0) {
-        return res.status(404).json({
-          status: "error",
-          message: "Report not found",
-        });
-      }
-
-      const isOwner = report.rows[0].reporter_id === req.user!.id;
-
-      const isModeratorOrAdmin = ["MODERATOR", "ADMIN"].includes(
-        req.user!.role
-      );
-
-      if (!isOwner && !isModeratorOrAdmin) {
-        return res.status(403).json({
-          status: "error",
-          message:
-            "You do not have permission to add evidence to this report",
-        });
-      }
-
-      const result = await pool.query(
-        `INSERT INTO evidence
-         (
-           report_id,
-           uploaded_by,
-           evidence_type,
-           file_name,
-           file_url,
-           file_hash,
-           description
-         )
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING
-           id,
-           report_id,
-           uploaded_by,
-           evidence_type,
-           file_name,
-           file_url,
-           file_hash,
-           description,
-           verification_status,
-           created_at,
-           updated_at`,
-        [
-          report_id,
-          req.user!.id,
-          evidence_type,
-          file_name || null,
-          file_url || null,
-          file_hash || null,
-          description || null,
-        ]
-      );
-
-      res.status(201).json({
-        status: "ok",
-        message: "Evidence created successfully",
-        evidence: result.rows[0],
-      });
-    } catch (error: any) {
-      if (error.code === "22P02") {
-        return res.status(400).json({
-          status: "error",
-          message: "Invalid evidence type",
-        });
-      }
-
-      console.error("Failed to create evidence:", error);
-
-      res.status(500).json({
-        status: "error",
-        message: "Failed to create evidence",
-      });
-    }
-  }
-);
-
 // Verify or reject evidence
 router.patch(
   "/:id/verify",
@@ -547,13 +447,25 @@ router.patch(
 // Get all evidence for a report
 router.get(
   "/report/:reportId",
-  async (req, res) => {
+  optionalAuthenticate,
+  async (req: AuthenticatedRequest, res) => {
     try {
       const report = await pool.query(
         `SELECT id
-         FROM reports
-         WHERE id = $1`,
-        [req.params.reportId]
+         FROM reports r
+         WHERE r.id = $1
+           AND (
+             (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+             OR r.reporter_id = $2
+             OR $3 = TRUE
+           )`,
+        [
+          req.params.reportId,
+          req.user?.id ?? null,
+          req.user
+            ? ["MODERATOR", "ADMIN"].includes(req.user.role)
+            : false,
+        ]
       );
 
       if (report.rows.length === 0) {
@@ -604,7 +516,10 @@ router.get(
 );
 
 // Get one evidence item
-router.get("/:id", async (req, res) => {
+router.get(
+  "/:id",
+  optionalAuthenticate,
+  async (req: AuthenticatedRequest, res) => {
   try {
     const result = await pool.query(
       `SELECT
@@ -625,8 +540,20 @@ router.get("/:id", async (req, res) => {
          ) AS uploader
        FROM evidence e
        JOIN users u ON u.id = e.uploaded_by
-       WHERE e.id = $1`,
-      [req.params.id]
+       JOIN reports r ON r.id = e.report_id
+       WHERE e.id = $1
+         AND (
+           (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+           OR r.reporter_id = $2
+           OR $3 = TRUE
+         )`,
+      [
+        req.params.id,
+        req.user?.id ?? null,
+        req.user
+          ? ["MODERATOR", "ADMIN"].includes(req.user.role)
+          : false,
+      ]
     );
 
     if (result.rows.length === 0) {

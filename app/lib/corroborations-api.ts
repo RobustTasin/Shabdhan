@@ -19,7 +19,9 @@ export async function getCorroborationsForReport(reportId: string) {
     status: string;
     count: number;
     corroborations: ApiCorroboration[];
-  }>(`/corroborations/report/${reportId}`);
+  }>(`/corroborations/report/${reportId}`, {
+    token: getToken() ?? undefined,
+  });
 }
 
 export async function createCorroboration(input: {
