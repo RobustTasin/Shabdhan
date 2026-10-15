@@ -37,7 +37,11 @@ const AuthContext = createContext<AuthContextValue | undefined>(
   undefined
 );
 
-const PUBLIC_PATHS = ["/login", "/register", "/forgot-password"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/search"];
+
+function isPublicPath(pathname: string) {
+  return PUBLIC_PATHS.includes(pathname) || /^\/reports\/[^/]+$/.test(pathname);
+}
 
 export function AuthProvider({
   children,
@@ -111,14 +115,19 @@ export function AuthProvider({
       return;
     }
 
-    const isPublicPath = PUBLIC_PATHS.includes(pathname);
+    const isPublicRoute = isPublicPath(pathname);
 
-    if (!user && !isPublicPath) {
+    if (!user && !isPublicRoute) {
       router.replace("/login");
       return;
     }
 
-    if (user && isPublicPath) {
+    if (
+      user &&
+      (pathname === "/login" ||
+        pathname === "/register" ||
+        pathname === "/forgot-password")
+    ) {
       router.replace("/dashboard");
     }
   }, [user, loading, pathname, router]);

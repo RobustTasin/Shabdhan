@@ -193,10 +193,13 @@ export function reportStatusLabel(
   status: ReportStatus,
   verificationStatus: VerificationStatus
 ): string {
-  if (verificationStatus === "VERIFIED") return "Verified";
-  if (status === "UNDER_REVIEW") return "Under review";
+  if (verificationStatus === "REJECTED") return "Verification rejected";
   if (status === "REJECTED") return "Rejected";
+  if (status === "UNDER_REVIEW") return "Under review";
   if (status === "RESOLVED") return "Resolved";
-  if (status === "PUBLISHED") return "Published";
+  if (status === "PUBLISHED") {
+    return verificationStatus === "VERIFIED" ? "Published" : "Awaiting verification";
+  }
+  if (verificationStatus === "VERIFIED") return "Verified - awaiting publication";
   return "Draft";
 }

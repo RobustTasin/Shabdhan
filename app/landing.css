@@ -1,0 +1,47 @@
+
+.stats-marquee {
+  overflow: hidden;
+}
+
+.stats-track {
+  display: flex;
+  width: max-content;
+  animation: stats-scroll 38s linear infinite;
+}
+
+.stats-marquee:hover .stats-track,
+.stats-marquee:focus-within .stats-track {
+  animation-play-state: paused;
+}
+
+.stats-group {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.report-carousel {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+  -webkit-overflow-scrolling: touch;
+}
+
+@keyframes stats-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stats-track {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-track {
+    animation-duration: 30s;
+  }
+}

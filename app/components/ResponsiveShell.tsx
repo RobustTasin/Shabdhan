@@ -17,9 +17,14 @@ export default function ResponsiveShell({
   const [compactExpanded, setCompactExpanded] = useState(false);
 
   const isAuthPage =
-    pathname === "/login" || pathname === "/register";
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/forgot-password";
 
-  if (isAuthPage) {
+  const isPublicReportPage = /^\/reports\/[^/]+$/.test(pathname);
+
+  // Public pages use their own layouts instead of the authenticated dashboard shell.
+  if (pathname === "/" || pathname === "/search" || isPublicReportPage || isAuthPage) {
     return <>{children}</>;
   }
 

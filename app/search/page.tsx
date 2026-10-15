@@ -30,17 +30,6 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
-    const hasSearchCriteria = search.trim() !== "" || categoryId !== "";
-
-    if (!hasSearchCriteria) {
-      setReports([]);
-      setTotal(0);
-      setTotalPages(0);
-      setLoading(false);
-      setError("");
-      return;
-    }
-
     const timer = window.setTimeout(() => {
       void loadResults();
     }, 300);
