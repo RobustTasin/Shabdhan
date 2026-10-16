@@ -74,6 +74,29 @@ function Chevron({ direction }: { direction: "left" | "right" }) {
   );
 }
 
+function FeedActionIcon({
+  name,
+}: {
+  name: "upvote" | "downvote" | "comment" | "corroborate" | "share";
+}) {
+  const common = {
+    "aria-hidden": true as const,
+    viewBox: "0 0 20 20",
+    fill: "none",
+    className: "h-4 w-4 shrink-0",
+    stroke: "currentColor",
+    strokeWidth: 1.7,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+  };
+
+  if (name === "upvote") return <svg {...common}><path d="M10 16V4m-5 5 5-5 5 5" /></svg>;
+  if (name === "downvote") return <svg {...common}><path d="M10 4v12m5-5-5 5-5-5" /></svg>;
+  if (name === "comment") return <svg {...common}><path d="M16.5 14.5A7 7 0 0 1 5 15l-2 1 1-3A7 7 0 1 1 16.5 14.5Z" /></svg>;
+  if (name === "corroborate") return <svg {...common}><path d="M10 2.5 16 5v4.3c0 3.5-2.4 6.4-6 8.2-3.6-1.8-6-4.7-6-8.2V5l6-2.5Z" /><path d="m7.3 9.8 1.8 1.8 3.7-3.8" /></svg>;
+  return <svg {...common}><circle cx="15" cy="4.5" r="2" /><circle cx="5" cy="10" r="2" /><circle cx="15" cy="15.5" r="2" /><path d="m6.8 9 6.4-3.5M6.8 11l6.4 3.5" /></svg>;
+}
+
 function statusClasses(status: ApiReport["verification_status"]) {
   if (status === "VERIFIED") return "bg-[#e8f2e9] text-[#286044]";
   if (status === "REJECTED") return "bg-rose-50 text-rose-700";
@@ -354,11 +377,11 @@ export default function Home() {
                     <span className="text-[11px] text-[#899289]">Sample ID: {demoReport.id}</span>
                   </div>
                   <div className="relative z-10 mt-auto flex flex-wrap items-center gap-2 border-t border-[#edf0e9] pt-4" aria-label="Sample actions">
-                    <button type="button" disabled className="rounded-full border border-[#e3e7e1] px-3 py-2 text-xs font-semibold text-[#879087]" title="Voting is disabled for fictional samples">↑ Upvote</button>
-                    <button type="button" disabled className="rounded-full border border-[#e3e7e1] px-3 py-2 text-xs font-semibold text-[#879087]" title="Voting is disabled for fictional samples">↓ Downvote</button>
-                    <button type="button" disabled className="rounded-full border border-[#e3e7e1] px-3 py-2 text-xs font-semibold text-[#879087]" title="Comments are disabled for fictional samples">Comment</button>
-                    <button type="button" disabled className="rounded-full border border-[#e3e7e1] px-3 py-2 text-xs font-semibold text-[#879087]" title="Corroboration is disabled for fictional samples">Corroborate</button>
-                    <button type="button" onClick={() => void handleShareDemo(demoReport)} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">{copiedDemoId === demoReport.id ? "Feed link copied" : "Share"}</button>
+                    <button type="button" disabled aria-label="Upvote sample" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e3e7e1] text-[#879087]" title="Voting is disabled for fictional samples"><FeedActionIcon name="upvote" /></button>
+                    <button type="button" disabled aria-label="Downvote sample" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e3e7e1] text-[#879087]" title="Voting is disabled for fictional samples"><FeedActionIcon name="downvote" /></button>
+                    <button type="button" disabled aria-label="Comment on sample" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e3e7e1] text-[#879087]" title="Comments are disabled for fictional samples"><FeedActionIcon name="comment" /></button>
+                    <button type="button" disabled aria-label="Corroborate sample" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e3e7e1] text-[#879087]" title="Corroboration is disabled for fictional samples"><FeedActionIcon name="corroborate" /></button>
+                    <button type="button" aria-label="Share sample feed" title={copiedDemoId === demoReport.id ? "Feed link copied" : "Share sample feed"} onClick={() => void handleShareDemo(demoReport)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="share" /></button>
                   </div>
                 </article>)}
                 </div>
@@ -382,18 +405,19 @@ export default function Home() {
                   <div className="relative z-10 mt-auto flex flex-wrap items-center gap-2 border-t border-[#edf0e9] pt-4" aria-label="Report actions">
                     {user ? (
                       <>
-                        <button type="button" aria-pressed={report.current_user_vote === 1} disabled={pendingVote === report.id} onClick={() => void handleVote(report, 1)} className={`rounded-full border px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${report.current_user_vote === 1 ? "border-[#9bb99d] bg-[#e8f2e9] text-[#24543e]" : "border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"}`}>↑ Upvote <span className="ml-1 tabular-nums">{report.upvote_count ?? 0}</span></button>
-                        <button type="button" aria-pressed={report.current_user_vote === -1} disabled={pendingVote === report.id} onClick={() => void handleVote(report, -1)} className={`rounded-full border px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${report.current_user_vote === -1 ? "border-rose-200 bg-rose-50 text-rose-700" : "border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"}`}>↓ Downvote <span className="ml-1 tabular-nums">{report.downvote_count ?? 0}</span></button>
+                        <button type="button" aria-label="Upvote report" title="Upvote" aria-pressed={report.current_user_vote === 1} disabled={pendingVote === report.id} onClick={() => void handleVote(report, 1)} className={`inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition disabled:opacity-50 ${report.current_user_vote === 1 ? "border-[#9bb99d] bg-[#e8f2e9] text-[#24543e]" : "border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"}`}><FeedActionIcon name="upvote" /><span className="tabular-nums">{report.upvote_count ?? 0}</span></button>
+                        <button type="button" aria-label="Downvote report" title="Downvote" aria-pressed={report.current_user_vote === -1} disabled={pendingVote === report.id} onClick={() => void handleVote(report, -1)} className={`inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition disabled:opacity-50 ${report.current_user_vote === -1 ? "border-rose-200 bg-rose-50 text-rose-700" : "border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"}`}><FeedActionIcon name="downvote" /><span className="tabular-nums">{report.downvote_count ?? 0}</span></button>
                       </>
                     ) : (
                       <>
-                        <Link href={`/login?next=${encodeURIComponent("/")}`} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">↑ Upvote <span className="ml-1 tabular-nums">{report.upvote_count ?? 0}</span></Link>
-                        <Link href={`/login?next=${encodeURIComponent("/")}`} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">↓ Downvote <span className="ml-1 tabular-nums">{report.downvote_count ?? 0}</span></Link>
+                        <Link href={`/login?next=${encodeURIComponent("/")}`} aria-label="Sign in to upvote report" title="Upvote" className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-[#dfe4dc] px-2.5 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="upvote" /><span className="tabular-nums">{report.upvote_count ?? 0}</span></Link>
+                        <Link href={`/login?next=${encodeURIComponent("/")}`} aria-label="Sign in to downvote report" title="Downvote" className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-[#dfe4dc] px-2.5 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="downvote" /><span className="tabular-nums">{report.downvote_count ?? 0}</span></Link>
                       </>
                     )}
-                    <Link href={`/reports/${report.id}#comments`} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">Comment</Link>
-                    <Link href={`/reports/${report.id}#corroborations`} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">Corroborate</Link>
-                    <button type="button" onClick={() => void handleShare(report)} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">{shareFeedback[report.id] || "Share"}</button>
+                    <Link href={`/reports/${report.id}#comments`} aria-label="Comment on report" title="Comment" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="comment" /></Link>
+                    <Link href={`/reports/${report.id}#corroborations`} aria-label="Corroborate report" title="Corroborate" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="corroborate" /></Link>
+                    <button type="button" aria-label="Share report" title={shareFeedback[report.id] || "Share"} onClick={() => void handleShare(report)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="share" /></button>
+                    <span className="sr-only" aria-live="polite">{shareFeedback[report.id] || ""}</span>
                   </div>
                   {voteErrors[report.id] && <p role="alert" className="mt-2 text-xs text-rose-700">{voteErrors[report.id]}</p>}
                 </article>;
