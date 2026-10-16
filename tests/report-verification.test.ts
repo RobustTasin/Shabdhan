@@ -123,6 +123,12 @@ describe("PATCH /api/reports/:id/verify", () => {
     expect(response.body.report.verification_status).toBe("VERIFIED");
     expect(response.body.report.status).toBe("PUBLISHED");
     expect(response.body.report.published_at).toBeTruthy();
+    expect(transactionQuery).toHaveBeenCalledWith(
+      expect.stringContaining(
+        "verification_status = $1::verification_status"
+      ),
+      expect.arrayContaining(["VERIFIED", REPORT_ID])
+    );
     expect(createNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: USER_ID,

@@ -731,16 +731,21 @@ router.patch(
         const result = await client.query(
           `UPDATE reports
            SET
-             verification_status = $1,
+             verification_status = $1::verification_status,
              status = CASE
-               WHEN $1 = 'VERIFIED' AND status <> 'RESOLVED' THEN 'PUBLISHED'
-               WHEN $1 = 'REJECTED' THEN 'REJECTED'
-               WHEN $1 = 'PENDING' AND status = 'PUBLISHED' THEN 'DRAFT'
+               WHEN $1::verification_status = 'VERIFIED'::verification_status
+                 AND status <> 'RESOLVED'::report_status THEN 'PUBLISHED'::report_status
+               WHEN $1::verification_status = 'REJECTED'::verification_status
+                 THEN 'REJECTED'::report_status
+               WHEN $1::verification_status = 'PENDING'::verification_status
+                 AND status = 'PUBLISHED'::report_status THEN 'DRAFT'::report_status
                ELSE status
              END,
              published_at = CASE
-               WHEN $1 = 'VERIFIED' AND status <> 'RESOLVED' THEN COALESCE(published_at, NOW())
-               WHEN $1 <> 'VERIFIED' AND status = 'PUBLISHED' THEN NULL
+               WHEN $1::verification_status = 'VERIFIED'::verification_status
+                 AND status <> 'RESOLVED'::report_status THEN COALESCE(published_at, NOW())
+               WHEN $1::verification_status <> 'VERIFIED'::verification_status
+                 AND status = 'PUBLISHED'::report_status THEN NULL
                ELSE published_at
              END,
              updated_at = NOW()
