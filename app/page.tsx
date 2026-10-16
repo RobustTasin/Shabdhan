@@ -111,6 +111,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [selectedDemo, setSelectedDemo] = useState<DemoReport | null>(null);
   const [pendingVote, setPendingVote] = useState<string | null>(null);
   const [voteErrors, setVoteErrors] = useState<Record<string, string>>({});
@@ -283,9 +285,9 @@ export default function Home() {
 
           <nav aria-label="Main navigation" className="ml-auto flex items-center gap-1.5">
             <a href="#public-feed" className="rounded-full bg-[#edf1e9] px-3.5 py-2 text-sm font-semibold text-[#244a34]">Feed</a>
-            <Link href="/search" aria-label="Search reports" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
+            <button type={searchOpen ? "submit" : "button"} form={searchOpen ? "feed-search-form" : undefined} aria-label={searchOpen ? "Search reports" : "Open search"} aria-expanded={searchOpen} onClick={() => { if (!searchOpen) setSearchOpen(true); }} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
               <SearchIcon />
-            </Link>
+            </button>
             {user && (
               <Link href="/reports" aria-label="Create a report" className="inline-flex h-10 items-center justify-center rounded-full bg-[#183a2c] px-3.5 text-sm font-semibold text-white transition hover:bg-[#24543e] sm:px-4">
                 <span className="sm:hidden">+</span><span className="hidden sm:inline">+ Create</span>
@@ -296,6 +298,11 @@ export default function Home() {
             </button>
           </nav>
         </div>
+        {searchOpen && <form id="feed-search-form" action="/search" method="get" role="search" className="absolute left-1/2 top-[calc(100%+0.5rem)] z-[75] flex w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 items-center gap-3 rounded-2xl border border-[#e1e6dd] bg-white p-3 shadow-[0_18px_50px_rgba(20,36,26,.16)]">
+          <label htmlFor="feed-search-query" className="sr-only">Search reports</label>
+          <input id="feed-search-query" name="q" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search reports, people, or organizations" autoFocus className="min-w-0 flex-1 rounded-xl border border-[#e5e8e1] bg-[#fbfcf9] px-4 py-3 text-sm text-[#20362a] outline-none placeholder:text-[#899289] focus:border-[#78927e]" />
+          <button type="submit" aria-label="Submit search" disabled={!searchQuery.trim()} className="rounded-xl bg-[#183a2c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#24543e] disabled:cursor-not-allowed disabled:opacity-50">Search</button>
+        </form>}
         {menuOpen && <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-[60] hidden bg-transparent lg:block" />}
         {menuOpen && <section aria-label="Navigation menu" className="absolute right-3 top-[calc(100%+0.5rem)] z-[70] hidden max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-[#e5e8e1] bg-[#fbfcf9] p-4 shadow-[0_18px_50px_rgba(20,36,26,.18)] lg:block">
           <div className="flex items-center justify-between border-b border-[#e8ebe5] px-2 pb-3">

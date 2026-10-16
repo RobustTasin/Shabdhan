@@ -25,7 +25,9 @@ export default function SearchPage() {
   const [initialized, setInitialized] = useState(false);
 
   useEffect(() => {
+    const requestedQuery = new URLSearchParams(window.location.search).get("q");
     const requestedCategory = new URLSearchParams(window.location.search).get("category_id");
+    if (requestedQuery) setSearch(requestedQuery);
     if (requestedCategory) setCategoryId(requestedCategory);
     setInitialized(true);
   }, []);
