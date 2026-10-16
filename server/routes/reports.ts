@@ -196,6 +196,7 @@ router.get("/search", async (req, res) => {
     const search = String(req.query.search || "").trim();
     const categoryId = String(req.query.category_id || "").trim();
     const platform = String(req.query.platform || "").trim();
+    const socialAccountId = String(req.query.social_account_id || "").trim();
 
     const page = Math.max(Number(req.query.page) || 1, 1);
     const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
@@ -230,6 +231,11 @@ router.get("/search", async (req, res) => {
     if (platform) {
       values.push(platform);
       conditions.push(`LOWER(sa.platform) = LOWER($${values.length})`);
+    }
+
+    if (socialAccountId) {
+      values.push(socialAccountId);
+      conditions.push(`r.social_account_id = $${values.length}`);
     }
 
     const whereClause = `WHERE ${conditions.join(" AND ")}`;

@@ -118,6 +118,23 @@ export async function uploadEvidence(
   return response.json();
 }
 
+export async function addEvidenceLink(
+  reportId: string,
+  url: string,
+  options: { label?: string; description?: string } = {}
+): Promise<EvidenceResponse> {
+  return apiFetch<EvidenceResponse>("/evidence/link", {
+    method: "POST",
+    token: getToken() ?? undefined,
+    body: JSON.stringify({
+      report_id: reportId,
+      url,
+      label: options.label,
+      description: options.description,
+    }),
+  });
+}
+
 export async function updateEvidenceVerification(
   id: string,
   verification_status: VerificationStatus

@@ -71,6 +71,69 @@ router.get(
   }
 );
 
+// Attach a public HTTPS evidence link (for example a shared cloud folder).
+router.post(
+  "/link",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const reportId = typeof req.body.report_id === "string" ? req.body.report_id.trim() : "";
+      const rawUrl = typeof req.body.url === "string" ? req.body.url.trim() : "";
+      const label = typeof req.body.label === "string" ? req.body.label.trim() : "";
+      const description = typeof req.body.description === "string" ? req.body.description.trim() : "";
+
+      if (!reportId || !rawUrl) {
+        return res.status(400).json({ status: "error", message: "Report ID and evidence URL are required" });
+      }
+      if (rawUrl.length > 2048 || label.length > 255 || description.length > 1000) {
+        return res.status(400).json({ status: "error", message: "The evidence link or description is too long" });
+      }
+
+      let url: URL;
+      try {
+        url = new URL(rawUrl);
+      } catch {
+        return res.status(400).json({ status: "error", message: "Enter a valid HTTPS link" });
+      }
+      if (url.protocol !== "https:" || url.username || url.password) {
+        return res.status(400).json({ status: "error", message: "Evidence links must use HTTPS and cannot contain embedded credentials" });
+      }
+
+      const reportResult = await pool.query(
+        `SELECT id, reporter_id FROM reports WHERE id = $1`,
+        [reportId]
+      );
+      if (reportResult.rows.length === 0) {
+        return res.status(404).json({ status: "error", message: "Report not found" });
+      }
+
+      const isOwner = reportResult.rows[0].reporter_id === req.user!.id;
+      const canModerate = ["MODERATOR", "ADMIN"].includes(req.user!.role);
+      if (!isOwner && !canModerate) {
+        return res.status(403).json({ status: "error", message: "You do not have permission to add evidence to this report" });
+      }
+
+      const result = await pool.query(
+        `INSERT INTO evidence
+           (report_id, uploaded_by, evidence_type, file_name, file_url, description)
+         VALUES ($1, $2, 'LINK'::evidence_type, $3, $4, $5)
+         RETURNING id, report_id, uploaded_by, evidence_type, file_name, file_url,
+                   file_hash, description, verification_status, created_at, updated_at`,
+        [reportId, req.user!.id, label || url.hostname, url.toString(), description || null]
+      );
+
+      return res.status(201).json({
+        status: "ok",
+        message: "Evidence link added successfully",
+        evidence: result.rows[0],
+      });
+    } catch (error) {
+      console.error("Failed to add evidence link:", error);
+      return res.status(500).json({ status: "error", message: "Failed to add evidence link" });
+    }
+  }
+);
+
 // Upload evidence file
 router.post(
   "/upload",

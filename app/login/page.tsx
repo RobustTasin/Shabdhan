@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 import { useAuth } from "../components/AuthProvider";
 import { useRouter } from "next/navigation";
+import { getSafeReturnPath } from "../lib/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,7 +25,10 @@ export default function LoginPage() {
 
     try {
       await loginUser(email, password);
-      router.replace("/dashboard");
+      const next = getSafeReturnPath(
+        new URLSearchParams(window.location.search).get("next")
+      );
+      router.replace(next ?? "/dashboard");
     } catch (err) {
       setError(
         err instanceof Error

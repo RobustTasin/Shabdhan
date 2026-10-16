@@ -19,6 +19,7 @@ import {
   register,
   type AuthUser,
 } from "../lib/auth";
+import { getSafeReturnPath } from "../lib/navigation";
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -37,7 +38,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(
   undefined
 );
 
-const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/search"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/search", "/reports"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.includes(pathname) || /^\/reports\/[^/]+$/.test(pathname);
@@ -118,7 +119,8 @@ export function AuthProvider({
     const isPublicRoute = isPublicPath(pathname);
 
     if (!user && !isPublicRoute) {
-      router.replace("/login");
+      const next = `${pathname}${window.location.search}`;
+      router.replace(`/login?next=${encodeURIComponent(next)}`);
       return;
     }
 
@@ -128,7 +130,10 @@ export function AuthProvider({
         pathname === "/register" ||
         pathname === "/forgot-password")
     ) {
-      router.replace("/dashboard");
+      const next = getSafeReturnPath(
+        new URLSearchParams(window.location.search).get("next")
+      );
+      router.replace(next ?? "/dashboard");
     }
   }, [user, loading, pathname, router]);
 
