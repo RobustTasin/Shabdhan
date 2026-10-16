@@ -285,7 +285,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#f5f6f2] text-[#1e2924]">
-      <header className="sticky top-0 z-40 border-b border-[#e5e8e1] bg-[#fbfcf9]/95 backdrop-blur-xl lg:hidden">
+      <header className="sticky top-0 z-40 border-b border-[#e5e8e1] bg-[#fbfcf9]/95 backdrop-blur-xl">
         <div className="mx-auto flex h-[68px] max-w-5xl items-center gap-3 px-4 sm:px-6">
           <Link href="/" aria-label="Shabdhan feed" className="flex shrink-0 items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#183a2c] text-sm font-bold text-[#eaf1d7]">S</span>
