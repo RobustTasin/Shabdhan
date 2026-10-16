@@ -16,6 +16,28 @@ type CategoryFeed = {
   total: number;
 };
 
+type DemoReport = {
+  id: string;
+  subject: string;
+  title: string;
+  description: string;
+};
+
+const DEMO_REPORTS: DemoReport[][] = [
+  [
+    { id: "DEMO-01", subject: "Example Profile A", title: "Sample: an example profile lists conflicting service hours", description: "Fictional sample for the public feed. It describes a harmless information mismatch on an imaginary profile and makes no claim about a real person or organization." },
+    { id: "DEMO-02", subject: "Example Page B", title: "Sample: an example page links to an outdated notice", description: "Fictional sample for the public feed. This imaginary page has an old notice link that a reader might want to check. No real account or institution is involved." },
+    { id: "DEMO-03", subject: "Example Listing C", title: "Sample: an example listing has incomplete contact details", description: "Fictional sample for the public feed. It demonstrates how a report can describe missing public information without making an allegation about a real entity." },
+  ],
+  [
+    { id: "DEMO-04", subject: "Example Service D", title: "Sample: an example service page has a broken contact form", description: "Fictional sample for the public feed. The contact form belongs to an imaginary service and is included only to demonstrate a category card and detail view." },
+    { id: "DEMO-05", subject: "Example Notice E", title: "Sample: an example notice shows an expired deadline", description: "Fictional sample for the public feed. It illustrates how readers can add context about an outdated public notice. It is not a real report." },
+  ],
+  [
+    { id: "DEMO-06", subject: "Example Organization F", title: "Sample: an example organization page needs an updated link", description: "Fictional sample for the public feed. This imaginary organization page points to an unavailable information page; no real organization or person is referenced." },
+  ],
+];
+
 function SearchIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
@@ -63,6 +85,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedDemo, setSelectedDemo] = useState<DemoReport | null>(null);
 
   const loadFeed = useCallback(async () => {
     setLoading(true);
@@ -113,8 +136,7 @@ export default function Home() {
     void loadFeed();
   }, [loadFeed]);
 
-  function moveReport(categoryId: string, direction: -1 | 1) {
-    const count = feeds[categoryId]?.reports.length ?? 0;
+  function moveReport(categoryId: string, direction: -1 | 1, count: number) {
     setActiveIndexes((current) => {
       const index = current[categoryId] ?? 0;
       return { ...current, [categoryId]: Math.max(0, Math.min(count - 1, index + direction)) };
@@ -122,6 +144,19 @@ export default function Home() {
   }
 
   const visibleCategories = categories.filter((category) => feeds[category.id]?.reports.length);
+  const sampleCategories = categories.slice(0, 3);
+  const sampleCategoryNames = ["Online information", "Public services", "Community notices"];
+  while (sampleCategories.length < 3) {
+    const index = sampleCategories.length;
+    sampleCategories.push({
+      id: `sample-category-${index + 1}`,
+      name: `${sampleCategoryNames[index]} · sample`,
+      description: "Fictional category used for the feed preview.",
+      is_active: true,
+    });
+  }
+  const demoMode = !loading && !error && visibleCategories.length === 0;
+  const categorySections = demoMode ? sampleCategories : visibleCategories;
 
   return (
     <main className="min-h-screen bg-[#f5f6f2] text-[#1e2924]">
@@ -193,7 +228,7 @@ export default function Home() {
           </div>
         )}
 
-        {!loading && !error && visibleCategories.length === 0 && (
+        {!loading && !error && visibleCategories.length === 0 && !demoMode && (
           <div className="rounded-3xl border border-[#e0e5dc] bg-white p-7 text-center sm:p-10">
             <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#edf2e8] text-xl text-[#355b40]">S</span>
             <h2 className="mt-4 text-xl font-semibold tracking-tight text-[#20362a]">No public reports yet</h2>
@@ -202,12 +237,16 @@ export default function Home() {
           </div>
         )}
 
-        {!loading && !error && visibleCategories.map((category) => {
+        {!loading && !error && categorySections.map((category) => {
           const feed = feeds[category.id];
           const index = activeIndexes[category.id] ?? 0;
           const report = feed.reports[index];
-          const platform = report.social_account?.platform;
-          const accountName = report.social_account?.display_name || report.social_account?.username;
+          const demoCategoryIndex = sampleCategories.findIndex((item) => item.id === category.id);
+          const demoReports = demoMode ? DEMO_REPORTS[demoCategoryIndex] ?? [] : [];
+          const demoReport = demoReports[index];
+          const count = demoMode ? demoReports.length : feed.reports.length;
+          const platform = report?.social_account?.platform;
+          const accountName = report?.social_account?.display_name || report?.social_account?.username;
 
           return (
             <section key={category.id} aria-label={`${category.name} reports`} className="mb-6 overflow-hidden rounded-[1.65rem] border border-[#e2e6de] bg-white shadow-[0_8px_26px_rgba(31,54,37,.035)] sm:mb-7">
@@ -217,35 +256,65 @@ export default function Home() {
                   <h2 className="mt-0.5 truncate text-lg font-semibold tracking-[-0.02em] text-[#23382a]">{category.name}</h2>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="mr-1 text-xs tabular-nums text-[#778178]">{index + 1} / {feed.reports.length}</span>
-                  <button type="button" aria-label={`Previous ${category.name} report`} onClick={() => moveReport(category.id, -1)} disabled={index === 0} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] transition hover:bg-[#f1f4ef] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="left" /></button>
-                  <button type="button" aria-label={`Next ${category.name} report`} onClick={() => moveReport(category.id, 1)} disabled={index >= feed.reports.length - 1} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] transition hover:bg-[#f1f4ef] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="right" /></button>
+                  <span className="mr-1 text-xs tabular-nums text-[#778178]">{index + 1} / {count}</span>
+                  <button type="button" aria-label={`Previous ${category.name} report`} onClick={() => moveReport(category.id, -1, count)} disabled={index === 0} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] transition hover:bg-[#f1f4ef] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="left" /></button>
+                  <button type="button" aria-label={`Next ${category.name} report`} onClick={() => moveReport(category.id, 1, count)} disabled={index >= count - 1} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] transition hover:bg-[#f1f4ef] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="right" /></button>
                 </div>
               </div>
 
-              <article className="p-5 sm:p-6">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-[#f0f3ed] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#52705a]">{platform || "Public report"}</span>
-                  <span className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${statusClasses(report.verification_status)}`}>{reportStatusLabel(report.status, report.verification_status)}</span>
-                  {report.created_at && <span className="text-xs text-[#879087]">{new Date(report.created_at).toLocaleDateString()}</span>}
-                </div>
-
-                {accountName && (
-                  <p className="mt-4 text-sm font-medium text-[#516356]">{report.social_account?.display_name ? `${accountName} · ` : ""}@{report.social_account?.username}</p>
-                )}
-                <h3 className="mt-2 text-xl font-semibold leading-7 tracking-[-0.03em] text-[#20362a] sm:text-2xl">{report.title}</h3>
-                <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#657267]">{report.description}</p>
-
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-4">
-                  <span className="text-[11px] text-[#899289]">Report ID: {report.id}</span>
-                  <Link href={`/reports/${report.id}`} className="inline-flex items-center gap-2 rounded-full bg-[#183a2c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#24543e]">View report <Chevron direction="right" /></Link>
-                </div>
-              </article>
-              {feed.total > feed.reports.length && <p className="px-5 pb-4 text-xs text-[#818b82] sm:px-6">Showing the {feed.reports.length} newest reports in this category.</p>}
+              {demoMode && demoReport ? (
+                <article className="p-5 sm:p-6">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-[#f4eddb] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#705a28]">Demo only · fictional</span>
+                    <span className="text-xs text-[#879087]">Not a verified report</span>
+                  </div>
+                  <p className="mt-4 text-sm font-medium text-[#516356]">{demoReport.subject}</p>
+                  <h3 className="mt-2 text-xl font-semibold leading-7 tracking-[-0.03em] text-[#20362a] sm:text-2xl">{demoReport.title}</h3>
+                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#657267]">{demoReport.description}</p>
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-4">
+                    <span className="text-[11px] text-[#899289]">Sample ID: {demoReport.id}</span>
+                    <button type="button" onClick={() => setSelectedDemo(demoReport)} className="inline-flex items-center gap-2 rounded-full bg-[#183a2c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#24543e]">View sample <Chevron direction="right" /></button>
+                  </div>
+                </article>
+              ) : report ? (
+                <article className="p-5 sm:p-6">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-[#f0f3ed] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#52705a]">{platform || "Public report"}</span>
+                    <span className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${statusClasses(report.verification_status)}`}>{reportStatusLabel(report.status, report.verification_status)}</span>
+                    {report.created_at && <span className="text-xs text-[#879087]">{new Date(report.created_at).toLocaleDateString()}</span>}
+                  </div>
+                  {accountName && <p className="mt-4 text-sm font-medium text-[#516356]">{report.social_account?.display_name ? `${accountName} · ` : ""}@{report.social_account?.username}</p>}
+                  <h3 className="mt-2 text-xl font-semibold leading-7 tracking-[-0.03em] text-[#20362a] sm:text-2xl">{report.title}</h3>
+                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#657267]">{report.description}</p>
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-4">
+                    <span className="text-[11px] text-[#899289]">Report ID: {report.id}</span>
+                    <Link href={`/reports/${report.id}`} className="inline-flex items-center gap-2 rounded-full bg-[#183a2c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#24543e]">View report <Chevron direction="right" /></Link>
+                  </div>
+                </article>
+              ) : null}
+              {!demoMode && feed.total > feed.reports.length && <p className="px-5 pb-4 text-xs text-[#818b82] sm:px-6">Showing the {feed.reports.length} newest reports in this category.</p>}
             </section>
           );
         })}
       </section>
+
+      {selectedDemo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#15241b]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedDemo(null); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="demo-title" className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#816b38]">Fictional sample · not a real report</p>
+                <h2 id="demo-title" className="mt-2 text-2xl font-semibold tracking-tight text-[#20362a]">{selectedDemo.title}</h2>
+              </div>
+              <button type="button" aria-label="Close sample details" onClick={() => setSelectedDemo(null)} className="rounded-full px-3 py-1 text-xl text-[#5f6c62] hover:bg-[#f1f3ef]">×</button>
+            </div>
+            <p className="mt-5 text-sm font-medium text-[#516356]">Subject: {selectedDemo.subject}</p>
+            <p className="mt-3 text-sm leading-6 text-[#657267]">{selectedDemo.description}</p>
+            <div className="mt-5 rounded-2xl border border-[#eadfbe] bg-[#faf6ea] p-4 text-xs leading-5 text-[#66582f]">Sample ID: {selectedDemo.id}. This content is only for previewing the feed. It is not stored as a Shabdhan report, does not refer to a real person or organization, and has no verification status.</div>
+            <button type="button" onClick={() => setSelectedDemo(null)} className="mt-6 w-full rounded-full bg-[#183a2c] px-5 py-3 text-sm font-semibold text-white hover:bg-[#24543e]">Close sample</button>
+          </section>
+        </div>
+      )}
 
       <footer className="border-t border-[#e5e8e1] bg-white">
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6">
