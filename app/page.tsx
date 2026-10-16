@@ -355,7 +355,7 @@ export default function Home() {
         <p className={`desktop-sidebar-label mt-auto px-2 text-xs leading-5 text-[#899289] ${desktopSidebarPinned ? "is-visible" : ""}`}>Explore openly. Read carefully. Participate responsibly.</p>
       </aside>
 
-      <section id="public-feed" aria-label="Recent reports by category" className="mx-auto max-w-5xl px-4 pt-5 pb-16 sm:px-6 lg:ml-[4.5rem] lg:max-w-none lg:px-8 xl:px-10">
+      <section id="public-feed" aria-label="Recent reports by category" className="desktop-feed mx-auto max-w-5xl px-4 pt-5 pb-16 sm:px-6 lg:ml-[4.5rem] lg:max-w-none lg:px-8 xl:px-10">
         {error && (
           <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-800">
             <p>{error}</p>
@@ -488,7 +488,7 @@ export default function Home() {
       )}
 
       <footer className="border-t border-[#e5e8e1] bg-white">
-        <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:ml-[4.5rem] lg:max-w-none lg:px-8 xl:px-10">
+        <div className="desktop-feed mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:ml-[4.5rem] lg:max-w-none lg:px-8 xl:px-10">
           <Link href="/" className="font-semibold text-[#38523e]">shabdhan.</Link>
           <p>Explore openly. Read carefully. Participate responsibly.</p>
         </div>
