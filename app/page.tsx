@@ -50,25 +50,6 @@ function SearchIcon() {
   );
 }
 
-function FeedIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5 shrink-0">
-      <path d="M4 6.5h16M4 12h16M4 17.5h16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <circle cx="2.8" cy="6.5" r=".8" fill="currentColor" />
-      <circle cx="2.8" cy="12" r=".8" fill="currentColor" />
-      <circle cx="2.8" cy="17.5" r=".8" fill="currentColor" />
-    </svg>
-  );
-}
-
-function CreateIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5 shrink-0">
-      <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  );
-}
-
 function MenuIcon({ open }: { open: boolean }) {
   return open ? (
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
@@ -130,7 +111,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [desktopSidebarPinned, setDesktopSidebarPinned] = useState(false);
   const [selectedDemo, setSelectedDemo] = useState<DemoReport | null>(null);
   const [pendingVote, setPendingVote] = useState<string | null>(null);
   const [voteErrors, setVoteErrors] = useState<Record<string, string>>({});
@@ -346,20 +326,7 @@ export default function Home() {
         </div>
       </section>}
 
-      <aside data-pinned={desktopSidebarPinned} className="desktop-sidebar fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-[#e5e8e1] bg-[#fbfcf9] px-3 py-6 lg:flex">
-        <button type="button" aria-label={desktopSidebarPinned ? "Unpin Shabdhan sidebar" : "Pin Shabdhan sidebar open"} aria-pressed={desktopSidebarPinned} onClick={(event) => { if (desktopSidebarPinned && event.detail > 0) event.currentTarget.blur(); setDesktopSidebarPinned((pinned) => !pinned); }} className="flex h-11 w-full shrink-0 items-center gap-3 rounded-xl px-1.5 text-left hover:bg-[#edf1e9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#52705a]" title={desktopSidebarPinned ? "Unpin sidebar" : "Pin sidebar open"}>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#183a2c] text-sm font-bold text-[#eaf1d7]">S</span>
-          <span className={`desktop-sidebar-label text-lg font-semibold tracking-[-0.04em] ${desktopSidebarPinned ? "is-visible" : ""}`}>shabdhan<span className="text-[#65846e]">.</span></span>
-        </button>
-        <nav aria-label="Desktop navigation" className="mt-10 flex flex-col gap-2">
-          <a href="#public-feed" aria-label="Feed" title="Feed" className="desktop-sidebar-item flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-semibold text-[#244a34] hover:bg-[#edf1e9]"><FeedIcon /><span className={`desktop-sidebar-label ${desktopSidebarPinned ? "is-visible" : ""}`}>Feed</span></a>
-          <Link href="/search" aria-label="Search" title="Search" className="desktop-sidebar-item flex h-11 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-[#48594e] transition hover:bg-[#edf1e9]"><SearchIcon /><span className={`desktop-sidebar-label ${desktopSidebarPinned ? "is-visible" : ""}`}>Search</span></Link>
-          {user && <Link href="/reports" aria-label="Create report" title="Create report" className="desktop-sidebar-item mt-2 flex h-11 w-full items-center gap-3 rounded-xl bg-[#183a2c] px-3 text-sm font-semibold text-white transition hover:bg-[#24543e]"><CreateIcon /><span className={`desktop-sidebar-label ${desktopSidebarPinned ? "is-visible" : ""}`}>Create</span></Link>}
-        </nav>
-        <p className={`desktop-sidebar-label mt-auto px-2 text-xs leading-5 text-[#899289] ${desktopSidebarPinned ? "is-visible" : ""}`}>Explore openly. Read carefully. Participate responsibly.</p>
-      </aside>
-
-      <section id="public-feed" aria-label="Recent reports by category" className="desktop-feed mx-auto max-w-5xl px-4 pt-5 pb-16 sm:px-6 lg:ml-[4.5rem] lg:max-w-none lg:px-8 xl:px-10">
+      <section id="public-feed" aria-label="Recent reports by category" className="mx-auto max-w-5xl px-4 pt-5 pb-16 sm:px-6 lg:max-w-none lg:px-8 xl:px-10">
         {error && (
           <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-800">
             <p>{error}</p>
@@ -492,7 +459,7 @@ export default function Home() {
       )}
 
       <footer className="border-t border-[#e5e8e1] bg-white">
-        <div className="desktop-feed mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:ml-[4.5rem] lg:max-w-none lg:px-8 xl:px-10">
+        <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:max-w-none lg:px-8 xl:px-10">
           <Link href="/" className="font-semibold text-[#38523e]">shabdhan.</Link>
           <p>Explore openly. Read carefully. Participate responsibly.</p>
         </div>
