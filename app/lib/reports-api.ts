@@ -161,12 +161,31 @@ export async function createReport(input: {
 
 export async function updateReportVerification(
   id: string,
-  verification_status: VerificationStatus
+  verification_status: VerificationStatus,
+  reason?: string
 ): Promise<{ status: string; report: ApiReport }> {
   return apiFetch(`/reports/${id}/verify`, {
     method: "PATCH",
     token: getToken() ?? undefined,
-    body: JSON.stringify({ verification_status }),
+    body: JSON.stringify({ verification_status, ...(reason ? { reason } : {}) }),
+  });
+}
+
+export async function unpublishReport(
+  id: string,
+  reason?: string
+): Promise<{ status: string; report: ApiReport }> {
+  return apiFetch(`/reports/${id}/unpublish`, {
+    method: "PATCH",
+    token: getToken() ?? undefined,
+    body: JSON.stringify({ reason }),
+  });
+}
+
+export async function deleteReport(id: string): Promise<{ status: string; message: string }> {
+  return apiFetch(`/reports/${id}`, {
+    method: "DELETE",
+    token: getToken() ?? undefined,
   });
 }
 
