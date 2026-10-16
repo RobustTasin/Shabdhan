@@ -68,8 +68,27 @@ export default function Home() {
     setLoading(true);
     setError("");
     try {
-      const response = await getCategories();
-      const active = response.categories.filter((category) => category.is_active);
+      let active: Category[];
+      try {
+        const response = await getCategories();
+        active = response.categories.filter((category) => category.is_active);
+      } catch (categoryError) {
+        console.warn("Could not load categories; deriving them from public reports.", categoryError);
+        const recent = await searchReports({ limit: 100 });
+        const derived = new Map<string, Category>();
+        for (const report of recent.reports) {
+          const category = report.category;
+          if (category?.id && !derived.has(category.id)) {
+            derived.set(category.id, {
+              id: category.id,
+              name: category.name,
+              description: category.description,
+              is_active: true,
+            });
+          }
+        }
+        active = Array.from(derived.values());
+      }
       const results = await Promise.all(
         active.map(async (category) => {
           try {
