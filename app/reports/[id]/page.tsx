@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "../../components/AuthProvider";
 import { useEffect, useState } from "react";
 
@@ -13,6 +13,8 @@ import {
 import {
   getReport,
   updateReportVerification,
+  unpublishReport,
+  deleteReport,
   reportStatusLabel,
   type ApiReport,
 } from "../../lib/reports-api";
@@ -80,12 +82,14 @@ function verificationBadgeClass(
 export default function ReportDetailsPage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
+  const router = useRouter();
   const { user } = useAuth();
 
   const [report, setReport] = useState<ApiReport | null>(null);
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [reviewSuccess, setReviewSuccess] = useState("");
+  const [moderationReason, setModerationReason] = useState("");
 
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [evidenceLoading, setEvidenceLoading] = useState(true);
@@ -214,7 +218,11 @@ export default function ReportDetailsPage() {
     setReviewSuccess("");
 
     try {
-      const response = await updateReportVerification(id, verificationStatus);
+      const response = await updateReportVerification(
+        id,
+        verificationStatus,
+        verificationStatus === "REJECTED" ? moderationReason.trim() : undefined
+      );
       setReport((current) =>
         current
           ? {
@@ -238,6 +246,35 @@ export default function ReportDetailsPage() {
         err instanceof Error ? err.message : "Failed to update report review."
       );
     } finally {
+      setReviewing(false);
+    }
+  }
+
+  async function handleUnpublishReport() {
+    if (!id || reviewing) return;
+    setReviewing(true);
+    setReviewError("");
+    setReviewSuccess("");
+    try {
+      const response = await unpublishReport(id, moderationReason.trim() || undefined);
+      setReport((current) => current ? { ...current, status: response.report.status, published_at: null, updated_at: response.report.updated_at } : current);
+      setReviewSuccess("Report unpublished.");
+    } catch (err) {
+      setReviewError(err instanceof Error ? err.message : "Failed to unpublish report.");
+    } finally {
+      setReviewing(false);
+    }
+  }
+
+  async function handleDeleteReport() {
+    if (!id || reviewing || !window.confirm("Permanently delete this report and its evidence, comments, and related records? This cannot be undone.")) return;
+    setReviewing(true);
+    setReviewError("");
+    try {
+      await deleteReport(id);
+      router.push("/reports");
+    } catch (err) {
+      setReviewError(err instanceof Error ? err.message : "Failed to delete report.");
       setReviewing(false);
     }
   }
@@ -528,30 +565,39 @@ export default function ReportDetailsPage() {
 
       {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
         <section className="rounded-xl border border-slate-200 bg-white p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-4">
             <div>
               <h2 className="font-semibold text-slate-950">Moderator review</h2>
               <p className="mt-1 text-sm text-slate-500">
                 Current verification status: {report.verification_status}
               </p>
             </div>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => void handleReportReview("VERIFIED")}
-                disabled={reviewing || (report.verification_status === "VERIFIED" && report.status === "PUBLISHED")}
-                className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {reviewing ? "Saving..." : report.status === "RESOLVED" ? "Verify report" : "Verify and publish"}
+            <label className="block max-w-2xl text-sm text-slate-600">
+              Optional cause for unpublishing or rejection
+              <textarea
+                value={moderationReason}
+                onChange={(event) => setModerationReason(event.target.value)}
+                maxLength={1000}
+                rows={2}
+                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900"
+                placeholder="Add context for the reporter and audit record"
+              />
+            </label>
+            <div className="flex flex-wrap gap-3">
+              <button type="button" onClick={() => void handleReportReview("VERIFIED")} disabled={reviewing || (report.verification_status === "VERIFIED" && report.status === "PUBLISHED")} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50">
+                {reviewing ? "Saving..." : report.status === "RESOLVED" ? "Verify" : "Verify and publish"}
               </button>
-              <button
-                type="button"
-                onClick={() => void handleReportReview("REJECTED")}
-                disabled={reviewing || report.verification_status === "REJECTED"}
-                className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                Reject report
+              <button type="button" onClick={() => void handleUnpublishReport()} disabled={reviewing || report.status !== "PUBLISHED"} className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50">
+                Unpublish
               </button>
+              <button type="button" onClick={() => void handleReportReview("REJECTED")} disabled={reviewing || report.verification_status === "REJECTED"} className="rounded-lg border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50">
+                Reject
+              </button>
+              {user?.role === "ADMIN" && (
+                <button type="button" onClick={() => void handleDeleteReport()} disabled={reviewing} className="rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-50">
+                  Delete report
+                </button>
+              )}
             </div>
           </div>
           {reviewError && (

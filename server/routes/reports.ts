@@ -9,6 +9,7 @@ import {
 import { createAuditLog } from "../utils/audit";
 import { createNotification } from "../utils/notifications";
 import { withTransaction } from "../utils/transaction";
+import { cloudinary } from "../config/cloudinary";
 
 const router = Router();
 
@@ -689,6 +690,7 @@ router.patch(
     try {
       const id = String(req.params.id);
       const { verification_status } = req.body;
+      const reason = typeof req.body.reason === "string" ? req.body.reason.trim() : "";
 
       const allowedStatuses = ["PENDING", "VERIFIED", "REJECTED"];
 
@@ -701,6 +703,9 @@ router.patch(
           message:
             "verification_status must be one of: PENDING, VERIFIED, REJECTED",
         });
+      }
+      if (reason.length > 1000) {
+        return res.status(400).json({ status: "error", message: "Reason must be 1000 characters or fewer" });
       }
 
       const report = await pool.query(
@@ -777,6 +782,7 @@ router.patch(
           newData: {
             status: result.rows[0]?.status,
             verification_status,
+            ...(verification_status === "REJECTED" && reason ? { reason } : {}),
           },
           req,
           client,
@@ -802,7 +808,7 @@ router.patch(
                 : verification_status === "REJECTED"
                   ? "Report rejected"
                   : "Report status updated",
-            message: `Your report "${updatedReport.title}" is now ${verification_status.toLowerCase()}.`,
+            message: `Your report "${updatedReport.title}" is now ${verification_status.toLowerCase()}.${verification_status === "REJECTED" && reason ? ` Reason: ${reason}` : ""}`,
             entityType: "report",
             entityId: id,
           });
@@ -823,6 +829,128 @@ router.patch(
         status: "error",
         message: "Failed to update report verification status",
       });
+    }
+  }
+);
+
+// Unpublish a report while preserving its verification decision.
+router.patch(
+  "/:id/unpublish",
+  authenticate,
+  requireRole("MODERATOR", "ADMIN"),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = String(req.params.id);
+      const reason = typeof req.body.reason === "string" ? req.body.reason.trim() : "";
+      if (reason.length > 1000) {
+        return res.status(400).json({ status: "error", message: "Reason must be 1000 characters or fewer" });
+      }
+      const result = await withTransaction(async (client) => {
+        const current = await client.query(
+          `SELECT id, reporter_id, title, status, verification_status
+           FROM reports WHERE id = $1 FOR UPDATE`, [id]
+        );
+        const report = current.rows[0];
+        if (!report) return null;
+        if (report.status !== "PUBLISHED") return { conflict: true as const };
+
+        const updated = await client.query(
+          `UPDATE reports SET status = 'DRAFT'::report_status, published_at = NULL, updated_at = NOW()
+           WHERE id = $1
+           RETURNING id, reporter_id, title, status, verification_status, published_at, updated_at`, [id]
+        );
+        await createAuditLog({
+          userId: req.user!.id,
+          action: "REPORT_UNPUBLISHED",
+          entityType: "report",
+          entityId: id,
+          oldData: { status: report.status, verification_status: report.verification_status },
+          newData: { status: "DRAFT", verification_status: report.verification_status, ...(reason ? { reason } : {}) },
+          req,
+          client,
+        });
+        return { report, updated: updated.rows[0] };
+      });
+
+      if (!result) return res.status(404).json({ status: "error", message: "Report not found" });
+      if ("conflict" in result) return res.status(409).json({ status: "error", message: "Only published reports can be unpublished" });
+      try {
+        await createNotification({
+          userId: result.report.reporter_id,
+          type: "REPORT_STATUS_UPDATED",
+          title: "Report unpublished",
+          message: `Your report "${result.report.title}" has been unpublished.${reason ? ` Reason: ${reason}` : ""}`,
+          entityType: "report",
+          entityId: id,
+        });
+      } catch (error) {
+        console.error("Failed to create report notification:", error);
+      }
+      return res.json({ status: "ok", message: "Report unpublished", report: result.updated });
+    } catch (error) {
+      console.error("Failed to unpublish report:", error);
+      return res.status(500).json({ status: "error", message: "Failed to unpublish report" });
+    }
+  }
+);
+
+// Permanently delete a report and its dependent database records.
+router.delete(
+  "/:id",
+  authenticate,
+  requireRole("ADMIN"),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = String(req.params.id);
+      const deleted = await withTransaction(async (client) => {
+        const current = await client.query(
+          `SELECT id, reporter_id, title, status, verification_status
+           FROM reports WHERE id = $1 FOR UPDATE`, [id]
+        );
+        const report = current.rows[0];
+        if (!report) return null;
+        const assets = await client.query(
+          `SELECT cloudinary_public_id FROM evidence
+           WHERE report_id = $1 AND cloudinary_public_id IS NOT NULL`, [id]
+        );
+        await createAuditLog({
+          userId: req.user!.id,
+          action: "REPORT_DELETED",
+          entityType: "report",
+          entityId: id,
+          oldData: { title: report.title, status: report.status, verification_status: report.verification_status },
+          newData: { deleted: true },
+          req,
+          client,
+        });
+        await client.query(`DELETE FROM reports WHERE id = $1`, [id]);
+        return { report, assets: assets.rows as Array<{ cloudinary_public_id: string }> };
+      });
+
+      if (!deleted) return res.status(404).json({ status: "error", message: "Report not found" });
+      for (const asset of deleted.assets) {
+        try {
+          await cloudinary.uploader.destroy(asset.cloudinary_public_id);
+        } catch (error) {
+          console.error("Failed to remove report evidence from Cloudinary:", error);
+        }
+      }
+      try {
+        await createNotification({
+          userId: deleted.report.reporter_id,
+          type: "REPORT_STATUS_UPDATED",
+          title: "Report deleted",
+          message: `Your report "${deleted.report.title}" was deleted by a moderator.`,
+          entityType: "report",
+          entityId: id,
+        });
+      } catch (error) {
+        console.error("Failed to create report notification:", error);
+      }
+      return res.json({ status: "ok", message: "Report deleted" });
+    } catch (error) {
+      console.error("Failed to delete report:", error);
+      return res.status(500).json({ status: "error", message: "Failed to delete report" });
     }
   }
 );
