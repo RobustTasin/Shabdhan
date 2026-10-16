@@ -311,7 +311,7 @@ export default function Home() {
 
       <div aria-hidden={!menuOpen} className={`fixed inset-0 z-[60] lg:hidden ${menuOpen ? "visible" : "invisible pointer-events-none"}`}>
         <button type="button" aria-label="Close navigation menu" tabIndex={menuOpen ? 0 : -1} onClick={() => setMenuOpen(false)} className={`absolute inset-0 bg-[#14241a]/45 transition-opacity duration-300 ${menuOpen ? "opacity-100" : "opacity-0"}`} />
-        <aside role="dialog" aria-modal="true" aria-label="Navigation menu" className={`absolute inset-y-0 left-0 flex w-[min(86vw,22rem)] flex-col border-r border-[#e5e8e1] bg-[#fbfcf9] p-5 shadow-2xl transition-transform duration-300 ease-out ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <aside role="dialog" aria-modal="true" aria-label="Navigation menu" className={`absolute inset-y-0 right-0 flex w-[min(86vw,22rem)] flex-col border-l border-[#e5e8e1] bg-[#fbfcf9] p-5 shadow-2xl transition-transform duration-300 ease-out ${menuOpen ? "translate-x-0" : "translate-x-full"}`}>
           <div className="flex items-center justify-between border-b border-[#e8ebe5] pb-5">
             <Link href="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5">
               <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#183a2c] text-sm font-bold text-[#eaf1d7]">S</span>
