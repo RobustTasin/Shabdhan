@@ -3,6 +3,7 @@
 import Link from "next/link";
 import "./landing.css";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "./components/AuthProvider";
 import {
   getCategories,
   searchReports,
@@ -12,6 +13,7 @@ import {
 } from "./lib/reports-api";
 
 export default function Home() {
+  const { user } = useAuth();
   const [reports, setReports] = useState<ApiReport[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [total, setTotal] = useState(0);
@@ -154,12 +156,25 @@ export default function Home() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Link href="/login" className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-slate-100">
-              Log in
-            </Link>
-            <Link href="/register" className="rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
-              Sign up
-            </Link>
+            {user ? (
+              <>
+                <Link href="/dashboard" className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-slate-100">
+                  Dashboard
+                </Link>
+                <Link href="/reports" className="rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+                  Report an incident
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="rounded-lg px-3 py-2 text-sm font-semibold hover:bg-slate-100">
+                  Log in
+                </Link>
+                <Link href="/register" className="rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800">
+                  Create account
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -182,6 +197,7 @@ export default function Home() {
               <label className="sr-only" htmlFor="public-search">Search Shabdhan</label>
               <input
                 id="public-search"
+                type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Search incidents, accounts, keywords..."
@@ -202,6 +218,7 @@ export default function Home() {
                   <button
                     key={item}
                     type="button"
+                    aria-pressed={activeType === item}
                     onClick={() => {
                       setActiveType(item);
                       void loadData(query, item === "Everything" ? "" : item);
@@ -240,7 +257,7 @@ export default function Home() {
         <div className="stats-marquee mx-auto max-w-7xl px-4 sm:px-6">
           <div className="stats-track">
             {[0, 1].map((copy) => (
-              <div key={copy} className="stats-group">
+              <div key={copy} className="stats-group" aria-hidden={copy === 1}>
 {[
   {
     label: "Matching verified reports",
@@ -405,16 +422,31 @@ export default function Home() {
           <div>
             <h2 className="text-xl font-bold">Help build a safer community.</h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-slate-600">
-              Browsing is open to everyone. Sign in when you are ready to submit a report or participate.
+              {user
+                ? `Welcome back, ${user.username}. You can submit a report or continue to your dashboard.`
+                : "Browsing is open to everyone. Create an account when you are ready to submit a report or participate."}
             </p>
           </div>
           <div className="flex gap-3">
-            <Link href="/login" className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50">
-              Log in
-            </Link>
-            <Link href="/register" className="rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-800">
-              Join Shabdhan
-            </Link>
+            {user ? (
+              <>
+                <Link href="/dashboard" className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50">
+                  Go to dashboard
+                </Link>
+                <Link href="/reports" className="rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-800">
+                  Submit a report
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login" className="rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold hover:bg-slate-50">
+                  Log in
+                </Link>
+                <Link href="/register" className="rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-800">
+                  Join Shabdhan
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
