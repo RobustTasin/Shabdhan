@@ -268,6 +268,14 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
          (SELECT COUNT(*)::int FROM report_votes rv WHERE rv.report_id = r.id AND rv.vote = 1) AS upvote_count,
          (SELECT COUNT(*)::int FROM report_votes rv WHERE rv.report_id = r.id AND rv.vote = -1) AS downvote_count,
          (SELECT rv.vote FROM report_votes rv WHERE rv.report_id = r.id AND rv.user_id = $${viewerParam}) AS current_user_vote,
+         (SELECT e.file_url
+          FROM evidence e
+          WHERE e.report_id = r.id
+            AND e.evidence_type = 'IMAGE'
+            AND e.verification_status = 'VERIFIED'
+            AND e.file_url IS NOT NULL
+          ORDER BY e.created_at DESC, e.id DESC
+          LIMIT 1) AS preview_image_url,
          json_build_object(
            'id', sa.id,
            'platform', sa.platform,

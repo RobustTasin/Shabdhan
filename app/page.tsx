@@ -365,15 +365,15 @@ export default function Home() {
 
               {demoMode ? (
                 <div className="feed-report-grid p-4 sm:p-5">
-                {shownDemoReports.map((demoReport) => <article key={demoReport.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-4 sm:p-5">
+                {shownDemoReports.map((demoReport) => <article key={demoReport.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#f4eddb] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#705a28]">Demo only · fictional</span>
                     <span className="text-xs text-[#879087]">Not a verified report</span>
                   </div>
-                  <p className="mt-4 text-sm font-medium text-[#516356]">{demoReport.subject}</p>
-                  <h3 className="mt-2 text-xl font-semibold leading-7 tracking-[-0.03em] text-[#20362a] sm:text-2xl"><button type="button" onClick={() => setSelectedDemo(demoReport)} className="text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{demoReport.title}<span className="sr-only"> — open sample details</span></button></h3>
-                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#657267]">{demoReport.description}</p>
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-4">
+                  <p className="mt-3 text-xs font-medium text-[#516356]">{demoReport.subject}</p>
+                  <h3 className="mt-1.5 text-base font-semibold leading-6 tracking-[-0.02em] text-[#20362a]"><button type="button" onClick={() => setSelectedDemo(demoReport)} className="text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{demoReport.title}<span className="sr-only"> — open sample details</span></button></h3>
+                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#657267]">{demoReport.description}</p>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-3">
                     <span className="text-[11px] text-[#899289]">Sample ID: {demoReport.id}</span>
                   </div>
                   <div className="relative z-10 mt-auto flex flex-wrap items-center gap-2 border-t border-[#edf0e9] pt-4" aria-label="Sample actions">
@@ -390,19 +390,19 @@ export default function Home() {
                 {shownReports.map((report) => {
                   const platform = report.social_account?.platform;
                   const accountName = report.social_account?.display_name || report.social_account?.username;
-                  return <article key={report.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-4 sm:p-5">
+                  return <article key={report.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
+                  {report.preview_image_url && <img src={report.preview_image_url} alt={`Evidence image for ${report.title}`} loading="lazy" decoding="async" className="mb-3 aspect-[4/3] w-full rounded-xl bg-[#edf1e9] object-cover" />}
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-[#f0f3ed] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#52705a]">{platform || "Public report"}</span>
-                    <span className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${statusClasses(report.verification_status)}`}>{reportStatusLabel(report.status, report.verification_status)}</span>
-                    {report.created_at && <span className="text-xs text-[#879087]">{new Date(report.created_at).toLocaleDateString()}</span>}
+                    <span className="rounded-full bg-[#f0f3ed] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#52705a]">{platform || "Public report"}</span>
+                    <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${statusClasses(report.verification_status)}`}>{reportStatusLabel(report.status, report.verification_status)}</span>
                   </div>
-                  {accountName && <p className="mt-4 text-sm font-medium text-[#516356]">{report.social_account?.display_name ? `${accountName} · ` : ""}@{report.social_account?.username}</p>}
-                  <h3 className="mt-2 text-xl font-semibold leading-7 tracking-[-0.03em] text-[#20362a] sm:text-2xl"><Link href={`/reports/${report.id}`} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>
-                  <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#657267]">{report.description}</p>
-                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-4">
-                    <span className="text-[11px] text-[#899289]">Report ID: {report.id}</span>
+                  {accountName && <p className="mt-2 text-xs font-medium text-[#516356]">{report.social_account?.display_name ? `${accountName} · ` : ""}@{report.social_account?.username}</p>}
+                  <h3 className="mt-1.5 text-base font-semibold leading-5 tracking-[-0.02em] text-[#20362a]"><Link href={`/reports/${report.id}`} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>
+                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#657267]">{report.description}</p>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-3">
+                    <span className="text-[10px] text-[#899289]">{report.created_at ? new Date(report.created_at).toLocaleDateString() : ""}</span>
                   </div>
-                  <div className="relative z-10 mt-auto flex flex-wrap items-center gap-2 border-t border-[#edf0e9] pt-4" aria-label="Report actions">
+                  <div className="relative z-10 mt-auto flex flex-wrap items-center gap-1.5 border-t border-[#edf0e9] pt-2" aria-label="Report actions">
                     {user ? (
                       <>
                         <button type="button" aria-label="Upvote report" title="Upvote" aria-pressed={report.current_user_vote === 1} disabled={pendingVote === report.id} onClick={() => void handleVote(report, 1)} className={`inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition disabled:opacity-50 ${report.current_user_vote === 1 ? "border-[#9bb99d] bg-[#e8f2e9] text-[#24543e]" : "border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"}`}><FeedActionIcon name="upvote" /><span className="tabular-nums">{report.upvote_count ?? 0}</span></button>
