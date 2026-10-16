@@ -7,6 +7,7 @@ import {
   getCategories,
   reportStatusLabel,
   searchReports,
+  setReportVote,
   type ApiReport,
   type Category,
 } from "./lib/reports-api";
@@ -22,6 +23,8 @@ type DemoReport = {
   title: string;
   description: string;
 };
+
+type VoteDirection = 1 | -1;
 
 const DEMO_REPORTS: DemoReport[][] = [
   [
@@ -86,6 +89,22 @@ export default function Home() {
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [selectedDemo, setSelectedDemo] = useState<DemoReport | null>(null);
+  const [pendingVote, setPendingVote] = useState<string | null>(null);
+  const [voteErrors, setVoteErrors] = useState<Record<string, string>>({});
+  const [shareFeedback, setShareFeedback] = useState<Record<string, string>>({});
+  const [copiedDemoId, setCopiedDemoId] = useState<string | null>(null);
+  const [cardsPerPage, setCardsPerPage] = useState(1);
+
+  useEffect(() => {
+    const updateCardsPerPage = () => {
+      const width = window.innerWidth;
+      const isWide = window.matchMedia("(min-aspect-ratio: 1/1)").matches;
+      setCardsPerPage(width >= 1280 && isWide ? 3 : width >= 768 ? 2 : 1);
+    };
+    updateCardsPerPage();
+    window.addEventListener("resize", updateCardsPerPage);
+    return () => window.removeEventListener("resize", updateCardsPerPage);
+  }, []);
 
   const loadFeed = useCallback(async () => {
     setLoading(true);
@@ -139,8 +158,62 @@ export default function Home() {
   function moveReport(categoryId: string, direction: -1 | 1, count: number) {
     setActiveIndexes((current) => {
       const index = current[categoryId] ?? 0;
-      return { ...current, [categoryId]: Math.max(0, Math.min(count - 1, index + direction)) };
+      return { ...current, [categoryId]: Math.max(0, Math.min(count - 1, index + direction * cardsPerPage)) };
     });
+  }
+
+  async function handleVote(report: ApiReport, direction: VoteDirection) {
+    if (!user || pendingVote) return;
+    const nextVote = report.current_user_vote === direction ? null : direction;
+    setPendingVote(report.id);
+    setVoteErrors((current) => ({ ...current, [report.id]: "" }));
+    try {
+      const response = await setReportVote(report.id, nextVote);
+      setFeeds((current) => Object.fromEntries(Object.entries(current).map(([categoryId, feed]) => [
+        categoryId,
+        { ...feed, reports: feed.reports.map((item) => item.id === report.id ? {
+          ...item,
+          upvote_count: response.upvote_count,
+          downvote_count: response.downvote_count,
+          current_user_vote: response.vote,
+        } : item) },
+      ])));
+    } catch (error) {
+      setVoteErrors((current) => ({ ...current, [report.id]: error instanceof Error ? error.message : "Could not save your vote." }));
+    } finally {
+      setPendingVote(null);
+    }
+  }
+
+  async function handleShare(report: ApiReport) {
+    const url = `${window.location.origin}/reports/${report.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: report.title, url });
+        setShareFeedback((current) => ({ ...current, [report.id]: "Shared" }));
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareFeedback((current) => ({ ...current, [report.id]: "Link copied" }));
+      }
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") return;
+      try {
+        await navigator.clipboard.writeText(url);
+        setShareFeedback((current) => ({ ...current, [report.id]: "Link copied" }));
+      } catch {
+        setShareFeedback((current) => ({ ...current, [report.id]: "Could not copy link" }));
+      }
+    }
+  }
+
+  async function handleShareDemo(demo: DemoReport) {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/`);
+      setCopiedDemoId(demo.id);
+      window.setTimeout(() => setCopiedDemoId(null), 2000);
+    } catch {
+      setCopiedDemoId(null);
+    }
   }
 
   const visibleCategories = categories.filter((category) => feeds[category.id]?.reports.length);
@@ -160,7 +233,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-[#f5f6f2] text-[#1e2924]">
-      <header className="sticky top-0 z-40 border-b border-[#e5e8e1] bg-[#fbfcf9]/95 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-[#e5e8e1] bg-[#fbfcf9]/95 backdrop-blur-xl lg:hidden">
         <div className="mx-auto flex h-[68px] max-w-5xl items-center gap-3 px-4 sm:px-6">
           <Link href="/" aria-label="Shabdhan feed" className="flex shrink-0 items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#183a2c] text-sm font-bold text-[#eaf1d7]">S</span>
@@ -203,18 +276,24 @@ export default function Home() {
         )}
       </header>
 
-      <section className="mx-auto max-w-5xl px-4 pb-5 pt-7 sm:px-6 sm:pt-10">
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#718174]">Community reports</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-[-0.05em] text-[#1e3326] sm:text-4xl">Your feed</h1>
-            <p className="mt-2 max-w-xl text-sm leading-6 text-[#68756b]">Browse recent, reviewed reports by category. You can read everything here without signing in.</p>
-          </div>
-          <Link href="/search" className="hidden shrink-0 rounded-full border border-[#d8ded5] bg-white px-4 py-2.5 text-sm font-semibold text-[#38523e] transition hover:bg-[#f0f3ed] sm:inline-flex">Search reports</Link>
-        </div>
-      </section>
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-[#e5e8e1] bg-[#fbfcf9] px-5 py-6 lg:flex">
+        <Link href="/" aria-label="Shabdhan feed" className="flex items-center gap-2.5 px-2">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#183a2c] text-sm font-bold text-[#eaf1d7]">S</span>
+          <span className="text-lg font-semibold tracking-[-0.04em]">shabdhan<span className="text-[#65846e]">.</span></span>
+        </Link>
+        <nav aria-label="Desktop navigation" className="mt-10 flex flex-col gap-2">
+          <a href="#public-feed" className="flex items-center gap-3 rounded-xl bg-[#edf1e9] px-4 py-3 text-sm font-semibold text-[#244a34]">Feed</a>
+          <Link href="/search" className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-[#48594e] transition hover:bg-[#edf1e9]"><SearchIcon /> Search</Link>
+          <button type="button" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="flex items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium text-[#48594e] transition hover:bg-[#edf1e9]"><MenuIcon open={menuOpen} /> Menu</button>
+          {user && <Link href="/reports" className="mt-2 rounded-xl bg-[#183a2c] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#24543e]">+ Create</Link>}
+        </nav>
+        {menuOpen && <nav aria-label="More desktop navigation" className="mt-3 flex flex-col gap-1 border-t border-[#e8ebe5] pt-3">
+          {user ? <><Link href="/dashboard" className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/register" className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link></>}
+        </nav>}
+        <p className="mt-auto px-2 text-xs leading-5 text-[#899289]">Explore openly. Read carefully. Participate responsibly.</p>
+      </aside>
 
-      <section id="public-feed" aria-label="Recent reports by category" className="mx-auto max-w-5xl px-4 pb-16 sm:px-6">
+      <section id="public-feed" aria-label="Recent reports by category" className="mx-auto max-w-5xl px-4 pt-5 pb-16 sm:px-6 lg:ml-60 lg:max-w-none lg:px-8 xl:px-10">
         {error && (
           <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-800">
             <p>{error}</p>
@@ -238,59 +317,88 @@ export default function Home() {
         )}
 
         {!loading && !error && categorySections.map((category) => {
-          const feed = feeds[category.id];
+          const feed = feeds[category.id] ?? { reports: [], total: 0 };
           const index = activeIndexes[category.id] ?? 0;
-          const report = feed.reports[index];
           const demoCategoryIndex = sampleCategories.findIndex((item) => item.id === category.id);
           const demoReports = demoMode ? DEMO_REPORTS[demoCategoryIndex] ?? [] : [];
-          const demoReport = demoReports[index];
           const count = demoMode ? demoReports.length : feed.reports.length;
-          const platform = report?.social_account?.platform;
-          const accountName = report?.social_account?.display_name || report?.social_account?.username;
+          const shownCount = Math.min(cardsPerPage, Math.max(0, count - index));
+          const shownDemoReports = demoReports.slice(index, index + cardsPerPage);
+          const shownReports = demoMode ? [] : feed.reports.slice(index, index + cardsPerPage);
 
           return (
             <section key={category.id} aria-label={`${category.name} reports`} className="mb-6 overflow-hidden rounded-[1.65rem] border border-[#e2e6de] bg-white shadow-[0_8px_26px_rgba(31,54,37,.035)] sm:mb-7">
               <div className="flex items-center justify-between gap-3 border-b border-[#edf0ea] px-5 py-4 sm:px-6">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7a8a7d]">Recent in</p>
-                  <h2 className="mt-0.5 truncate text-lg font-semibold tracking-[-0.02em] text-[#23382a]">{category.name}</h2>
+                  <h2 className="mt-0.5 truncate text-lg font-semibold tracking-[-0.02em] text-[#23382a]"><Link href={`/search?category_id=${encodeURIComponent(category.id)}`} className="rounded-sm hover:text-[#52705a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#52705a]">{category.name}<span className="sr-only"> — view all reports in this category</span></Link></h2>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="mr-1 text-xs tabular-nums text-[#778178]">{index + 1} / {count}</span>
-                  <button type="button" aria-label={`Previous ${category.name} report`} onClick={() => moveReport(category.id, -1, count)} disabled={index === 0} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] transition hover:bg-[#f1f4ef] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="left" /></button>
-                  <button type="button" aria-label={`Next ${category.name} report`} onClick={() => moveReport(category.id, 1, count)} disabled={index >= count - 1} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] transition hover:bg-[#f1f4ef] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="right" /></button>
+                  <span className="mr-1 text-xs tabular-nums text-[#778178]">{shownCount ? `${index + 1}${shownCount > 1 ? `–${index + shownCount}` : ""}` : 0} / {count}</span>
+                  <button type="button" aria-label={`Previous ${category.name} reports`} onClick={() => moveReport(category.id, -1, count)} disabled={index === 0} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] transition hover:bg-[#f1f4ef] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="left" /></button>
+                  <button type="button" aria-label={`Next ${category.name} reports`} onClick={() => moveReport(category.id, 1, count)} disabled={index + cardsPerPage >= count} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] transition hover:bg-[#f1f4ef] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="right" /></button>
                 </div>
               </div>
 
-              {demoMode && demoReport ? (
-                <article className="p-5 sm:p-6">
+              {demoMode ? (
+                <div className="feed-report-grid p-4 sm:p-5">
+                {shownDemoReports.map((demoReport) => <article key={demoReport.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-4 sm:p-5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#f4eddb] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#705a28]">Demo only · fictional</span>
                     <span className="text-xs text-[#879087]">Not a verified report</span>
                   </div>
                   <p className="mt-4 text-sm font-medium text-[#516356]">{demoReport.subject}</p>
-                  <h3 className="mt-2 text-xl font-semibold leading-7 tracking-[-0.03em] text-[#20362a] sm:text-2xl">{demoReport.title}</h3>
+                  <h3 className="mt-2 text-xl font-semibold leading-7 tracking-[-0.03em] text-[#20362a] sm:text-2xl"><button type="button" onClick={() => setSelectedDemo(demoReport)} className="text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{demoReport.title}<span className="sr-only"> — open sample details</span></button></h3>
                   <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#657267]">{demoReport.description}</p>
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-4">
                     <span className="text-[11px] text-[#899289]">Sample ID: {demoReport.id}</span>
-                    <button type="button" onClick={() => setSelectedDemo(demoReport)} className="inline-flex items-center gap-2 rounded-full bg-[#183a2c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#24543e]">View sample <Chevron direction="right" /></button>
                   </div>
-                </article>
-              ) : report ? (
-                <article className="p-5 sm:p-6">
+                  <div className="relative z-10 mt-auto flex flex-wrap items-center gap-2 border-t border-[#edf0e9] pt-4" aria-label="Sample actions">
+                    <button type="button" disabled className="rounded-full border border-[#e3e7e1] px-3 py-2 text-xs font-semibold text-[#879087]" title="Voting is disabled for fictional samples">↑ Upvote</button>
+                    <button type="button" disabled className="rounded-full border border-[#e3e7e1] px-3 py-2 text-xs font-semibold text-[#879087]" title="Voting is disabled for fictional samples">↓ Downvote</button>
+                    <button type="button" disabled className="rounded-full border border-[#e3e7e1] px-3 py-2 text-xs font-semibold text-[#879087]" title="Comments are disabled for fictional samples">Comment</button>
+                    <button type="button" disabled className="rounded-full border border-[#e3e7e1] px-3 py-2 text-xs font-semibold text-[#879087]" title="Corroboration is disabled for fictional samples">Corroborate</button>
+                    <button type="button" onClick={() => void handleShareDemo(demoReport)} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">{copiedDemoId === demoReport.id ? "Feed link copied" : "Share"}</button>
+                  </div>
+                </article>)}
+                </div>
+              ) : shownReports.length ? (
+                <div className="feed-report-grid p-4 sm:p-5">
+                {shownReports.map((report) => {
+                  const platform = report.social_account?.platform;
+                  const accountName = report.social_account?.display_name || report.social_account?.username;
+                  return <article key={report.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-4 sm:p-5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#f0f3ed] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-[#52705a]">{platform || "Public report"}</span>
                     <span className={`rounded-full px-3 py-1.5 text-[10px] font-semibold ${statusClasses(report.verification_status)}`}>{reportStatusLabel(report.status, report.verification_status)}</span>
                     {report.created_at && <span className="text-xs text-[#879087]">{new Date(report.created_at).toLocaleDateString()}</span>}
                   </div>
                   {accountName && <p className="mt-4 text-sm font-medium text-[#516356]">{report.social_account?.display_name ? `${accountName} · ` : ""}@{report.social_account?.username}</p>}
-                  <h3 className="mt-2 text-xl font-semibold leading-7 tracking-[-0.03em] text-[#20362a] sm:text-2xl">{report.title}</h3>
+                  <h3 className="mt-2 text-xl font-semibold leading-7 tracking-[-0.03em] text-[#20362a] sm:text-2xl"><Link href={`/reports/${report.id}`} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>
                   <p className="mt-3 line-clamp-3 text-sm leading-6 text-[#657267]">{report.description}</p>
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-4">
                     <span className="text-[11px] text-[#899289]">Report ID: {report.id}</span>
-                    <Link href={`/reports/${report.id}`} className="inline-flex items-center gap-2 rounded-full bg-[#183a2c] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#24543e]">View report <Chevron direction="right" /></Link>
                   </div>
-                </article>
+                  <div className="relative z-10 mt-auto flex flex-wrap items-center gap-2 border-t border-[#edf0e9] pt-4" aria-label="Report actions">
+                    {user ? (
+                      <>
+                        <button type="button" aria-pressed={report.current_user_vote === 1} disabled={pendingVote === report.id} onClick={() => void handleVote(report, 1)} className={`rounded-full border px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${report.current_user_vote === 1 ? "border-[#9bb99d] bg-[#e8f2e9] text-[#24543e]" : "border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"}`}>↑ Upvote <span className="ml-1 tabular-nums">{report.upvote_count ?? 0}</span></button>
+                        <button type="button" aria-pressed={report.current_user_vote === -1} disabled={pendingVote === report.id} onClick={() => void handleVote(report, -1)} className={`rounded-full border px-3 py-2 text-xs font-semibold transition disabled:opacity-50 ${report.current_user_vote === -1 ? "border-rose-200 bg-rose-50 text-rose-700" : "border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"}`}>↓ Downvote <span className="ml-1 tabular-nums">{report.downvote_count ?? 0}</span></button>
+                      </>
+                    ) : (
+                      <>
+                        <Link href={`/login?next=${encodeURIComponent("/")}`} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">↑ Upvote <span className="ml-1 tabular-nums">{report.upvote_count ?? 0}</span></Link>
+                        <Link href={`/login?next=${encodeURIComponent("/")}`} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">↓ Downvote <span className="ml-1 tabular-nums">{report.downvote_count ?? 0}</span></Link>
+                      </>
+                    )}
+                    <Link href={`/reports/${report.id}#comments`} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">Comment</Link>
+                    <Link href={`/reports/${report.id}#corroborations`} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">Corroborate</Link>
+                    <button type="button" onClick={() => void handleShare(report)} className="rounded-full border border-[#dfe4dc] px-3 py-2 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]">{shareFeedback[report.id] || "Share"}</button>
+                  </div>
+                  {voteErrors[report.id] && <p role="alert" className="mt-2 text-xs text-rose-700">{voteErrors[report.id]}</p>}
+                </article>;
+                })}
+                </div>
               ) : null}
               {!demoMode && feed.total > feed.reports.length && <p className="px-5 pb-4 text-xs text-[#818b82] sm:px-6">Showing the {feed.reports.length} newest reports in this category.</p>}
             </section>
@@ -317,7 +425,7 @@ export default function Home() {
       )}
 
       <footer className="border-t border-[#e5e8e1] bg-white">
-        <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:ml-60 lg:max-w-none lg:px-8 xl:px-10">
           <Link href="/" className="font-semibold text-[#38523e]">shabdhan.</Link>
           <p>Explore openly. Read carefully. Participate responsibly.</p>
         </div>

@@ -138,6 +138,18 @@ CREATE INDEX idx_reports_status
 CREATE INDEX idx_reports_verification_status
     ON reports(verification_status); 
 
+-- One persistent upvote or downvote per signed-in user and report.
+CREATE TABLE report_votes (
+    report_id UUID NOT NULL REFERENCES reports(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    vote SMALLINT NOT NULL CHECK (vote IN (-1, 1)),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (report_id, user_id)
+);
+
+CREATE INDEX idx_report_votes_report_vote ON report_votes(report_id, vote);
+
  -- ============================================================
 -- EVIDENCE
 -- ============================================================
@@ -400,5 +412,3 @@ CREATE INDEX idx_categories_name
 
 CREATE INDEX idx_categories_is_active
     ON categories(is_active);
-
-    

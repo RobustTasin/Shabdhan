@@ -22,6 +22,13 @@ export default function SearchPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    const requestedCategory = new URLSearchParams(window.location.search).get("category_id");
+    if (requestedCategory) setCategoryId(requestedCategory);
+    setInitialized(true);
+  }, []);
 
   useEffect(() => {
     void getCategories()
@@ -30,12 +37,13 @@ export default function SearchPage() {
   }, []);
 
   useEffect(() => {
+    if (!initialized) return;
     const timer = window.setTimeout(() => {
       void loadResults();
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [search, categoryId, page]);
+  }, [initialized, search, categoryId, page]);
 
   async function loadResults() {
     try {

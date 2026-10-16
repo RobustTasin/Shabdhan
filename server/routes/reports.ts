@@ -191,7 +191,7 @@ router.get(
 
 
 // Public report search
-router.get("/search", async (req, res) => {
+router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, res) => {
   try {
     const search = String(req.query.search || "").trim();
     const categoryId = String(req.query.category_id || "").trim();
@@ -251,8 +251,9 @@ router.get("/search", async (req, res) => {
 
     const total = countResult.rows[0].total;
 
-    const limitParam = values.length + 1;
-    const offsetParam = values.length + 2;
+    const viewerParam = values.length + 1;
+    const limitParam = values.length + 2;
+    const offsetParam = values.length + 3;
 
     const result = await pool.query(
       `SELECT
@@ -264,6 +265,9 @@ router.get("/search", async (req, res) => {
          r.published_at,
          r.created_at,
          r.updated_at,
+         (SELECT COUNT(*)::int FROM report_votes rv WHERE rv.report_id = r.id AND rv.vote = 1) AS upvote_count,
+         (SELECT COUNT(*)::int FROM report_votes rv WHERE rv.report_id = r.id AND rv.vote = -1) AS downvote_count,
+         (SELECT rv.vote FROM report_votes rv WHERE rv.report_id = r.id AND rv.user_id = $${viewerParam}) AS current_user_vote,
          json_build_object(
            'id', sa.id,
            'platform', sa.platform,
@@ -286,7 +290,7 @@ router.get("/search", async (req, res) => {
        ORDER BY r.created_at DESC, r.id DESC
        LIMIT $${limitParam}
        OFFSET $${offsetParam}`,
-      [...values, limit, offset]
+      [...values, req.user?.id ?? null, limit, offset]
     );
 
     return res.json({
@@ -306,6 +310,56 @@ router.get("/search", async (req, res) => {
       status: "error",
       message: "Failed to search reports",
     });
+  }
+});
+
+// One vote per signed-in user and report. Sending null removes the user's vote.
+router.put("/:id/vote", authenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const vote = req.body?.vote;
+    if (vote !== null && vote !== 1 && vote !== -1) {
+      return res.status(400).json({
+        status: "error",
+        message: "Vote must be 1, -1, or null",
+      });
+    }
+
+    const report = await pool.query(
+      `SELECT id FROM reports
+       WHERE id = $1 AND status = 'PUBLISHED' AND verification_status = 'VERIFIED'`,
+      [req.params.id]
+    );
+    if (report.rows.length === 0) {
+      return res.status(404).json({ status: "error", message: "Report not found" });
+    }
+
+    if (vote === null) {
+      await pool.query(
+        `DELETE FROM report_votes WHERE report_id = $1 AND user_id = $2`,
+        [req.params.id, req.user!.id]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO report_votes (report_id, user_id, vote)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (report_id, user_id)
+         DO UPDATE SET vote = EXCLUDED.vote, updated_at = NOW()`,
+        [req.params.id, req.user!.id, vote]
+      );
+    }
+
+    const counts = await pool.query(
+      `SELECT
+         (SELECT COUNT(*)::int FROM report_votes WHERE report_id = $1 AND vote = 1) AS upvote_count,
+         (SELECT COUNT(*)::int FROM report_votes WHERE report_id = $1 AND vote = -1) AS downvote_count,
+         (SELECT vote FROM report_votes WHERE report_id = $1 AND user_id = $2) AS vote`,
+      [req.params.id, req.user!.id]
+    );
+
+    return res.json({ status: "ok", ...counts.rows[0] });
+  } catch (error) {
+    console.error("Failed to save report vote:", error);
+    return res.status(500).json({ status: "error", message: "Failed to save report vote" });
   }
 });
 
