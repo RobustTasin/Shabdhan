@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { getStoredUser } from "../lib/auth";
+import { useAuth } from "../components/AuthProvider";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import {
   createReport,
@@ -10,6 +10,7 @@ import {
   getModerationReports,
   getReports,
   getSocialAccounts,
+  searchReports,
   reportStatusLabel,
   type ApiReport,
   type Category,
@@ -17,7 +18,9 @@ import {
 } from "../lib/reports-api";
 
 export default function ReportsPage() {
-  const role = getStoredUser()?.role;
+  const { user, loading: authLoading } = useAuth();
+  const role = user?.role;
+  const isLoggedIn = Boolean(user);
   const isModerator = role === "MODERATOR" || role === "ADMIN";
   const [reports, setReports] = useState<ApiReport[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -41,16 +44,16 @@ export default function ReportsPage() {
     try {
       setLoading(true);
       setError("");
-      const role = getStoredUser()?.role;
-      const reportsRequest =
-        role === "MODERATOR" || role === "ADMIN"
+      const reportsRequest = user
+        ? role === "MODERATOR" || role === "ADMIN"
           ? getModerationReports({ limit: 100 })
-          : getReports({ limit: 100 });
+          : getReports({ limit: 100 })
+        : searchReports({ limit: 100 });
 
       const [rr, cr, sr] = await Promise.all([
         reportsRequest,
         getCategories(),
-        getSocialAccounts(),
+        user ? getSocialAccounts() : Promise.resolve({ social_accounts: [] as SocialAccount[] }),
       ]);
       setReports(rr.reports);
       setCategories(cr.categories);
@@ -67,10 +70,12 @@ export default function ReportsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [role, user]);
 
   useEffect(() => {
     let cancelled = false;
+
+    if (authLoading) return;
 
     void Promise.resolve().then(() => {
       if (!cancelled) {
@@ -81,7 +86,15 @@ export default function ReportsPage() {
     return () => {
       cancelled = true;
     };
-  }, [loadData]);
+  }, [authLoading, loadData]);
+
+  useEffect(() => {
+    const requestedSocialAccountId = new URLSearchParams(window.location.search).get("social_account_id");
+    if (requestedSocialAccountId && isLoggedIn) {
+      setSocialAccountId(requestedSocialAccountId);
+      setShowCreate(true);
+    }
+  }, [isLoggedIn]);
 
   async function handleCreateReport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -138,11 +151,17 @@ export default function ReportsPage() {
           <div>
             <p className="text-sm font-medium text-slate-500">Shabdhan</p>
             <h1 className="mt-1 text-3xl font-bold tracking-tight">Reports</h1>
-            <p className="mt-2 text-sm text-slate-600">{isModerator ? "Review and manage reports submitted by all users." : "Create, review, and manage your reports."}</p>
+            <p className="mt-2 text-sm text-slate-600">{isModerator ? "Review and manage reports submitted by all users." : isLoggedIn ? "Create and manage your reports, or browse public reports." : "Browse public reports. Sign in only when you want to create a report."}</p>
           </div>
-          <button type="button" onClick={() => setShowCreate(true)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">
-            + Create report
-          </button>
+          {isLoggedIn ? (
+            <button type="button" onClick={() => setShowCreate(true)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">
+              + Create report
+            </button>
+          ) : (
+            <Link href={`/login?next=${encodeURIComponent(`/reports${typeof window !== "undefined" ? window.location.search : ""}`)}`} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">
+              Sign in to create a report
+            </Link>
+          )}
         </div>
 
         {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>}
@@ -150,7 +169,7 @@ export default function ReportsPage() {
         <section className="mt-8">
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 px-6 py-4">
-              <h2 className="text-sm font-semibold">{isModerator ? "All reports" : "My reports"}</h2>
+              <h2 className="text-sm font-semibold">{isModerator ? "All reports" : isLoggedIn ? "My reports" : "Public reports"}</h2>
               <p className="mt-1 text-xs text-slate-500">
                 {loading ? "Loading..." : reports.length + " report" + (reports.length === 1 ? "" : "s")}
               </p>

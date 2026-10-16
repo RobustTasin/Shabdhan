@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 
 import {
   getEvidenceForReport,
+  addEvidenceLink,
   uploadEvidence,
   type Evidence,
 } from "../../lib/evidence-api";
@@ -15,6 +16,7 @@ import {
   updateReportVerification,
   unpublishReport,
   deleteReport,
+  searchReports,
   reportStatusLabel,
   type ApiReport,
 } from "../../lib/reports-api";
@@ -99,8 +101,13 @@ export default function ReportDetailsPage() {
   const [description, setDescription] = useState("");
 
   const [uploading, setUploading] = useState(false);
+  const [addingEvidenceLink, setAddingEvidenceLink] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
+  const [evidenceUrl, setEvidenceUrl] = useState("");
+  const [evidenceLabel, setEvidenceLabel] = useState("");
+  const [evidenceLinkDescription, setEvidenceLinkDescription] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
 
   const [comments, setComments] = useState<ApiComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
@@ -115,6 +122,8 @@ export default function ReportDetailsPage() {
   const [submittingCorroboration, setSubmittingCorroboration] = useState(false);
   const [corroborationActionError, setCorroborationActionError] = useState("");
   const [corroborationActionSuccess, setCorroborationActionSuccess] = useState("");
+  const [relatedReports, setRelatedReports] = useState<ApiReport[]>([]);
+  const [relatedReportsLoading, setRelatedReportsLoading] = useState(true);
 
   const [commentText, setCommentText] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
@@ -182,6 +191,27 @@ export default function ReportDetailsPage() {
         setCorroborationsLoading(false);
       });
   }, [id]);
+
+  useEffect(() => {
+    if (!report?.social_account_id) return;
+    let cancelled = false;
+    setRelatedReportsLoading(true);
+    void searchReports({ page: 1, limit: 12, socialAccountId: report.social_account_id })
+      .then((response) => {
+        if (!cancelled) {
+          setRelatedReports(response.reports.filter((item) => item.id !== report.id));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRelatedReports([]);
+      })
+      .finally(() => {
+        if (!cancelled) setRelatedReportsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [report?.id, report?.social_account_id]);
 
   async function handleCalculateRiskScore() {
     if (!id) {
@@ -320,6 +350,55 @@ export default function ReportDetailsPage() {
       );
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleAddEvidenceLink() {
+    if (!id || !evidenceUrl.trim() || addingEvidenceLink) return;
+    setAddingEvidenceLink(true);
+    setUploadError("");
+    setUploadSuccess("");
+    try {
+      const response = await addEvidenceLink(id, evidenceUrl.trim(), {
+        label: evidenceLabel.trim() || undefined,
+        description: evidenceLinkDescription.trim() || undefined,
+      });
+      setEvidence((current) => [response.evidence, ...current]);
+      setEvidenceUrl("");
+      setEvidenceLabel("");
+      setEvidenceLinkDescription("");
+      setUploadSuccess("Evidence link added. Anyone viewing this public report can open it.");
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Failed to add evidence link.");
+    } finally {
+      setAddingEvidenceLink(false);
+    }
+  }
+
+  async function handleShareReport() {
+    if (!report) return;
+    const url = window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: report.title, text: `Report ID: ${report.id}`, url });
+        setShareMessage("Share menu opened.");
+      } else {
+        await navigator.clipboard.writeText(url);
+        setShareMessage("Report link copied.");
+      }
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      setShareMessage("Could not share automatically. Copy the page URL from your browser.");
+    }
+  }
+
+  async function handleCopyReportId() {
+    if (!report) return;
+    try {
+      await navigator.clipboard.writeText(report.id);
+      setShareMessage("Report ID copied.");
+    } catch {
+      setShareMessage(`Report ID: ${report.id}`);
     }
   }
 
@@ -533,6 +612,14 @@ export default function ReportDetailsPage() {
     );
   }
 
+  const canAddEvidence = Boolean(
+    user && (
+      user.id === report.reporter?.id ||
+      user.role === "MODERATOR" ||
+      user.role === "ADMIN"
+    )
+  );
+
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div>
@@ -545,21 +632,23 @@ export default function ReportDetailsPage() {
 
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="text-sm text-slate-500">
-              Report #{report.id}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-slate-500">Report ID: {report.id}</p>
+              <button type="button" onClick={() => void handleCopyReportId()} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Copy ID</button>
+            </div>
 
             <h1 className="mt-1 text-2xl font-semibold text-slate-950">
               {report.title}
             </h1>
+            {shareMessage && <p role="status" className="mt-2 text-xs text-emerald-700">{shareMessage}</p>}
           </div>
 
-          <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
-            {reportStatusLabel(
-              report.status,
-              report.verification_status
-            )}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
+              {reportStatusLabel(report.status, report.verification_status)}
+            </span>
+            <button type="button" onClick={() => void handleShareReport()} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Share report</button>
+          </div>
         </div>
       </div>
 
@@ -817,20 +906,46 @@ export default function ReportDetailsPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section id="evidence" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
         <div>
-          <h2 className="text-lg font-semibold text-slate-950">
-            Evidence
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-950">Evidence and source links</h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            Upload files that support this report.
+            Open the sources and supporting material shared with this report.
           </p>
         </div>
 
-        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+        {canAddEvidence ? (
+        <div className="mt-6 space-y-5">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <h3 className="text-sm font-semibold text-slate-950">Add a cloud folder or web link</h3>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              Paste a Google Drive, OneDrive, Proton Drive, or public webpage link. Set cloud files to “Anyone with the link can view.” Shabdhan stores the link and does not change the provider’s sharing permissions.
+            </p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="evidence-url" className="text-sm font-medium text-slate-700">View link</label>
+                <input id="evidence-url" type="url" value={evidenceUrl} onChange={(event) => setEvidenceUrl(event.target.value)} placeholder="https://…" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
+              </div>
+              <div>
+                <label htmlFor="evidence-label" className="text-sm font-medium text-slate-700">Link label</label>
+                <input id="evidence-label" value={evidenceLabel} onChange={(event) => setEvidenceLabel(event.target.value)} maxLength={255} placeholder="Evidence folder or archived copy" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
+              </div>
+            </div>
+            <label htmlFor="evidence-link-description" className="mt-4 block text-sm font-medium text-slate-700">What does this link contain? <span className="font-normal text-slate-500">(optional)</span></label>
+            <textarea id="evidence-link-description" value={evidenceLinkDescription} onChange={(event) => setEvidenceLinkDescription(event.target.value)} maxLength={1000} rows={2} placeholder="Briefly describe the material" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button type="button" onClick={() => void handleAddEvidenceLink()} disabled={addingEvidenceLink || !evidenceUrl.trim()} className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">{addingEvidenceLink ? "Adding link…" : "Add public link"}</button>
+              {evidenceUrl.trim().startsWith("https://") && (
+                <a href={`https://web.archive.org/save/${evidenceUrl.trim()}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-800 underline underline-offset-2">Save a webpage with Internet Archive ↗</a>
+              )}
+            </div>
+            <p className="mt-3 text-xs leading-5 text-slate-500">To preserve a public webpage, save it with Internet Archive, then add its snapshot URL here as a separate “Archived copy” link. Archive capture is provided by a third party and may not work for every page. Shabdhan keeps the submitted links, not a copy of the webpage.</p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
           <h3 className="text-sm font-semibold text-slate-950">
-            Add evidence
+            Or upload a file to Shabdhan
           </h3>
 
           <div className="mt-4 space-y-4">
@@ -906,6 +1021,13 @@ export default function ReportDetailsPage() {
             </button>
           </div>
         </div>
+        </div>
+        ) : !user ? (
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-sm text-slate-700">You can view public evidence without an account. Sign in to add a cloud folder or supporting link.</p>
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#evidence`)}`} className="mt-3 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">Sign in to add evidence</Link>
+          </div>
+        ) : null}
 
         <div className="mt-6">
           {evidenceLoading ? (
@@ -922,9 +1044,7 @@ export default function ReportDetailsPage() {
                 No evidence has been added yet.
               </p>
 
-              <p className="mt-1 text-xs text-slate-500">
-                Upload supporting evidence using the form above.
-              </p>
+              <p className="mt-1 text-xs text-slate-500">Evidence links and uploaded files appear here when available.</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -986,7 +1106,7 @@ export default function ReportDetailsPage() {
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section id="corroborations" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold text-slate-950">
@@ -1001,6 +1121,37 @@ export default function ReportDetailsPage() {
               corroborated this report.
             </p>
           </div>
+        </div>
+
+        <div className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50/60 p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">Other reports about this subject</h3>
+              <p className="mt-1 text-xs leading-5 text-slate-600">Each report has its own ID and review. Reports are grouped here because they reference the same account or entity.</p>
+            </div>
+            <Link
+              href={user
+                ? `/reports?social_account_id=${encodeURIComponent(report.social_account_id)}`
+                : `/login?next=${encodeURIComponent(`/reports?social_account_id=${report.social_account_id}`)}`}
+              className="inline-flex shrink-0 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-900 hover:bg-indigo-100"
+            >
+              Add another report
+            </Link>
+          </div>
+          {relatedReportsLoading ? (
+            <p className="mt-4 text-xs text-slate-500">Looking for related public reports…</p>
+          ) : relatedReports.length > 0 ? (
+            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+              {relatedReports.slice(0, 6).map((relatedReport) => (
+                <Link key={relatedReport.id} href={`/reports/${relatedReport.id}`} className="rounded-lg border border-indigo-100 bg-white p-3 transition hover:border-indigo-300">
+                  <span className="block text-sm font-medium text-slate-900">{relatedReport.title}</span>
+                  <span className="mt-1 block text-[11px] text-slate-500">Report ID: {relatedReport.id} · {new Date(relatedReport.created_at).toLocaleDateString()}</span>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 text-xs text-slate-500">No other published reports about this subject yet. A new report will appear here after it has been reviewed and published.</p>
+          )}
         </div>
 
         {user && user.id !== report.reporter?.id ? (
@@ -1053,7 +1204,12 @@ export default function ReportDetailsPage() {
           <p className="mt-6 text-sm text-slate-500">
             You can&apos;t corroborate your own report.
           </p>
-        ) : null}
+        ) : (
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-sm text-slate-700">You can read this report without signing in. Sign in only if you want to corroborate or comment.</p>
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#corroborations`)}`} className="mt-3 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">Sign in to participate</Link>
+          </div>
+        )}
 
         <div className="mt-6">
           {corroborationsLoading ? (
@@ -1123,7 +1279,7 @@ export default function ReportDetailsPage() {
       </section>
 
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <section id="comments" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">
             Comments
@@ -1134,6 +1290,7 @@ export default function ReportDetailsPage() {
           </p>
         </div>
 
+        {user ? (
         <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
           <h3 className="text-sm font-semibold text-slate-950">
             Add a comment
@@ -1167,6 +1324,12 @@ export default function ReportDetailsPage() {
             </button>
           </div>
         </div>
+        ) : (
+          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-sm text-slate-700">Read public comments without an account. Sign in only to add a comment or reply.</p>
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#comments`)}`} className="mt-3 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">Sign in to comment</Link>
+          </div>
+        )}
 
         <div className="mt-6">
           {commentsLoading ? (
@@ -1202,7 +1365,7 @@ export default function ReportDetailsPage() {
                             </p>
                           </div>
 
-                          <div className="flex items-center gap-3 text-xs">
+                          {user && <div className="flex items-center gap-3 text-xs">
                             <button
                               type="button"
                               onClick={() => {
@@ -1235,7 +1398,7 @@ export default function ReportDetailsPage() {
                             >
                               Delete
                             </button>
-                          </div>
+                          </div>}
                         </div>
 
                         {editingCommentId === comment.id ? (
@@ -1346,7 +1509,7 @@ export default function ReportDetailsPage() {
                                   </p>
                                 </div>
 
-                                <div className="flex items-center gap-3 text-xs">
+                                {user && <div className="flex items-center gap-3 text-xs">
                                   <button
                                     type="button"
                                     onClick={() => {
@@ -1369,7 +1532,7 @@ export default function ReportDetailsPage() {
                                   >
                                     Delete
                                   </button>
-                                </div>
+                                </div>}
                               </div>
 
                               {editingCommentId === reply.id ? (

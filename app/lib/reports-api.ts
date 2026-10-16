@@ -123,6 +123,7 @@ export async function searchReports(params: {
   search?: string;
   categoryId?: string;
   platform?: string;
+  socialAccountId?: string;
 } = {}): Promise<ReportListResponse> {
   const query = new URLSearchParams();
 
@@ -131,6 +132,7 @@ export async function searchReports(params: {
   if (params.search) query.set("search", params.search);
   if (params.categoryId) query.set("category_id", params.categoryId);
   if (params.platform) query.set("platform", params.platform);
+  if (params.socialAccountId) query.set("social_account_id", params.socialAccountId);
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
 

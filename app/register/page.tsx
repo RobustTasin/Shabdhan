@@ -8,6 +8,7 @@ import {
   sendVerification,
   verifyEmail,
 } from "../lib/auth";
+import { getSafeReturnPath } from "../lib/navigation";
 
 type Step = "email" | "code" | "account";
 
@@ -122,7 +123,10 @@ export default function RegisterPage() {
         password
       );
 
-      router.replace("/dashboard");
+      const next = getSafeReturnPath(
+        new URLSearchParams(window.location.search).get("next")
+      );
+      router.replace(next ?? "/dashboard");
       router.refresh();
     } catch (err) {
       setError(
