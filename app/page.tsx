@@ -149,6 +149,15 @@ export default function Home() {
     return () => window.removeEventListener("resize", updateCardsPerPage);
   }, []);
 
+  useEffect(() => {
+    if (!menuOpen || window.innerWidth >= 1024) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [menuOpen]);
+
   const loadFeed = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -298,26 +307,36 @@ export default function Home() {
             </button>
           </nav>
         </div>
-        {menuOpen && (
-          <div className="border-t border-[#e8ebe5] bg-[#fbfcf9] px-4 py-4 sm:px-6">
-            <nav aria-label="More navigation" className="mx-auto flex max-w-5xl flex-col gap-1">
-              <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#f0f2ed]">Browse categories</a>
-              <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#f0f2ed]">Search all reports</Link>
-              {user ? (
-                <>
-                  <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link>
-                  <Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link>
-                </>
-              ) : (
-                <>
-                  <Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link>
-                  <Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-lg px-3 py-2.5 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link>
-                </>
-              )}
-            </nav>
-          </div>
-        )}
       </header>
+
+      <div aria-hidden={!menuOpen} className={`fixed inset-0 z-[60] lg:hidden ${menuOpen ? "visible" : "invisible pointer-events-none"}`}>
+        <button type="button" aria-label="Close navigation menu" tabIndex={menuOpen ? 0 : -1} onClick={() => setMenuOpen(false)} className={`absolute inset-0 bg-[#14241a]/45 transition-opacity duration-300 ${menuOpen ? "opacity-100" : "opacity-0"}`} />
+        <aside role="dialog" aria-modal="true" aria-label="Navigation menu" className={`absolute inset-y-0 left-0 flex w-[min(86vw,22rem)] flex-col border-r border-[#e5e8e1] bg-[#fbfcf9] p-5 shadow-2xl transition-transform duration-300 ease-out ${menuOpen ? "translate-x-0" : "-translate-x-full"}`}>
+          <div className="flex items-center justify-between border-b border-[#e8ebe5] pb-5">
+            <Link href="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-2.5">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#183a2c] text-sm font-bold text-[#eaf1d7]">S</span>
+              <span className="text-lg font-semibold tracking-[-0.04em]">shabdhan<span className="text-[#65846e]">.</span></span>
+            </Link>
+            <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] hover:bg-[#edf1e9]"><MenuIcon open /></button>
+          </div>
+          <nav aria-label="More navigation" className="flex flex-col gap-1 py-5">
+            <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Browse categories</a>
+            <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Search all reports</Link>
+            {user ? (
+              <>
+                <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link>
+                <Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link>
+                <Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-xl px-4 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link>
+              </>
+            )}
+          </nav>
+          {user && <Link href="/reports" onClick={() => setMenuOpen(false)} className="mt-auto rounded-xl bg-[#183a2c] px-4 py-3 text-center text-sm font-semibold text-white hover:bg-[#24543e]">+ Create a report</Link>}
+        </aside>
+      </div>
 
       <aside data-pinned={desktopSidebarPinned} className="desktop-sidebar fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-[#e5e8e1] bg-[#fbfcf9] px-3 py-6 lg:flex">
         <button type="button" aria-label={desktopSidebarPinned ? "Unpin Shabdhan sidebar" : "Pin Shabdhan sidebar open"} aria-pressed={desktopSidebarPinned} onClick={(event) => { if (desktopSidebarPinned && event.detail > 0) event.currentTarget.blur(); setDesktopSidebarPinned((pinned) => !pinned); }} className="flex h-11 w-full shrink-0 items-center gap-3 rounded-xl px-1.5 text-left hover:bg-[#edf1e9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#52705a]" title={desktopSidebarPinned ? "Unpin sidebar" : "Pin sidebar open"}>
