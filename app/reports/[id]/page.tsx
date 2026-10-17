@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 import {
   getEvidenceForReport,
   addEvidenceLink,
+  findAndAttachArchivedCopy,
   uploadEvidence,
   type Evidence,
 } from "../../lib/evidence-api";
@@ -107,6 +108,9 @@ export default function ReportDetailsPage() {
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [evidenceLabel, setEvidenceLabel] = useState("");
   const [evidenceLinkDescription, setEvidenceLinkDescription] = useState("");
+  const [checkingArchive, setCheckingArchive] = useState(false);
+  const [archiveMessage, setArchiveMessage] = useState("");
+  const [archiveMessageError, setArchiveMessageError] = useState(false);
   const [shareMessage, setShareMessage] = useState("");
 
   const [comments, setComments] = useState<ApiComment[]>([]);
@@ -372,6 +376,27 @@ export default function ReportDetailsPage() {
       setUploadError(err instanceof Error ? err.message : "Failed to add evidence link.");
     } finally {
       setAddingEvidenceLink(false);
+    }
+  }
+
+  async function handleCheckArchive() {
+    if (!id || !evidenceUrl.trim() || checkingArchive) return;
+    setCheckingArchive(true);
+    setArchiveMessage("");
+    setArchiveMessageError(false);
+    try {
+      const response = await findAndAttachArchivedCopy(id, evidenceUrl.trim());
+      if (response.evidence) {
+        setEvidence((current) => current.some((item) => item.id === response.evidence?.id)
+          ? current
+          : [response.evidence!, ...current]);
+      }
+      setArchiveMessage(response.message);
+    } catch (err) {
+      setArchiveMessageError(true);
+      setArchiveMessage(err instanceof Error ? err.message : "Failed to check for an archived copy.");
+    } finally {
+      setCheckingArchive(false);
     }
   }
 
@@ -925,7 +950,7 @@ export default function ReportDetailsPage() {
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="evidence-url" className="text-sm font-medium text-slate-700">View link</label>
-                <input id="evidence-url" type="url" value={evidenceUrl} onChange={(event) => setEvidenceUrl(event.target.value)} placeholder="https://…" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
+                <input id="evidence-url" type="url" value={evidenceUrl} onChange={(event) => { setEvidenceUrl(event.target.value); setArchiveMessage(""); }} placeholder="https://…" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
               </div>
               <div>
                 <label htmlFor="evidence-label" className="text-sm font-medium text-slate-700">Link label</label>
@@ -937,10 +962,14 @@ export default function ReportDetailsPage() {
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <button type="button" onClick={() => void handleAddEvidenceLink()} disabled={addingEvidenceLink || !evidenceUrl.trim()} className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">{addingEvidenceLink ? "Adding link…" : "Add public link"}</button>
               {evidenceUrl.trim().startsWith("https://") && (
-                <a href={`https://web.archive.org/save/${evidenceUrl.trim()}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-800 underline underline-offset-2">Save a webpage with Internet Archive ↗</a>
+                <>
+                  <button type="button" onClick={() => void handleCheckArchive()} disabled={checkingArchive} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60">{checkingArchive ? "Checking archive…" : "Find and attach saved copy"}</button>
+                  <a href={`https://web.archive.org/save/${evidenceUrl.trim()}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-800 underline underline-offset-2">Save with Internet Archive ↗</a>
+                </>
               )}
             </div>
-            <p className="mt-3 text-xs leading-5 text-slate-500">To preserve a public webpage, save it with Internet Archive, then add its snapshot URL here as a separate “Archived copy” link. Archive capture is provided by a third party and may not work for every page. Shabdhan keeps the submitted links, not a copy of the webpage.</p>
+            {archiveMessage && <p role={archiveMessageError ? "alert" : "status"} className={`mt-3 text-sm ${archiveMessageError ? "text-red-700" : "text-green-800"}`}>{archiveMessage}</p>}
+            <p className="mt-3 text-xs leading-5 text-slate-500">Shabdhan can find and attach an existing Internet Archive snapshot. If none exists, save the public page with the Archive and check again. The snapshot is hosted by the Internet Archive, not copied onto Shabdhan, and capture is not guaranteed for every page.</p>
           </div>
 
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">

@@ -38,6 +38,15 @@ type EvidenceResponse = {
   evidence: Evidence;
 };
 
+export type ArchiveCheckResponse = {
+  status: string;
+  available: boolean;
+  already_attached?: boolean;
+  archived_url?: string;
+  evidence?: Evidence;
+  message: string;
+};
+
 type EvidenceListResponse = {
   status: string;
   count: number;
@@ -132,6 +141,17 @@ export async function addEvidenceLink(
       label: options.label,
       description: options.description,
     }),
+  });
+}
+
+export async function findAndAttachArchivedCopy(
+  reportId: string,
+  url: string
+): Promise<ArchiveCheckResponse> {
+  return apiFetch<ArchiveCheckResponse>("/evidence/archive/check", {
+    method: "POST",
+    token: getToken() ?? undefined,
+    body: JSON.stringify({ report_id: reportId, url }),
   });
 }
 

@@ -134,6 +134,122 @@ router.post(
   }
 );
 
+// Find the closest Wayback Machine capture and attach it to this report.
+router.post(
+  "/archive/check",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const reportId = typeof req.body.report_id === "string" ? req.body.report_id.trim() : "";
+      const rawUrl = typeof req.body.url === "string" ? req.body.url.trim() : "";
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(reportId)) {
+        return res.status(400).json({ status: "error", message: "A valid report ID is required" });
+      }
+      if (!rawUrl || rawUrl.length > 2048) {
+        return res.status(400).json({ status: "error", message: "Enter a web page URL up to 2048 characters" });
+      }
+
+      let sourceUrl: URL;
+      try {
+        sourceUrl = new URL(rawUrl);
+      } catch {
+        return res.status(400).json({ status: "error", message: "Enter a valid HTTPS web page URL" });
+      }
+      if (sourceUrl.protocol !== "https:" || sourceUrl.username || sourceUrl.password) {
+        return res.status(400).json({ status: "error", message: "The source link must use HTTPS and cannot contain embedded credentials" });
+      }
+
+      const reportResult = await pool.query(
+        `SELECT id, reporter_id FROM reports WHERE id = $1`,
+        [reportId]
+      );
+      if (reportResult.rows.length === 0) {
+        return res.status(404).json({ status: "error", message: "Report not found" });
+      }
+      const isOwner = reportResult.rows[0].reporter_id === req.user!.id;
+      const canModerate = ["MODERATOR", "ADMIN"].includes(req.user!.role);
+      if (!isOwner && !canModerate) {
+        return res.status(403).json({ status: "error", message: "You do not have permission to add evidence to this report" });
+      }
+
+      const availabilityUrl = new URL("https://archive.org/wayback/available");
+      availabilityUrl.searchParams.set("url", sourceUrl.toString());
+      const archiveResponse = await fetch(availabilityUrl, {
+        headers: { Accept: "application/json" },
+        redirect: "error",
+        signal: AbortSignal.timeout(10000),
+      });
+      if (!archiveResponse.ok) {
+        return res.status(502).json({ status: "error", message: "The Internet Archive could not check this page right now. Try again later." });
+      }
+
+      const archiveData = await archiveResponse.json() as {
+        archived_snapshots?: { closest?: { available?: boolean; url?: string; timestamp?: string } };
+      };
+      const closest = archiveData.archived_snapshots?.closest;
+      if (!closest?.available || !closest.url) {
+        return res.json({
+          status: "ok",
+          available: false,
+          message: "No archived copy was found yet. Save the page with Internet Archive, then check again to attach the snapshot.",
+        });
+      }
+
+      let archivedUrl: URL;
+      try {
+        archivedUrl = new URL(closest.url);
+      } catch {
+        return res.status(502).json({ status: "error", message: "The Internet Archive returned an invalid snapshot link" });
+      }
+      if (archivedUrl.hostname !== "web.archive.org" || !/^\/web\/\d{1,14}\//.test(archivedUrl.pathname)) {
+        return res.status(502).json({ status: "error", message: "The Internet Archive returned an invalid snapshot link" });
+      }
+      archivedUrl.protocol = "https:";
+
+      const existing = await pool.query(
+        `SELECT id, report_id, uploaded_by, evidence_type, file_name, file_url,
+                file_hash, description, verification_status, created_at, updated_at
+         FROM evidence WHERE report_id = $1 AND file_url = $2 LIMIT 1`,
+        [reportId, archivedUrl.toString()]
+      );
+      if (existing.rows.length > 0) {
+        return res.json({
+          status: "ok",
+          available: true,
+          already_attached: true,
+          archived_url: archivedUrl.toString(),
+          evidence: existing.rows[0],
+          message: "This archived copy is already attached to the report.",
+        });
+      }
+
+      const result = await pool.query(
+        `INSERT INTO evidence
+           (report_id, uploaded_by, evidence_type, file_name, file_url, description)
+         VALUES ($1, $2, 'LINK'::evidence_type, 'Internet Archive snapshot', $3, $4)
+         RETURNING id, report_id, uploaded_by, evidence_type, file_name, file_url,
+                   file_hash, description, verification_status, created_at, updated_at`,
+        [reportId, req.user!.id, archivedUrl.toString(), `Archived copy of ${sourceUrl.hostname}${closest.timestamp ? ` · ${closest.timestamp}` : ""}`]
+      );
+
+      return res.status(201).json({
+        status: "ok",
+        available: true,
+        already_attached: false,
+        archived_url: archivedUrl.toString(),
+        evidence: result.rows[0],
+        message: "Archived copy found and attached to the report.",
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "TimeoutError") {
+        return res.status(504).json({ status: "error", message: "The Internet Archive check timed out. Try again." });
+      }
+      console.error("Failed to check Internet Archive snapshot:", error);
+      return res.status(502).json({ status: "error", message: "Failed to check for an archived copy" });
+    }
+  }
+);
+
 // Upload evidence file
 router.post(
   "/upload",
