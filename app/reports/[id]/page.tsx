@@ -1567,7 +1567,7 @@ export default function ReportDetailsPage() {
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <p className="text-sm font-semibold text-slate-950">
-                              Comment by @{comment.username}
+                              Comment by {comment.username?.trim() ? `@${comment.username.trim()}` : "User"}
                             </p>
 
                             <p className="mt-1 text-xs text-slate-400">
@@ -1709,7 +1709,7 @@ export default function ReportDetailsPage() {
                               <div className="flex items-start justify-between gap-4">
                                 <div>
                                   <p className="text-sm font-semibold text-slate-950">
-                                    Reply by @{reply.username}
+                                    Reply by {reply.username?.trim() ? `@${reply.username.trim()}` : "User"}
                                   </p>
 
                                   <p className="mt-1 text-xs text-slate-400">

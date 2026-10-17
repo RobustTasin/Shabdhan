@@ -93,7 +93,8 @@ router.post(
            parent_comment_id,
            content,
            created_at,
-           updated_at`,
+           updated_at,
+           (SELECT u.username FROM users u WHERE u.id = comments.user_id) AS username`,
         [
           report_id,
           req.user!.id,
@@ -283,7 +284,8 @@ router.patch(
            parent_comment_id,
            content,
            created_at,
-           updated_at`,
+           updated_at,
+           (SELECT u.username FROM users u WHERE u.id = comments.user_id) AS username`,
         [content.trim(), id]
       );
 
