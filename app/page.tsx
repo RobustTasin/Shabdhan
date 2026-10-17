@@ -472,6 +472,7 @@ export default function Home() {
                   <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#657267]">{report.description}</p>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-3">
                     <span className="text-[10px] text-[#899289]">{report.created_at ? new Date(report.created_at).toLocaleDateString() : ""}</span>
+                    {Boolean(report.verified_evidence_count) && <Link href={`/reports/${report.id}#evidence`} className="relative z-10 rounded-full bg-[#edf4ec] px-2.5 py-1 text-[10px] font-semibold text-[#42634a] hover:bg-[#e2eee1]">{report.verified_evidence_count} {report.verified_evidence_count === 1 ? "source" : "sources"}</Link>}
                   </div>
                   <div className="relative z-10 mt-auto flex flex-wrap items-center gap-1.5 border-t border-[#edf0e9] pt-2" aria-label="Report actions">
                     {user ? (

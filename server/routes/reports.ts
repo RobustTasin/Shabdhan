@@ -290,6 +290,9 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
          (SELECT COUNT(*)::int FROM report_votes rv WHERE rv.report_id = r.id AND rv.vote = 1) AS upvote_count,
          (SELECT COUNT(*)::int FROM report_votes rv WHERE rv.report_id = r.id AND rv.vote = -1) AS downvote_count,
          (SELECT rv.vote FROM report_votes rv WHERE rv.report_id = r.id AND rv.user_id = $${viewerParam}) AS current_user_vote,
+         (SELECT COUNT(*)::int FROM evidence e
+          WHERE e.report_id = r.id
+            AND e.verification_status = 'VERIFIED') AS verified_evidence_count,
          (SELECT e.file_url
           FROM evidence e
           WHERE e.report_id = r.id

@@ -44,6 +44,7 @@ export type ApiReport = {
   downvote_count?: number;
   current_user_vote?: 1 | -1 | null;
   preview_image_url?: string | null;
+  verified_evidence_count?: number;
   reporter?: {
     id: string;
     username: string;
