@@ -8,6 +8,7 @@ import { useEffect, useState } from "react";
 
 import {
   getEvidenceForReport,
+  deleteEvidence,
   addEvidenceLink,
   findAndAttachArchivedCopy,
   uploadEvidence,
@@ -99,6 +100,8 @@ export default function ReportDetailsPage() {
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [evidenceLoading, setEvidenceLoading] = useState(true);
   const [evidenceError, setEvidenceError] = useState("");
+  const [evidenceActionError, setEvidenceActionError] = useState("");
+  const [deletingEvidenceId, setDeletingEvidenceId] = useState<string | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
@@ -380,6 +383,24 @@ export default function ReportDetailsPage() {
       setEvidenceLinkError(err instanceof Error ? err.message : "Failed to add evidence link.");
     } finally {
       setAddingEvidenceLink(false);
+    }
+  }
+
+  async function handleDeleteEvidence(item: Evidence) {
+    if (
+      deletingEvidenceId ||
+      !window.confirm(`Permanently delete “${item.file_name || "Evidence file"}”? This cannot be undone.`)
+    ) return;
+
+    setDeletingEvidenceId(item.id);
+    setEvidenceActionError("");
+    try {
+      await deleteEvidence(item.id);
+      setEvidence((current) => current.filter((evidenceItem) => evidenceItem.id !== item.id));
+    } catch (err) {
+      setEvidenceActionError(err instanceof Error ? err.message : "Failed to delete evidence.");
+    } finally {
+      setDeletingEvidenceId(null);
     }
   }
 
@@ -1081,6 +1102,12 @@ export default function ReportDetailsPage() {
         ) : null}
 
         <div className="mt-6">
+          {evidenceActionError && (
+            <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              {evidenceActionError}
+            </p>
+          )}
+
           {evidenceLoading ? (
             <p className="text-sm text-slate-500">
               Loading evidence...
@@ -1149,6 +1176,19 @@ export default function ReportDetailsPage() {
                     >
                       Open evidence
                     </a>
+                  )}
+
+                  {user && (
+                    user.id === report?.reporter_id || user.role === "ADMIN"
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteEvidence(item)}
+                      disabled={deletingEvidenceId !== null}
+                      className="mt-4 ml-4 inline-block text-sm font-medium text-red-700 underline disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {deletingEvidenceId === item.id ? "Deleting…" : "Delete evidence"}
+                    </button>
                   )}
                 </div>
               ))}

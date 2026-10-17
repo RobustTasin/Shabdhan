@@ -75,6 +75,13 @@ export async function getEvidence(
   );
 }
 
+export async function deleteEvidence(id: string): Promise<{ status: string; message: string }> {
+  return apiFetch<{ status: string; message: string }>(`/evidence/${id}`, {
+    method: "DELETE",
+    token: getToken() ?? undefined,
+  });
+}
+
 export async function uploadEvidence(
   reportId: string,
   file: File,
