@@ -63,65 +63,49 @@ export default function MePage() {
   const initial = user.username.trim().charAt(0).toUpperCase() || "U";
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
+    <div className="mx-auto max-w-5xl space-y-10">
       <div>
         <p className="text-sm font-medium text-slate-500">Your space</p>
         <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">Me</h1>
       </div>
 
-      <section aria-label="Profile details" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="h-24 bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-800" />
-        <div className="px-6 pb-6 sm:px-8">
-          <div className="-mt-9 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div className="flex min-w-0 items-end gap-4">
-              <div aria-hidden="true" className="flex h-[4.5rem] w-[4.5rem] shrink-0 items-center justify-center rounded-2xl border-4 border-white bg-emerald-100 text-2xl font-bold text-emerald-950 shadow-sm">{initial}</div>
-              <div className="min-w-0 pb-1">
-                <h2 className="truncate text-xl font-semibold text-slate-950">@{user.username}</h2>
-                <p className="truncate text-sm text-slate-500">{user.email}</p>
-              </div>
+      <section aria-label="Profile details" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-4">
+            <div aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-2xl font-bold text-emerald-950 ring-1 ring-inset ring-emerald-100">{initial}</div>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">Profile</p>
+              <h2 className="mt-1 truncate text-xl font-semibold text-slate-950">@{user.username}</h2>
+              <p className="mt-1 truncate text-sm text-slate-500">{user.email}</p>
             </div>
-            <Link href="/reports" className="inline-flex w-fit items-center justify-center rounded-xl bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-900">+ Create report</Link>
           </div>
-
-          <dl className="mt-7 grid gap-3 border-t border-slate-100 pt-5 sm:grid-cols-3">
-            <div className="rounded-xl bg-slate-50 p-4">
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Account role</dt>
-              <dd className="mt-1 text-sm font-semibold text-slate-900">{user.role.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase())}</dd>
-            </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Account verification</dt>
-              <dd className="mt-1 text-sm font-semibold text-slate-900">{user.is_verified ? "Verified" : "Not verified"}</dd>
-            </div>
-            <div className="rounded-xl bg-slate-50 p-4">
-              <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Reports</dt>
-              <dd className="mt-1 text-sm font-semibold text-slate-900">{reportsLoading ? "Loading…" : reports.length}</dd>
-            </div>
-          </dl>
+          <Link href="/reports" className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-900">+ Create report</Link>
         </div>
       </section>
 
-      <section aria-labelledby="my-reports-heading" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="flex flex-col gap-3 border-b border-slate-200 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+      <section aria-labelledby="my-reports-heading" className="space-y-5">
+        <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 id="my-reports-heading" className="text-lg font-semibold text-slate-950">My reports</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">Your activity</p>
+            <h2 id="my-reports-heading" className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">My reports</h2>
             <p className="mt-1 text-sm text-slate-500">Reports you’ve created and their current review status.</p>
           </div>
-          {!reportsLoading && <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{reports.length} {reports.length === 1 ? "report" : "reports"}</span>}
+          {!reportsLoading && <span className="w-fit rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900">{reports.length} {reports.length === 1 ? "report" : "reports"}</span>}
         </div>
 
         {error ? (
-          <p role="alert" className="m-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</p>
+          <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</p>
         ) : reportsLoading ? (
-          <div className="p-10 text-center text-sm text-slate-500">Loading your reports…</div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">Loading your reports…</div>
         ) : reports.length === 0 ? (
-          <div className="px-6 py-12 text-center sm:px-8">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center sm:px-8">
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-xl font-bold text-emerald-900">S</div>
             <h3 className="mt-4 text-sm font-semibold text-slate-900">No reports yet</h3>
             <p className="mt-1 text-sm text-slate-500">When you create a report, it will appear here.</p>
             <Link href="/reports" className="mt-5 inline-flex rounded-xl bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">Create your first report</Link>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-100">
             {reports.map((report) => (
               <Link key={report.id} href={`/reports/${report.id}`} className="flex flex-col gap-3 px-6 py-5 transition hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between sm:px-8">
                 <div className="min-w-0">
