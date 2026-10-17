@@ -450,7 +450,7 @@ export default function Home() {
           </div>
           <nav aria-label="Menu links" className="mt-2 flex flex-col gap-1">
             <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Browse categories</a>
-            <button type="button" onClick={() => { setMenuOpen(false); setSearchOpen(true); }} className="rounded-xl px-3 py-3 text-left text-sm font-medium hover:bg-[#f0f2ed]">Search all reports</button>
+            <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Advanced search</Link>
             {user ? <><Link href="/me" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link></>}
           </nav>
           <div className="mt-3 border-t border-[#e8ebe5] pt-2">
@@ -484,7 +484,7 @@ export default function Home() {
           {user && <div className="mb-4 rounded-2xl border border-[#e5e8e1] bg-white p-4"><p className="text-sm font-semibold text-[#20362a]">{user.username}</p><p className="mt-1 text-xs text-[#788279]">Signed in to Shabdhan</p></div>}
           <nav aria-label="Menu links" className="flex flex-col gap-2">
             <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Browse categories</a>
-            <button type="button" onClick={() => { setMenuOpen(false); setSearchOpen(true); }} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-left text-sm font-medium hover:bg-[#f0f2ed]">Search all reports</button>
+            <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Advanced search</Link>
             {user ? <><Link href="/me" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link></>}
           </nav>
           <section aria-label="Appearance settings" className="mt-5 rounded-2xl border border-[#e5e8e1] bg-white p-4">
