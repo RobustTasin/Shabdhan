@@ -1567,7 +1567,7 @@ export default function ReportDetailsPage() {
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <p className="text-sm font-semibold text-slate-950">
-                              Comment by <Link href={`/users/${comment.user_id}`} className="hover:text-emerald-800 hover:underline">@{comment.username}</Link>
+                              Comment by {comment.username?.trim() ? <Link href={`/users/${comment.user_id}`} className="hover:text-emerald-800 hover:underline">@{comment.username.trim()}</Link> : "User"}
                             </p>
 
                             <p className="mt-1 text-xs text-slate-400">
@@ -1709,7 +1709,7 @@ export default function ReportDetailsPage() {
                               <div className="flex items-start justify-between gap-4">
                                 <div>
                                   <p className="text-sm font-semibold text-slate-950">
-                                    Reply by <Link href={`/users/${reply.user_id}`} className="hover:text-emerald-800 hover:underline">@{reply.username}</Link>
+                                    Reply by {reply.username?.trim() ? <Link href={`/users/${reply.user_id}`} className="hover:text-emerald-800 hover:underline">@{reply.username.trim()}</Link> : "User"}
                                   </p>
 
                                   <p className="mt-1 text-xs text-slate-400">
