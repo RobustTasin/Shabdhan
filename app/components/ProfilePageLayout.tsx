@@ -33,7 +33,7 @@ export default function ProfilePageLayout({ children }: { children: ReactNode })
             <div className="flex items-center justify-between border-b border-[#e8ebe5] px-2 pb-3"><h2 className="text-base font-semibold text-[#20362a]">Menu</h2><button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#48594e] hover:bg-[#edf1e9]">×</button></div>
             <nav aria-label="Menu links" className="mt-2 flex flex-col gap-1">
               <Link href={user ? "/me" : "/login?next=%2Fme"} onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link>
-              <section aria-label="Appearance settings" className="rounded-xl border border-[#e5e8e1] bg-white px-3 py-2">
+              <section aria-label="Appearance settings" className="rounded-xl px-3 py-1">
                 <button type="button" aria-expanded={appearanceOpen} onClick={() => setAppearanceOpen((open) => !open)} className="flex w-full items-center justify-between rounded-xl py-1.5 text-left text-sm font-semibold text-[#20362a] hover:bg-[#f0f2ed]">
                   Appearance <span aria-hidden="true" className={`transition-transform ${appearanceOpen ? "rotate-180" : ""}`}>⌄</span>
                 </button>
