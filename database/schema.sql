@@ -98,8 +98,13 @@ CREATE INDEX idx_social_accounts_username_trgm
 -- REPORTS
 -- ============================================================
 
+CREATE SEQUENCE report_public_number_seq;
+
 CREATE TABLE reports (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+
+    public_report_number BIGINT NOT NULL DEFAULT nextval('report_public_number_seq'),
+    public_report_category_code VARCHAR(5) NOT NULL DEFAULT 'OTHER',
 
     reporter_id UUID NOT NULL
         REFERENCES users(id)
@@ -137,6 +142,9 @@ CREATE INDEX idx_reports_status
 
 CREATE INDEX idx_reports_verification_status
     ON reports(verification_status); 
+
+CREATE UNIQUE INDEX idx_reports_public_report_number
+    ON reports(public_report_number);
 
 -- One persistent upvote or downvote per signed-in user and report.
 CREATE TABLE report_votes (
