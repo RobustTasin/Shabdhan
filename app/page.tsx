@@ -125,6 +125,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [feedTheme, setFeedTheme] = useState<"light" | "dark">("light");
   const [feedAdvanceMode, setFeedAdvanceMode] = useState<"one" | "all">("one");
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
@@ -410,21 +411,24 @@ export default function Home() {
             <button type="button" onClick={() => { setMenuOpen(false); setSearchOpen(true); }} className="rounded-xl px-3 py-3 text-left text-sm font-medium hover:bg-[#f0f2ed]">Search all reports</button>
             {user ? <><Link href="/me" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link></>}
           </nav>
-          <div className="mt-3 border-t border-[#e8ebe5] pt-3">
-            <h3 className="px-2 text-sm font-semibold text-[#20362a]">Appearance</h3>
-            <label className="mt-2 block px-2 text-xs font-medium text-[#59665d]">Theme
-              <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
-            </label>
-            <label className="mt-3 block px-2 text-xs font-medium text-[#59665d]">When you press an arrow
-              <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
-                <option value="one">One card at a time</option>
-                <option value="all">All visible cards</option>
-              </select>
-            </label>
-            <p className="px-2 mt-2 text-xs leading-5 text-[#748076]">On mobile, both arrow options move one card.</p>
+          <div className="mt-3 border-t border-[#e8ebe5] pt-2">
+            <button type="button" aria-expanded={appearanceOpen} onClick={() => setAppearanceOpen((open) => !open)} className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#20362a] hover:bg-[#f0f2ed]">
+              Appearance <span aria-hidden="true" className={`transition-transform ${appearanceOpen ? "rotate-180" : ""}`}>⌄</span>
+            </button>
+            {appearanceOpen && <div className="space-y-3 px-3 pb-2 pt-1">
+              <label className="block text-xs font-medium text-[#59665d]">Theme
+                <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </label>
+              <label className="block text-xs font-medium text-[#59665d]">Move by
+                <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                  <option value="one">One card</option>
+                  <option value="all">Whole row</option>
+                </select>
+              </label>
+            </div>}
           </div>
         </section>}
       </header>
@@ -442,20 +446,23 @@ export default function Home() {
             {user ? <><Link href="/me" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link></>}
           </nav>
           <section aria-label="Appearance settings" className="mt-5 rounded-2xl border border-[#e5e8e1] bg-white p-4">
-            <h2 className="text-sm font-semibold text-[#20362a]">Appearance</h2>
-            <label className="mt-3 block text-xs font-medium text-[#59665d]">Theme
-              <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
-            </label>
-            <label className="mt-3 block text-xs font-medium text-[#59665d]">When you press an arrow
-              <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
-                <option value="one">One card at a time</option>
-                <option value="all">All visible cards</option>
-              </select>
-            </label>
-            <p className="mt-2 text-xs leading-5 text-[#748076]">On mobile, both arrow options move one card.</p>
+            <button type="button" aria-expanded={appearanceOpen} onClick={() => setAppearanceOpen((open) => !open)} className="flex w-full items-center justify-between rounded-xl text-left text-sm font-semibold text-[#20362a]">
+              Appearance <span aria-hidden="true" className={`transition-transform ${appearanceOpen ? "rotate-180" : ""}`}>⌄</span>
+            </button>
+            {appearanceOpen && <div className="mt-3 space-y-4 border-t border-[#e8ebe5] pt-3">
+              <label className="block text-xs font-medium text-[#59665d]">Theme
+                <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </label>
+              <label className="block text-xs font-medium text-[#59665d]">Move by
+                <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                  <option value="one">One card</option>
+                  <option value="all">Whole row</option>
+                </select>
+              </label>
+            </div>}
           </section>
           {user && <Link href="/reports" onClick={() => setMenuOpen(false)} className="mt-4 block rounded-2xl bg-[#183a2c] px-4 py-4 text-center text-sm font-semibold text-white hover:bg-[#24543e]">+ Create a report</Link>}
         </div>
