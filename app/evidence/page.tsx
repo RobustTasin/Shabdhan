@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useAuth } from "../components/AuthProvider";
 
 import {
   getUserEvidence,
@@ -39,6 +40,8 @@ function verificationBadgeClass(
 }
 
 export default function EvidencePage() {
+  const { user } = useAuth();
+  const canReviewAllReports = user?.role === "MODERATOR" || user?.role === "ADMIN";
   const [evidence, setEvidence] = useState<UserEvidence[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -90,7 +93,9 @@ export default function EvidencePage() {
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
-          Evidence attached to your reports.
+          {canReviewAllReports
+            ? "Evidence attached to reports across Shabdhan."
+            : "Evidence attached to your reports."}
         </p>
       </div>
 
@@ -113,7 +118,9 @@ export default function EvidencePage() {
           </h2>
 
           <p className="mt-2 text-sm text-slate-500">
-            Add evidence from a report&apos;s details page.
+            {canReviewAllReports
+              ? "Evidence will appear here when it is attached to a report."
+              : "Add evidence from a report&apos;s details page."}
           </p>
 
           <Link

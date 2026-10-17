@@ -20,12 +20,14 @@ import { withTransaction } from "../utils/transaction";
 
 const router = Router();
 
-// Get evidence attached to reports owned by the authenticated user
+// Get evidence attached to the authenticated user's reports. Moderators and
+// admins can review evidence across all reports, matching the reports view.
 router.get(
   "/",
   authenticate,
   async (req: AuthenticatedRequest, res) => {
     try {
+      const canReviewAllReports = ["MODERATOR", "ADMIN"].includes(req.user!.role);
       const result = await pool.query(
         `SELECT
            e.id,
@@ -47,9 +49,9 @@ router.get(
          FROM evidence e
          JOIN reports r ON r.id = e.report_id
          JOIN users u ON u.id = e.uploaded_by
-         WHERE r.reporter_id = $1
+         WHERE ($1::boolean OR r.reporter_id = $2)
          ORDER BY e.created_at DESC, e.id DESC`,
-        [req.user!.id]
+        [canReviewAllReports, req.user!.id]
       );
 
       return res.json({
