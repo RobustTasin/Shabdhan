@@ -197,6 +197,38 @@ router.get(
 );
 
 
+// Public aggregate status; drafts are excluded from the public totals.
+router.get("/public-status", async (_req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+         COUNT(*) FILTER (WHERE status <> 'DRAFT')::int AS total,
+         COUNT(*) FILTER (
+           WHERE status = 'UNDER_REVIEW'
+              OR (verification_status = 'PENDING' AND status <> 'DRAFT')
+         )::int AS under_review,
+         COUNT(*) FILTER (
+           WHERE status = 'PUBLISHED' AND verification_status = 'VERIFIED'
+         )::int AS published,
+         COUNT(*) FILTER (
+           WHERE status = 'RESOLVED' AND verification_status = 'VERIFIED'
+         )::int AS resolved,
+         COUNT(*) FILTER (
+           WHERE status = 'REJECTED' OR verification_status = 'REJECTED'
+         )::int AS declined
+       FROM reports`
+    );
+
+    return res.json({ status: "ok", counts: result.rows[0] });
+  } catch (error) {
+    console.error("Failed to fetch public report status:", error);
+    return res.status(500).json({
+      status: "error",
+      message: "Failed to fetch public report status",
+    });
+  }
+});
+
 // Public report search
 router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, res) => {
   try {

@@ -10,7 +10,6 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: "⌂" },
   { name: "Reports", href: "/reports", icon: "▤" },
   { name: "Social Accounts", href: "/social-accounts", icon: "◎" },
-  { name: "Search", href: "/search", icon: "⌕" },
   { name: "Evidence", href: "/evidence", icon: "◈" },
   { name: "Disputes", href: "/disputes", icon: "⚖" },
   { name: "Notifications", href: "/notifications", icon: "●" },

@@ -712,14 +712,8 @@ export default function ReportDetailsPage() {
     );
   }
 
-  const canAddEvidence = Boolean(
-    user && (
-      user.id === report.reporter?.id ||
-      user.role === "MODERATOR" ||
-      user.role === "ADMIN"
-    )
-  );
   const isReportOwner = Boolean(user && user.id === report.reporter?.id);
+  const canAddEvidence = isReportOwner;
 
   async function handleEditReport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -1176,9 +1170,11 @@ export default function ReportDetailsPage() {
         </div>
         ) : !user ? (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm text-slate-700">You can view public evidence without an account. Sign in to add a cloud folder or supporting link.</p>
-            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#evidence`)}`} className="mt-3 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">Sign in to add evidence</Link>
+            <p className="text-sm text-slate-700">Only the report creator can add evidence. If you created this report, sign in to continue.</p>
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#evidence`)}`} className="mt-3 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">Sign in as report creator</Link>
           </div>
+        ) : !canAddEvidence ? (
+          <p className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">Only the report creator can add evidence.</p>
         ) : null}
 
         <div className="mt-6">

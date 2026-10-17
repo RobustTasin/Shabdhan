@@ -110,8 +110,7 @@ router.post(
       }
 
       const isOwner = reportResult.rows[0].reporter_id === req.user!.id;
-      const canModerate = ["MODERATOR", "ADMIN"].includes(req.user!.role);
-      if (!isOwner && !canModerate) {
+      if (!isOwner) {
         return res.status(403).json({ status: "error", message: "You do not have permission to add evidence to this report" });
       }
 
@@ -169,8 +168,7 @@ router.post(
         return res.status(404).json({ status: "error", message: "Report not found" });
       }
       const isOwner = reportResult.rows[0].reporter_id === req.user!.id;
-      const canModerate = ["MODERATOR", "ADMIN"].includes(req.user!.role);
-      if (!isOwner && !canModerate) {
+      if (!isOwner) {
         return res.status(403).json({ status: "error", message: "You do not have permission to add evidence to this report" });
       }
 
@@ -299,12 +297,7 @@ router.post(
       }
 
       const isOwner = report.rows[0].reporter_id === req.user!.id;
-
-      const isModeratorOrAdmin = ["MODERATOR", "ADMIN"].includes(
-        req.user!.role
-      );
-
-      if (!isOwner && !isModeratorOrAdmin) {
+      if (!isOwner) {
         return res.status(403).json({
           status: "error",
           message:

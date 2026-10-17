@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import PublicSiteHeader from "../components/PublicSiteHeader";
+import ProfilePageLayout from "../components/ProfilePageLayout";
 import {
   getCategories,
   reportStatusLabel,
@@ -86,21 +86,17 @@ export default function SearchPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50">
-      <PublicSiteHeader />
-
-      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+    <ProfilePageLayout>
+      <div className="mx-auto max-w-6xl py-6 lg:py-8">
         <div>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">
-            Search reports
-          </h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <h1 className="sr-only">Advanced search</h1>
+          <p className="text-sm text-slate-600">
             Find reports by report name, social-media username, person, brand,
             company, or category.
           </p>
         </div>
 
-        <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="grid gap-4 md:grid-cols-[1fr_260px]">
             <div>
               <label className="text-sm font-medium text-slate-700">
@@ -263,6 +259,6 @@ export default function SearchPage() {
           )}
         </section>
       </div>
-    </main>
+    </ProfilePageLayout>
   );
 }
