@@ -389,7 +389,7 @@ export default function Home() {
   return (
     <main data-feed-theme={feedTheme} className="feed-root flex min-h-screen flex-col bg-[#f5f6f2] text-[#1e2924]">
       <header className="relative sticky top-0 z-[70] border-b border-[#e5e8e1] bg-[#fbfcf9]/95 backdrop-blur-xl">
-        <div className="mx-auto flex h-[68px] max-w-5xl items-center gap-3 px-4 sm:px-6">
+        <div className="mx-auto flex h-[68px] w-full items-center gap-3 px-4 sm:px-6 lg:px-8 xl:px-10">
           <Link href="/" aria-label="Shabdhan feed" className="flex shrink-0 items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#183a2c] text-sm font-bold text-[#eaf1d7]">S</span>
             <span className="text-lg font-semibold tracking-[-0.04em]">shabdhan<span className="text-[#65846e]">.</span></span>
