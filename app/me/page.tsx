@@ -83,9 +83,8 @@ export default function MePage() {
         </div>
         <dl aria-label="Profile activity statistics" className="mt-6 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-5">
           {([
-            ["Reports", profileStats?.reports],
+            ["Published Reports", profileStats?.published],
             ["Disputes", profileStats?.disputes],
-            ["Published", profileStats?.published],
             ["Declined", profileStats?.declined],
             ["Evidences", profileStats?.evidences],
           ] as const).map(([label, value]) => (

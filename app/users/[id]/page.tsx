@@ -33,9 +33,8 @@ export default function PublicUserProfilePage() {
 
   const initial = profile.username.trim().charAt(0).toUpperCase() || "U";
   const stats = [
-    ["Reports", profile.stats.reports],
+    ["Published Reports", profile.stats.published],
     ["Disputes", profile.stats.disputes],
-    ["Published", profile.stats.published],
     ["Declined", profile.stats.declined],
     ["Evidences", profile.stats.evidences],
   ] as const;
