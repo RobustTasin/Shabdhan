@@ -241,7 +241,9 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
       }
     }
 
-    if (categoryId) {
+    if (categoryId === "uncategorized") {
+      conditions.push("c.id IS NULL");
+    } else if (categoryId) {
       values.push(categoryId);
       conditions.push(`r.category_id = $${values.length}`);
     }

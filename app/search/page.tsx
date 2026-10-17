@@ -130,6 +130,7 @@ export default function SearchPage() {
                 className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm"
               >
                 <option value="">All categories</option>
+                <option value="uncategorized">Uncategorized</option>
 
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>

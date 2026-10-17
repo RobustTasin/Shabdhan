@@ -27,6 +27,8 @@ type DemoReport = {
 
 type VoteDirection = 1 | -1;
 
+const UNCATEGORIZED_CATEGORY_ID = "uncategorized";
+
 const DEMO_REPORTS: DemoReport[][] = [
   [
     { id: "DEMO-01", subject: "Example Profile A", title: "Sample: an example profile lists conflicting service hours", description: "Fictional sample for the public feed. It describes a harmless information mismatch on an imaginary profile and makes no claim about a real person or organization." },
@@ -197,8 +199,39 @@ export default function Home() {
           }
         })
       );
-      setCategories(active);
-      setFeeds(Object.fromEntries(results));
+
+      let uncategorizedFeed: CategoryFeed = { reports: [], total: 0 };
+      try {
+        const result = await searchReports({
+          categoryId: UNCATEGORIZED_CATEGORY_ID,
+          limit: 8,
+        });
+        uncategorizedFeed = {
+          reports: result.reports,
+          total: result.pagination.total,
+        };
+      } catch (uncategorizedError) {
+        console.warn("Could not load uncategorized public reports.", uncategorizedError);
+      }
+
+      const categoriesWithUncategorized = uncategorizedFeed.reports.length
+        ? [
+            ...active,
+            {
+              id: UNCATEGORIZED_CATEGORY_ID,
+              name: "Uncategorized",
+              description: "Public reports that have not been assigned a category.",
+              is_active: true,
+            },
+          ]
+        : active;
+      const feedsByCategory = Object.fromEntries(results) as Record<string, CategoryFeed>;
+      if (uncategorizedFeed.reports.length) {
+        feedsByCategory[UNCATEGORIZED_CATEGORY_ID] = uncategorizedFeed;
+      }
+
+      setCategories(categoriesWithUncategorized);
+      setFeeds(feedsByCategory);
       setActiveIndexes({});
     } catch {
       setError("We couldn’t load the public feed. Please try again.");
