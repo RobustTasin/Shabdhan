@@ -461,15 +461,14 @@ export default function Home() {
                   ).split("-").at(-1) ?? "";
                   return <article key={report.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
                   {report.preview_image_url && <img src={report.preview_image_url} alt={`Evidence image for ${report.title}`} loading="lazy" decoding="async" className="mb-3 aspect-[4/3] w-full rounded-xl bg-[#edf1e9] object-cover" />}
-                  <div className="flex items-start justify-between gap-2">
-                    <span aria-hidden="true" />
-                    <div className="flex shrink-0 flex-col items-end gap-1">
-                      <span aria-label={`Report number ${publicReportHex}`} className="rounded-full bg-[#f4f6f2] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-[#647267]">{publicReportHex}</span>
-                      <time dateTime={report.published_at ?? undefined} className="text-[10px] text-[#899289]">{formatPublishedDate(report.published_at)}</time>
-                    </div>
+                  <div className="flex min-w-0 items-center justify-between gap-2">
+                    <h3 className="min-w-0 flex-1 line-clamp-1 text-base font-semibold leading-5 tracking-[-0.02em] text-[#20362a]"><Link href={`/reports/${report.id}`} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>
+                    <span aria-label={`Report number ${publicReportHex}`} className="shrink-0 rounded-full bg-[#f4f6f2] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-[#647267]">{publicReportHex}</span>
                   </div>
-                  {accountName && <p className="mt-2 text-xs font-medium text-[#516356]">{report.social_account?.display_name ? `${accountName} · ` : ""}@{report.social_account?.username}</p>}
-                  <h3 className="mt-1.5 text-base font-semibold leading-5 tracking-[-0.02em] text-[#20362a]"><Link href={`/reports/${report.id}`} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>
+                  <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-xs font-medium text-[#516356]">{accountName ? `${report.social_account?.display_name ? `${accountName} · ` : ""}@${report.social_account?.username}` : ""}</p>
+                    <time dateTime={report.published_at ?? undefined} className="shrink-0 text-[10px] text-[#899289]">{formatPublishedDate(report.published_at)}</time>
+                  </div>
                   <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#657267]">{report.description}</p>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-3">
                     {Boolean(report.verified_evidence_count) && <Link href={`/reports/${report.id}#evidence`} className="relative z-10 rounded-full bg-[#edf4ec] px-2.5 py-1 text-[10px] font-semibold text-[#42634a] hover:bg-[#e2eee1]">{report.verified_evidence_count} {report.verified_evidence_count === 1 ? "source" : "sources"}</Link>}
