@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./components/AuthProvider";
+import { useAppearance } from "./components/AppearanceProvider";
 import { formatPublicReportId } from "../shared/report-id";
 import {
   getCategories,
@@ -119,6 +120,7 @@ function formatPublishedDate(value: string | null | undefined) {
 
 export default function Home() {
   const { user } = useAuth();
+  const { theme: feedTheme, setTheme: setFeedTheme } = useAppearance();
   const [categories, setCategories] = useState<Category[]>([]);
   const [feeds, setFeeds] = useState<Record<string, CategoryFeed>>({});
   const [activeIndexes, setActiveIndexes] = useState<Record<string, number>>({});
@@ -126,7 +128,6 @@ export default function Home() {
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
-  const [feedTheme, setFeedTheme] = useState<"light" | "dark">("light");
   const [feedAdvanceMode, setFeedAdvanceMode] = useState<"one" | "all">("one");
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -144,8 +145,6 @@ export default function Home() {
 
   useEffect(() => {
     try {
-      const savedTheme = window.localStorage.getItem("shabdhan-feed-theme");
-      if (savedTheme === "light" || savedTheme === "dark") setFeedTheme(savedTheme);
       const savedAdvanceMode = window.localStorage.getItem("shabdhan-feed-advance-mode");
       if (savedAdvanceMode === "one" || savedAdvanceMode === "all") setFeedAdvanceMode(savedAdvanceMode);
     } catch {
@@ -157,12 +156,11 @@ export default function Home() {
   useEffect(() => {
     if (!preferencesLoaded) return;
     try {
-      window.localStorage.setItem("shabdhan-feed-theme", feedTheme);
       window.localStorage.setItem("shabdhan-feed-advance-mode", feedAdvanceMode);
     } catch {
       // The controls still work for this visit when storage is unavailable.
     }
-  }, [feedTheme, feedAdvanceMode, preferencesLoaded]);
+  }, [feedAdvanceMode, preferencesLoaded]);
 
   useEffect(() => {
     const updateCardsPerPage = () => {

@@ -48,38 +48,45 @@ body {
   }
 }
 
-.feed-root[data-feed-theme="dark"] {
+html[data-site-theme="dark"] body {
   background: #101713 !important;
   color: #e5eee7 !important;
 }
 
-.feed-root[data-feed-theme="dark"] header,
-.feed-root[data-feed-theme="dark"] section,
-.feed-root[data-feed-theme="dark"] article,
-.feed-root[data-feed-theme="dark"] form,
-.feed-root[data-feed-theme="dark"] input,
-.feed-root[data-feed-theme="dark"] textarea,
-.feed-root[data-feed-theme="dark"] select {
+html[data-site-theme="dark"] header,
+html[data-site-theme="dark"] section,
+html[data-site-theme="dark"] article,
+html[data-site-theme="dark"] form,
+html[data-site-theme="dark"] input,
+html[data-site-theme="dark"] textarea,
+html[data-site-theme="dark"] select,
+html[data-site-theme="dark"] aside,
+html[data-site-theme="dark"] nav,
+html[data-site-theme="dark"] dialog {
   background-color: #19231d !important;
   border-color: #34443a !important;
   color: #e5eee7 !important;
 }
 
-.feed-root[data-feed-theme="dark"] [class*="bg-white"],
-.feed-root[data-feed-theme="dark"] [class*="bg-[#f"],
-.feed-root[data-feed-theme="dark"] [class*="bg-[#e"] {
+html[data-site-theme="dark"] [class*="bg-white"],
+html[data-site-theme="dark"] [class*="bg-slate-50"],
+html[data-site-theme="dark"] [class*="bg-slate-100"],
+html[data-site-theme="dark"] [class*="bg-[#f"],
+html[data-site-theme="dark"] [class*="bg-[#e"] {
   background-color: #19231d !important;
 }
 
-.feed-root[data-feed-theme="dark"] [class*="text-[#"],
-.feed-root[data-feed-theme="dark"] [class*="text-slate-"],
-.feed-root[data-feed-theme="dark"] [class*="text-rose-"],
-.feed-root[data-feed-theme="dark"] [class*="text-emerald-"],
-.feed-root[data-feed-theme="dark"] [class*="text-amber-"] {
+html[data-site-theme="dark"] [class*="text-[#"],
+html[data-site-theme="dark"] [class*="text-slate-"],
+html[data-site-theme="dark"] [class*="text-gray-"],
+html[data-site-theme="dark"] [class*="text-rose-"],
+html[data-site-theme="dark"] [class*="text-emerald-"],
+html[data-site-theme="dark"] [class*="text-amber-"],
+html[data-site-theme="dark"] [class*="text-indigo-"] {
   color: #d5e1d8 !important;
 }
 
-.feed-root[data-feed-theme="dark"] [class*="border-[#"],
-.feed-root[data-feed-theme="dark"] [class*="border-slate-"] {
+html[data-site-theme="dark"] [class*="border-[#"],
+html[data-site-theme="dark"] [class*="border-slate-"] {
   border-color: #34443a !important;
 }
