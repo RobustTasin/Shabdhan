@@ -52,11 +52,11 @@ function SearchIcon() {
   );
 }
 
-function SettingsIcon() {
+function MeIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
-      <path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z" stroke="currentColor" strokeWidth="1.6" />
-      <path d="m19.3 13.6 1.1.9-1.8 3.1-1.4-.5a8 8 0 0 1-1.5.9l-.3 1.5h-3.6l-.3-1.5a8 8 0 0 1-1.5-.9l-1.4.5-1.8-3.1 1.1-.9a7 7 0 0 1 0-1.8l-1.1-.9 1.8-3.1 1.4.5a8 8 0 0 1 1.5-.9l.3-1.5h3.6l.3 1.5a8 8 0 0 1 1.5.9l1.4-.5 1.8 3.1-1.1.9a7 7 0 0 1 0 1.8Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+      <circle cx="12" cy="8" r="3.4" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M5.2 20a6.8 6.8 0 0 1 13.6 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -125,15 +125,12 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   const [feedTheme, setFeedTheme] = useState<"light" | "dark">("light");
   const [feedAdvanceMode, setFeedAdvanceMode] = useState<"one" | "all">("one");
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchPanelRef = useRef<HTMLFormElement>(null);
-  const settingsPanelRef = useRef<HTMLElement>(null);
-  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const [selectedDemo, setSelectedDemo] = useState<DemoReport | null>(null);
   const [pendingVote, setPendingVote] = useState<string | null>(null);
   const [voteErrors, setVoteErrors] = useState<Record<string, string>>({});
@@ -197,23 +194,6 @@ export default function Home() {
     document.addEventListener("pointerdown", closeOnOutsidePointer);
     return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [searchOpen]);
-
-  useEffect(() => {
-    if (!settingsOpen) return;
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (!settingsPanelRef.current?.contains(target) && !settingsButtonRef.current?.contains(target)) setSettingsOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSettingsOpen(false);
-    };
-    document.addEventListener("pointerdown", closeOnOutsidePointer);
-    window.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePointer);
-      window.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [settingsOpen]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -405,9 +385,9 @@ export default function Home() {
                 <span className="sm:hidden">+</span><span className="hidden sm:inline">+ Create</span>
               </Link>
             )}
-            <button ref={settingsButtonRef} type="button" aria-label="Feed view settings" aria-expanded={settingsOpen} onClick={() => { setSettingsOpen((open) => !open); setMenuOpen(false); }} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
-              <SettingsIcon />
-            </button>
+            <Link href={user ? "/me" : "/login?next=%2Fme"} aria-label="Me" title="Me" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
+              <MeIcon />
+            </Link>
             <button type="button" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
               <MenuIcon open={menuOpen} />
             </button>
@@ -419,27 +399,6 @@ export default function Home() {
           <button type="submit" aria-label="Submit search" disabled={!searchQuery.trim()} className="rounded-xl bg-[#183a2c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#24543e] disabled:cursor-not-allowed disabled:opacity-50">Search</button>
           <button type="button" aria-label="Close search" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#48594e] transition hover:bg-[#edf1e9]"><MenuIcon open /></button>
         </form>}
-        {settingsOpen && <section ref={settingsPanelRef} aria-label="Feed view settings" className="absolute right-3 top-[calc(100%+0.5rem)] z-[75] w-[min(22rem,calc(100vw-1.5rem))] rounded-2xl border border-[#e5e8e1] bg-[#fbfcf9] p-4 shadow-[0_18px_50px_rgba(20,36,26,.18)]">
-          <div className="flex items-center justify-between border-b border-[#e8ebe5] px-1 pb-3">
-            <h2 className="text-base font-semibold text-[#20362a]">Feed view settings</h2>
-            <button type="button" aria-label="Close feed view settings" onClick={() => setSettingsOpen(false)} className="rounded-lg px-2 py-1 text-xs font-medium text-[#59665d] hover:bg-[#edf1e9]">Close</button>
-          </div>
-          <label className="mt-4 block text-sm font-medium text-[#34453a]">
-            Theme
-            <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </label>
-          <label className="mt-3 block text-sm font-medium text-[#34453a]">
-            When you press an arrow
-            <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
-              <option value="one">One card at a time</option>
-              <option value="all">All visible cards</option>
-            </select>
-          </label>
-          <p className="mt-3 text-xs leading-5 text-[#748076]">The feed layout adapts to your screen. On mobile, both options move one card.</p>
-        </section>}
         {menuOpen && <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-[60] hidden bg-transparent md:block" />}
         {menuOpen && <section aria-label="Navigation menu" className="absolute right-3 top-[calc(100%+0.5rem)] z-[70] hidden max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-[#e5e8e1] bg-[#fbfcf9] p-4 shadow-[0_18px_50px_rgba(20,36,26,.18)] md:block">
           <div className="flex items-center justify-between border-b border-[#e8ebe5] px-2 pb-3">
@@ -451,6 +410,22 @@ export default function Home() {
             <button type="button" onClick={() => { setMenuOpen(false); setSearchOpen(true); }} className="rounded-xl px-3 py-3 text-left text-sm font-medium hover:bg-[#f0f2ed]">Search all reports</button>
             {user ? <><Link href="/me" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link></>}
           </nav>
+          <div className="mt-3 border-t border-[#e8ebe5] pt-3">
+            <h3 className="px-2 text-sm font-semibold text-[#20362a]">Appearance</h3>
+            <label className="mt-2 block px-2 text-xs font-medium text-[#59665d]">Theme
+              <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+            <label className="mt-3 block px-2 text-xs font-medium text-[#59665d]">When you press an arrow
+              <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <option value="one">One card at a time</option>
+                <option value="all">All visible cards</option>
+              </select>
+            </label>
+            <p className="px-2 mt-2 text-xs leading-5 text-[#748076]">On mobile, both arrow options move one card.</p>
+          </div>
         </section>}
       </header>
 
@@ -466,6 +441,22 @@ export default function Home() {
             <button type="button" onClick={() => { setMenuOpen(false); setSearchOpen(true); }} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-left text-sm font-medium hover:bg-[#f0f2ed]">Search all reports</button>
             {user ? <><Link href="/me" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link></>}
           </nav>
+          <section aria-label="Appearance settings" className="mt-5 rounded-2xl border border-[#e5e8e1] bg-white p-4">
+            <h2 className="text-sm font-semibold text-[#20362a]">Appearance</h2>
+            <label className="mt-3 block text-xs font-medium text-[#59665d]">Theme
+              <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+            <label className="mt-3 block text-xs font-medium text-[#59665d]">When you press an arrow
+              <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <option value="one">One card at a time</option>
+                <option value="all">All visible cards</option>
+              </select>
+            </label>
+            <p className="mt-2 text-xs leading-5 text-[#748076]">On mobile, both arrow options move one card.</p>
+          </section>
           {user && <Link href="/reports" onClick={() => setMenuOpen(false)} className="mt-4 block rounded-2xl bg-[#183a2c] px-4 py-4 text-center text-sm font-semibold text-white hover:bg-[#24543e]">+ Create a report</Link>}
         </div>
       </section>}
