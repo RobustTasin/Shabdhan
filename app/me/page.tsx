@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 
 import { useAuth } from "../components/AuthProvider";
 import ProfilePageLayout from "../components/ProfilePageLayout";
+import { getMyDisputes } from "../lib/disputes-api";
+import { getUserEvidence } from "../lib/evidence-api";
 import { getReports, reportStatusLabel, type ApiReport } from "../lib/reports-api";
 import { getPublicProfile, type PublicProfile } from "../lib/users-api";
 
@@ -31,12 +33,34 @@ export default function MePage() {
     }
 
     let cancelled = false;
-    void Promise.allSettled([getReports({ limit: 100 }), getPublicProfile(user.id)])
-      .then(([reportsResult, profileResult]) => {
+    void Promise.allSettled([
+      getReports({ limit: 100 }),
+      getPublicProfile(user.id),
+      getMyDisputes(),
+      getUserEvidence(),
+    ])
+      .then(([reportsResult, profileResult, disputesResult, evidenceResult]) => {
         if (cancelled) return;
-        if (reportsResult.status === "fulfilled") setReports(reportsResult.value.reports);
-        else setError(reportsResult.reason instanceof Error ? reportsResult.reason.message : "Could not load your reports.");
+        if (reportsResult.status === "fulfilled") {
+          const ownReports = reportsResult.value.reports;
+          setReports(ownReports);
+          setProfileStats({
+            reports: reportsResult.value.pagination.total,
+            published: ownReports.filter((report) => report.status === "PUBLISHED" && report.verification_status === "VERIFIED").length,
+            declined: ownReports.filter((report) => report.status === "REJECTED" || report.verification_status === "REJECTED").length,
+            disputes: 0,
+            evidences: 0,
+          });
+        } else {
+          setError(reportsResult.reason instanceof Error ? reportsResult.reason.message : "Could not load your reports.");
+        }
         if (profileResult.status === "fulfilled") setProfileStats(profileResult.value.profile.stats);
+        if (disputesResult.status === "fulfilled") {
+          setProfileStats((current) => current ? { ...current, disputes: disputesResult.value.disputes.length } : current);
+        }
+        if (evidenceResult.status === "fulfilled") {
+          setProfileStats((current) => current ? { ...current, evidences: evidenceResult.value.count } : current);
+        }
       })
       .finally(() => {
         if (!cancelled) setReportsLoading(false);
