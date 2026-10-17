@@ -168,8 +168,7 @@ export default function Home() {
       const width = window.innerWidth;
       const aspectRatio = window.innerWidth / window.innerHeight;
       const reportsPerCategory = width < 768 ? 1
-        : aspectRatio >= 21 / 9 ? 5
-        : aspectRatio >= 16 / 9 ? 4
+        : aspectRatio >= 16 / 9 ? 2
         : aspectRatio >= 12 / 9 ? 3
         : 2;
       setCardsPerPage(reportsPerCategory);
