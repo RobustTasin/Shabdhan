@@ -321,7 +321,7 @@ export default function Home() {
   const categorySections = demoMode ? sampleCategories : visibleCategories;
 
   return (
-    <main className="min-h-screen bg-[#f5f6f2] text-[#1e2924]">
+    <main className="flex min-h-screen flex-col bg-[#f5f6f2] text-[#1e2924]">
       <header className="relative sticky top-0 z-[70] border-b border-[#e5e8e1] bg-[#fbfcf9]/95 backdrop-blur-xl">
         <div className="mx-auto flex h-[68px] max-w-5xl items-center gap-3 px-4 sm:px-6">
           <Link href="/" aria-label="Shabdhan feed" className="flex shrink-0 items-center gap-2.5">
@@ -380,7 +380,7 @@ export default function Home() {
         </div>
       </section>}
 
-      <section id="public-feed" aria-label="Recent reports by category" className="mx-auto max-w-5xl px-4 pt-5 pb-16 sm:px-6 lg:max-w-none lg:px-8 xl:px-10">
+      <section id="public-feed" aria-label="Recent reports by category" className="mx-auto w-full max-w-5xl flex-1 px-4 pt-5 pb-16 sm:px-6 lg:max-w-none lg:px-8 xl:px-10">
         {error && (
           <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-800">
             <p>{error}</p>
