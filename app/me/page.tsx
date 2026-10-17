@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "../components/AuthProvider";
+import ProfilePageLayout from "../components/ProfilePageLayout";
 import { getReports, reportStatusLabel, type ApiReport } from "../lib/reports-api";
 import { getPublicProfile, type PublicProfile } from "../lib/users-api";
 
@@ -47,22 +48,25 @@ export default function MePage() {
   }, [authLoading, user]);
 
   if (authLoading) {
-    return <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading your profile…</div>;
+    return <ProfilePageLayout><div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading your profile…</div></ProfilePageLayout>;
   }
 
   if (!user) {
     return (
+      <ProfilePageLayout>
       <section className="mx-auto max-w-xl rounded-2xl border border-slate-200 bg-white p-8 text-center">
         <h1 className="text-2xl font-semibold text-slate-950">Me</h1>
         <p className="mt-2 text-sm text-slate-600">Sign in to see your profile and reports.</p>
         <Link href="/login?next=%2Fme" className="mt-5 inline-flex rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800">Sign in</Link>
       </section>
+      </ProfilePageLayout>
     );
   }
 
   const initial = user.username.trim().charAt(0).toUpperCase() || "U";
 
   return (
+    <ProfilePageLayout>
     <div className="mx-auto max-w-5xl space-y-10">
       <section aria-label="Profile details" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
@@ -136,5 +140,6 @@ export default function MePage() {
         )}
       </section>
     </div>
+    </ProfilePageLayout>
   );
 }

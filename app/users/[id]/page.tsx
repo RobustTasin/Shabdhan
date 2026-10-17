@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import ProfilePageLayout from "../../components/ProfilePageLayout";
 import { getPublicProfile, type PublicProfile } from "../../lib/users-api";
 
 function formatDate(value: string | null) {
@@ -27,8 +28,8 @@ export default function PublicUserProfilePage() {
     return () => { cancelled = true; };
   }, [id]);
 
-  if (loading) return <div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading profile…</div>;
-  if (error || !profile) return <section className="rounded-2xl border border-slate-200 bg-white p-8"><h1 className="text-xl font-semibold text-slate-950">Profile unavailable</h1><p className="mt-2 text-sm text-slate-600">{error || "This profile could not be found."}</p><Link href="/" className="mt-4 inline-flex text-sm font-medium text-emerald-900 underline">Back to feed</Link></section>;
+  if (loading) return <ProfilePageLayout><div className="rounded-2xl border border-slate-200 bg-white p-8 text-sm text-slate-500">Loading profile…</div></ProfilePageLayout>;
+  if (error || !profile) return <ProfilePageLayout><section className="rounded-2xl border border-slate-200 bg-white p-8"><h1 className="text-xl font-semibold text-slate-950">Profile unavailable</h1><p className="mt-2 text-sm text-slate-600">{error || "This profile could not be found."}</p><Link href="/" className="mt-4 inline-flex text-sm font-medium text-emerald-900 underline">Back to feed</Link></section></ProfilePageLayout>;
 
   const initial = profile.username.trim().charAt(0).toUpperCase() || "U";
   const stats = [
@@ -40,6 +41,7 @@ export default function PublicUserProfilePage() {
   ] as const;
 
   return (
+    <ProfilePageLayout>
     <div className="mx-auto max-w-5xl space-y-8">
       <div>
         <p className="text-sm font-medium text-slate-500">Community profile</p>
@@ -68,5 +70,6 @@ export default function PublicUserProfilePage() {
         )}
       </section>
     </div>
+    </ProfilePageLayout>
   );
 }
