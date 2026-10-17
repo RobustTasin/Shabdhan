@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 
 const navigation = [
+  { name: "Public Feed", href: "/", icon: "◉" },
   { name: "Dashboard", href: "/dashboard", icon: "⌂" },
   { name: "Reports", href: "/reports", icon: "▤" },
   { name: "Social Accounts", href: "/social-accounts", icon: "◎" },

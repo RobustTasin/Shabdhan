@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "../../components/AuthProvider";
+import PublicSiteHeader from "../../components/PublicSiteHeader";
 import { useEffect, useState } from "react";
 
 import {
@@ -583,32 +584,36 @@ export default function ReportDetailsPage() {
 
   if (loading) {
     return (
-      <div className="p-8 text-sm text-slate-500">
-        Loading report...
-      </div>
+      <>
+        <PublicSiteHeader />
+        <div className="p-8 text-sm text-slate-500">Loading report...</div>
+      </>
     );
   }
 
   if (error || !report) {
     return (
-      <div className="space-y-4 p-6 lg:p-8">
-        <Link
-          href="/reports"
-          className="text-sm font-medium text-slate-600 hover:text-slate-950"
-        >
-          ← Back to reports
-        </Link>
+      <>
+        <PublicSiteHeader />
+        <div className="space-y-4 p-6 lg:p-8">
+          <Link
+            href="/"
+            className="text-sm font-medium text-slate-600 hover:text-slate-950"
+          >
+            ← Back to feed
+          </Link>
 
-        <div className="rounded-xl border border-red-200 bg-red-50 p-6">
-          <h1 className="text-xl font-semibold text-red-950">
-            Report not found
-          </h1>
+          <div className="rounded-xl border border-red-200 bg-red-50 p-6">
+            <h1 className="text-xl font-semibold text-red-950">
+              Report not found
+            </h1>
 
-          <p className="mt-2 text-sm text-red-800">
-            {error || "The report does not exist."}
-          </p>
+            <p className="mt-2 text-sm text-red-800">
+              {error || "The report does not exist."}
+            </p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
@@ -621,13 +626,15 @@ export default function ReportDetailsPage() {
   );
 
   return (
-    <div className="space-y-6 p-6 lg:p-8">
+    <>
+      <PublicSiteHeader />
+      <div className="space-y-6 p-6 lg:p-8">
       <div>
         <Link
-          href="/reports"
+          href="/"
           className="text-sm font-medium text-slate-600 hover:text-slate-950"
         >
-          ← Back to reports
+          ← Back to feed
         </Link>
 
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -1591,6 +1598,7 @@ export default function ReportDetailsPage() {
           )}
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import PublicSiteHeader from "../components/PublicSiteHeader";
 import {
   getCategories,
   reportStatusLabel,
@@ -85,10 +86,11 @@ export default function SearchPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-50 p-6 lg:p-8">
-      <div className="mx-auto max-w-6xl">
+    <main className="min-h-screen bg-slate-50">
+      <PublicSiteHeader />
+
+      <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <div>
-          <p className="text-sm font-medium text-slate-500">Shabdhan</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">
             Search reports
           </h1>
