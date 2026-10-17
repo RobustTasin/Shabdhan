@@ -64,6 +64,21 @@ export type ReportListResponse = {
   };
 };
 
+export type PublicReportStatus = {
+  total: number;
+  under_review: number;
+  published: number;
+  resolved: number;
+  declined: number;
+};
+
+export async function getPublicReportStatus(): Promise<PublicReportStatus> {
+  const response = await apiFetch<{ status: string; counts: PublicReportStatus }>(
+    "/reports/public-status"
+  );
+  return response.counts;
+}
+
 export async function getReports(params: {
   page?: number;
   limit?: number;
