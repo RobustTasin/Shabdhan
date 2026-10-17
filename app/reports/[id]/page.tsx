@@ -9,10 +9,12 @@ import { useEffect, useState } from "react";
 import {
   getEvidenceForReport,
   deleteEvidence,
+  updateEvidenceVerification,
   addEvidenceLink,
   findAndAttachArchivedCopy,
   uploadEvidence,
   type Evidence,
+  type VerificationStatus,
 } from "../../lib/evidence-api";
 import {
   getReport,
@@ -90,6 +92,7 @@ export default function ReportDetailsPage() {
   const id = params.id;
   const router = useRouter();
   const { user } = useAuth();
+  const canReviewEvidence = user?.role === "MODERATOR" || user?.role === "ADMIN";
 
   const [report, setReport] = useState<ApiReport | null>(null);
   const [reviewing, setReviewing] = useState(false);
@@ -102,6 +105,7 @@ export default function ReportDetailsPage() {
   const [evidenceError, setEvidenceError] = useState("");
   const [evidenceActionError, setEvidenceActionError] = useState("");
   const [deletingEvidenceId, setDeletingEvidenceId] = useState<string | null>(null);
+  const [reviewingEvidenceId, setReviewingEvidenceId] = useState<string | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
@@ -388,7 +392,7 @@ export default function ReportDetailsPage() {
 
   async function handleDeleteEvidence(item: Evidence) {
     if (
-      deletingEvidenceId ||
+      deletingEvidenceId || reviewingEvidenceId ||
       !window.confirm(`Permanently delete “${item.file_name || "Evidence file"}”? This cannot be undone.`)
     ) return;
 
@@ -401,6 +405,32 @@ export default function ReportDetailsPage() {
       setEvidenceActionError(err instanceof Error ? err.message : "Failed to delete evidence.");
     } finally {
       setDeletingEvidenceId(null);
+    }
+  }
+
+  async function handleUpdateEvidenceVerification(
+    item: Evidence,
+    verificationStatus: VerificationStatus
+  ) {
+    if (reviewingEvidenceId || deletingEvidenceId) return;
+    if (
+      verificationStatus === "REJECTED" &&
+      !window.confirm("Reject this evidence? The uploader will be notified.")
+    ) return;
+
+    setReviewingEvidenceId(item.id);
+    setEvidenceActionError("");
+    try {
+      const response = await updateEvidenceVerification(item.id, verificationStatus);
+      setEvidence((current) => current.map((evidenceItem) =>
+        evidenceItem.id === item.id
+          ? { ...evidenceItem, ...response.evidence }
+          : evidenceItem
+      ));
+    } catch (err) {
+      setEvidenceActionError(err instanceof Error ? err.message : "Failed to update evidence status.");
+    } finally {
+      setReviewingEvidenceId(null);
     }
   }
 
@@ -1158,13 +1188,50 @@ export default function ReportDetailsPage() {
                       )}
                     </div>
 
-                    <span
-                      className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${verificationBadgeClass(
-                        item.verification_status
-                      )}`}
-                    >
-                      {item.verification_status}
-                    </span>
+                    <div className="flex flex-col items-start gap-2">
+                      <span
+                        className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${verificationBadgeClass(
+                          item.verification_status
+                        )}`}
+                      >
+                        {item.verification_status}
+                      </span>
+
+                      {canReviewEvidence && (
+                        <div className="flex flex-wrap gap-2">
+                          {item.verification_status !== "VERIFIED" && (
+                            <button
+                              type="button"
+                              onClick={() => void handleUpdateEvidenceVerification(item, "VERIFIED")}
+                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
+                              className="rounded-md border border-green-200 px-2.5 py-1 text-xs font-medium text-green-800 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {reviewingEvidenceId === item.id ? "Saving…" : "Verify"}
+                            </button>
+                          )}
+                          {item.verification_status !== "REJECTED" && (
+                            <button
+                              type="button"
+                              onClick={() => void handleUpdateEvidenceVerification(item, "REJECTED")}
+                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
+                              className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-800 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {reviewingEvidenceId === item.id ? "Saving…" : "Reject"}
+                            </button>
+                          )}
+                          {item.verification_status !== "PENDING" && (
+                            <button
+                              type="button"
+                              onClick={() => void handleUpdateEvidenceVerification(item, "PENDING")}
+                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
+                              className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {reviewingEvidenceId === item.id ? "Saving…" : "Mark pending"}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {item.file_url && (

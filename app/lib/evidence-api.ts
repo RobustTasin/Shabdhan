@@ -170,6 +170,7 @@ export async function updateEvidenceVerification(
     `/evidence/${id}/verify`,
     {
       method: "PATCH",
+      token: getToken() ?? undefined,
       body: JSON.stringify({
         verification_status,
       }),
