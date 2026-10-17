@@ -131,6 +131,9 @@ export default function Home() {
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchMatches, setSearchMatches] = useState<ApiReport[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const searchPanelRef = useRef<HTMLFormElement>(null);
   const [selectedDemo, setSelectedDemo] = useState<DemoReport | null>(null);
   const [pendingVote, setPendingVote] = useState<string | null>(null);
@@ -195,6 +198,41 @@ export default function Home() {
     document.addEventListener("pointerdown", closeOnOutsidePointer);
     return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [searchOpen]);
+
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (!searchOpen || query.length < 2) {
+      setSearchMatches([]);
+      setSearchLoading(false);
+      setSearchError("");
+      return;
+    }
+
+    let cancelled = false;
+    setSearchMatches([]);
+    setSearchLoading(true);
+    setSearchError("");
+    const timer = window.setTimeout(() => {
+      void searchReports({ search: query, limit: 5 })
+        .then((response) => {
+          if (!cancelled) setSearchMatches(response.reports);
+        })
+        .catch((searchFailure) => {
+          if (!cancelled) {
+            setSearchMatches([]);
+            setSearchError(searchFailure instanceof Error ? searchFailure.message : "Search is unavailable right now.");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setSearchLoading(false);
+        });
+    }, 250);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [searchOpen, searchQuery]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -394,11 +432,17 @@ export default function Home() {
             </button>
           </nav>
         </div>
-        {searchOpen && <form ref={searchPanelRef} action="/search" method="get" role="search" className="absolute left-1/2 top-[calc(100%+0.5rem)] z-[75] flex w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 items-center gap-3 rounded-2xl border border-[#e1e6dd] bg-white p-3 shadow-[0_18px_50px_rgba(20,36,26,.16)]">
-          <label htmlFor="feed-search-query" className="sr-only">Search reports</label>
-          <input id="feed-search-query" name="q" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search reports, people, or organizations" autoFocus className="min-w-0 flex-1 rounded-xl border border-[#e5e8e1] bg-[#fbfcf9] px-4 py-3 text-sm text-[#20362a] outline-none placeholder:text-[#899289] focus:border-[#78927e]" />
-          <button type="submit" aria-label="Submit search" disabled={!searchQuery.trim()} className="rounded-xl bg-[#183a2c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#24543e] disabled:cursor-not-allowed disabled:opacity-50">Search</button>
-          <button type="button" aria-label="Close search" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#48594e] transition hover:bg-[#edf1e9]"><MenuIcon open /></button>
+        {searchOpen && <form ref={searchPanelRef} action="/search" method="get" role="search" className="absolute left-1/2 top-[calc(100%+0.5rem)] z-[75] w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-[#e1e6dd] bg-white p-3 shadow-[0_18px_50px_rgba(20,36,26,.16)]">
+          <div className="flex items-center gap-3">
+            <label htmlFor="feed-search-query" className="sr-only">Search reports</label>
+            <input id="feed-search-query" name="q" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search reports, people, or organizations" autoFocus className="min-w-0 flex-1 rounded-xl border border-[#e5e8e1] bg-[#fbfcf9] px-4 py-3 text-sm text-[#20362a] outline-none placeholder:text-[#899289] focus:border-[#78927e]" />
+            <button type="submit" aria-label="See all search results" disabled={!searchQuery.trim()} className="rounded-xl bg-[#183a2c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#24543e] disabled:cursor-not-allowed disabled:opacity-50">Search</button>
+            <button type="button" aria-label="Close search" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#48594e] transition hover:bg-[#edf1e9]"><MenuIcon open /></button>
+          </div>
+          {searchQuery.trim().length < 2 ? <p className="px-3 pb-1 pt-3 text-xs text-[#788279]">Type at least 2 characters to see matching reports.</p> : searchLoading ? <p role="status" className="px-3 pb-1 pt-3 text-sm text-[#788279]">Searching reports…</p> : searchError ? <p role="alert" className="px-3 pb-1 pt-3 text-sm text-rose-700">{searchError}</p> : searchMatches.length === 0 ? <p className="px-3 pb-1 pt-3 text-sm text-[#788279]">No matching reports found.</p> : <div className="mt-2 max-h-[min(60vh,24rem)] overflow-y-auto border-t border-[#edf0eb] pt-2">
+            {searchMatches.map((report) => <Link key={report.id} href={`/reports/${report.id}`} onClick={() => setSearchOpen(false)} className="block rounded-xl px-3 py-3 transition hover:bg-[#f4f6f2]"><span className="block truncate text-sm font-semibold text-[#20362a]">{report.title}</span><span className="mt-1 flex flex-wrap gap-x-2 text-xs text-[#788279]"><span>{report.category?.name ?? "Uncategorized"}</span><span aria-hidden="true">·</span><span>{report.social_account?.platform} · @{report.social_account?.username}</span></span></Link>)}
+            <Link href={`/search?q=${encodeURIComponent(searchQuery.trim())}`} onClick={() => setSearchOpen(false)} className="mt-1 block rounded-xl px-3 py-3 text-sm font-semibold text-[#244a34] hover:bg-[#edf1e9]">See all results for “{searchQuery.trim()}”</Link>
+          </div>}
         </form>}
         {menuOpen && <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-[60] hidden bg-transparent md:block" />}
         {menuOpen && <section aria-label="Navigation menu" className="absolute right-3 top-[calc(100%+0.5rem)] z-[70] hidden max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-[#e5e8e1] bg-[#fbfcf9] p-4 shadow-[0_18px_50px_rgba(20,36,26,.18)] md:block">
