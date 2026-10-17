@@ -41,7 +41,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(
 const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/search", "/reports"];
 
 function isPublicPath(pathname: string) {
-  return PUBLIC_PATHS.includes(pathname) || /^\/reports\/[^/]+$/.test(pathname);
+  return PUBLIC_PATHS.includes(pathname) || /^\/reports\/[^/]+$/.test(pathname) || /^\/users\/[^/]+$/.test(pathname);
 }
 
 export function AuthProvider({

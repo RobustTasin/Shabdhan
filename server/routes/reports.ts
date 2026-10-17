@@ -218,7 +218,13 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
 
     if (search) {
       const reportId = parsePublicReportId(search);
-      if (reportId) {
+      const shortHexNumber = /^[0-9a-f]{5,16}$/i.test(search)
+        ? BigInt(`0x${search}`).toString()
+        : null;
+      if (shortHexNumber) {
+        values.push(shortHexNumber);
+        conditions.push(`r.public_report_number::text = $${values.length}`);
+      } else if (reportId) {
         if (reportId.type === "uuid") {
           values.push(reportId.uuid);
           conditions.push(`r.id = $${values.length}::uuid`);

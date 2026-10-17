@@ -52,11 +52,11 @@ function SearchIcon() {
   );
 }
 
-function SettingsIcon() {
+function MeIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
-      <path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z" stroke="currentColor" strokeWidth="1.6" />
-      <path d="m19.3 13.6 1.1.9-1.8 3.1-1.4-.5a8 8 0 0 1-1.5.9l-.3 1.5h-3.6l-.3-1.5a8 8 0 0 1-1.5-.9l-1.4.5-1.8-3.1 1.1-.9a7 7 0 0 1 0-1.8l-1.1-.9 1.8-3.1 1.4.5a8 8 0 0 1 1.5-.9l.3-1.5h3.6l.3 1.5a8 8 0 0 1 1.5.9l1.4-.5 1.8 3.1-1.1.9a7 7 0 0 1 0 1.8Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+      <circle cx="12" cy="8" r="3.4" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M5.2 20a6.8 6.8 0 0 1 13.6 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }
@@ -125,15 +125,16 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [feedTheme, setFeedTheme] = useState<"light" | "dark">("light");
   const [feedAdvanceMode, setFeedAdvanceMode] = useState<"one" | "all">("one");
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [searchMatches, setSearchMatches] = useState<ApiReport[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState("");
   const searchPanelRef = useRef<HTMLFormElement>(null);
-  const settingsPanelRef = useRef<HTMLElement>(null);
-  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const [selectedDemo, setSelectedDemo] = useState<DemoReport | null>(null);
   const [pendingVote, setPendingVote] = useState<string | null>(null);
   const [voteErrors, setVoteErrors] = useState<Record<string, string>>({});
@@ -199,21 +200,39 @@ export default function Home() {
   }, [searchOpen]);
 
   useEffect(() => {
-    if (!settingsOpen) return;
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      const target = event.target as Node;
-      if (!settingsPanelRef.current?.contains(target) && !settingsButtonRef.current?.contains(target)) setSettingsOpen(false);
-    };
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSettingsOpen(false);
-    };
-    document.addEventListener("pointerdown", closeOnOutsidePointer);
-    window.addEventListener("keydown", closeOnEscape);
+    const query = searchQuery.trim();
+    if (!searchOpen || query.length < 2) {
+      setSearchMatches([]);
+      setSearchLoading(false);
+      setSearchError("");
+      return;
+    }
+
+    let cancelled = false;
+    setSearchMatches([]);
+    setSearchLoading(true);
+    setSearchError("");
+    const timer = window.setTimeout(() => {
+      void searchReports({ search: query, limit: 5 })
+        .then((response) => {
+          if (!cancelled) setSearchMatches(response.reports);
+        })
+        .catch((searchFailure) => {
+          if (!cancelled) {
+            setSearchMatches([]);
+            setSearchError(searchFailure instanceof Error ? searchFailure.message : "Search is unavailable right now.");
+          }
+        })
+        .finally(() => {
+          if (!cancelled) setSearchLoading(false);
+        });
+    }, 250);
+
     return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePointer);
-      window.removeEventListener("keydown", closeOnEscape);
+      cancelled = true;
+      window.clearTimeout(timer);
     };
-  }, [settingsOpen]);
+  }, [searchOpen, searchQuery]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -405,41 +424,26 @@ export default function Home() {
                 <span className="sm:hidden">+</span><span className="hidden sm:inline">+ Create</span>
               </Link>
             )}
-            <button ref={settingsButtonRef} type="button" aria-label="Feed view settings" aria-expanded={settingsOpen} onClick={() => { setSettingsOpen((open) => !open); setMenuOpen(false); }} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
-              <SettingsIcon />
-            </button>
+            <Link href={user ? "/me" : "/login?next=%2Fme"} aria-label="Me" title="Me" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
+              <MeIcon />
+            </Link>
             <button type="button" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
               <MenuIcon open={menuOpen} />
             </button>
           </nav>
         </div>
-        {searchOpen && <form ref={searchPanelRef} action="/search" method="get" role="search" className="absolute left-1/2 top-[calc(100%+0.5rem)] z-[75] flex w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 items-center gap-3 rounded-2xl border border-[#e1e6dd] bg-white p-3 shadow-[0_18px_50px_rgba(20,36,26,.16)]">
-          <label htmlFor="feed-search-query" className="sr-only">Search reports</label>
-          <input id="feed-search-query" name="q" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search reports, people, or organizations" autoFocus className="min-w-0 flex-1 rounded-xl border border-[#e5e8e1] bg-[#fbfcf9] px-4 py-3 text-sm text-[#20362a] outline-none placeholder:text-[#899289] focus:border-[#78927e]" />
-          <button type="submit" aria-label="Submit search" disabled={!searchQuery.trim()} className="rounded-xl bg-[#183a2c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#24543e] disabled:cursor-not-allowed disabled:opacity-50">Search</button>
-          <button type="button" aria-label="Close search" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#48594e] transition hover:bg-[#edf1e9]"><MenuIcon open /></button>
-        </form>}
-        {settingsOpen && <section ref={settingsPanelRef} aria-label="Feed view settings" className="absolute right-3 top-[calc(100%+0.5rem)] z-[75] w-[min(22rem,calc(100vw-1.5rem))] rounded-2xl border border-[#e5e8e1] bg-[#fbfcf9] p-4 shadow-[0_18px_50px_rgba(20,36,26,.18)]">
-          <div className="flex items-center justify-between border-b border-[#e8ebe5] px-1 pb-3">
-            <h2 className="text-base font-semibold text-[#20362a]">Feed view settings</h2>
-            <button type="button" aria-label="Close feed view settings" onClick={() => setSettingsOpen(false)} className="rounded-lg px-2 py-1 text-xs font-medium text-[#59665d] hover:bg-[#edf1e9]">Close</button>
+        {searchOpen && <form ref={searchPanelRef} action="/search" method="get" role="search" className="absolute left-1/2 top-[calc(100%+0.5rem)] z-[75] w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-[#e1e6dd] bg-white p-3 shadow-[0_18px_50px_rgba(20,36,26,.16)]">
+          <div className="flex items-center gap-3">
+            <label htmlFor="feed-search-query" className="sr-only">Search reports</label>
+            <input id="feed-search-query" name="q" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search Reports, People or Entities" autoFocus className="min-w-0 flex-1 rounded-xl border border-[#e5e8e1] bg-[#fbfcf9] px-4 py-3 text-sm text-[#20362a] outline-none placeholder:text-[#899289] focus:border-[#78927e]" />
+            <button type="submit" aria-label="See all search results" disabled={!searchQuery.trim()} className="rounded-xl bg-[#183a2c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#24543e] disabled:cursor-not-allowed disabled:opacity-50">Search</button>
+            <button type="button" aria-label="Close search" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#48594e] transition hover:bg-[#edf1e9]"><MenuIcon open /></button>
           </div>
-          <label className="mt-4 block text-sm font-medium text-[#34453a]">
-            Theme
-            <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
-              <option value="light">Light</option>
-              <option value="dark">Dark</option>
-            </select>
-          </label>
-          <label className="mt-3 block text-sm font-medium text-[#34453a]">
-            When you press an arrow
-            <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
-              <option value="one">One card at a time</option>
-              <option value="all">All visible cards</option>
-            </select>
-          </label>
-          <p className="mt-3 text-xs leading-5 text-[#748076]">The feed layout adapts to your screen. On mobile, both options move one card.</p>
-        </section>}
+          {searchQuery.trim().length < 2 ? null : searchLoading ? <p role="status" className="px-3 pb-1 pt-3 text-sm text-[#788279]">Searching reports…</p> : searchError ? <p role="alert" className="px-3 pb-1 pt-3 text-sm text-rose-700">{searchError}</p> : searchMatches.length === 0 ? <p className="px-3 pb-1 pt-3 text-sm text-[#788279]">No matching reports found.</p> : <div className="mt-2 max-h-[min(60vh,24rem)] overflow-y-auto border-t border-[#edf0eb] pt-2">
+            {searchMatches.map((report) => <Link key={report.id} href={`/reports/${report.id}`} onClick={() => setSearchOpen(false)} className="block rounded-xl px-3 py-3 transition hover:bg-[#f4f6f2]"><span className="block truncate text-sm font-semibold text-[#20362a]">{report.title}</span><span className="mt-1 flex flex-wrap gap-x-2 text-xs text-[#788279]"><span>{report.category?.name ?? "Uncategorized"}</span><span aria-hidden="true">·</span><span>{report.social_account?.platform} · @{report.social_account?.username}</span></span></Link>)}
+            <Link href={`/search?q=${encodeURIComponent(searchQuery.trim())}`} onClick={() => setSearchOpen(false)} className="mt-1 block rounded-xl px-3 py-3 text-sm font-semibold text-[#244a34] hover:bg-[#edf1e9]">See all results for “{searchQuery.trim()}”</Link>
+          </div>}
+        </form>}
         {menuOpen && <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-[60] hidden bg-transparent md:block" />}
         {menuOpen && <section aria-label="Navigation menu" className="absolute right-3 top-[calc(100%+0.5rem)] z-[70] hidden max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-[#e5e8e1] bg-[#fbfcf9] p-4 shadow-[0_18px_50px_rgba(20,36,26,.18)] md:block">
           <div className="flex items-center justify-between border-b border-[#e8ebe5] px-2 pb-3">
@@ -449,8 +453,27 @@ export default function Home() {
           <nav aria-label="Menu links" className="mt-2 flex flex-col gap-1">
             <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Browse categories</a>
             <button type="button" onClick={() => { setMenuOpen(false); setSearchOpen(true); }} className="rounded-xl px-3 py-3 text-left text-sm font-medium hover:bg-[#f0f2ed]">Search all reports</button>
-            {user ? <><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link></>}
+            {user ? <><Link href="/me" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link></>}
           </nav>
+          <div className="mt-3 border-t border-[#e8ebe5] pt-2">
+            <button type="button" aria-expanded={appearanceOpen} onClick={() => setAppearanceOpen((open) => !open)} className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[#20362a] hover:bg-[#f0f2ed]">
+              Appearance <span aria-hidden="true" className={`transition-transform ${appearanceOpen ? "rotate-180" : ""}`}>⌄</span>
+            </button>
+            {appearanceOpen && <div className="space-y-3 px-3 pb-2 pt-1">
+              <label className="block text-xs font-medium text-[#59665d]">Theme
+                <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </label>
+              <label className="block text-xs font-medium text-[#59665d]">Move by
+                <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                  <option value="one">One card</option>
+                  <option value="all">Whole row</option>
+                </select>
+              </label>
+            </div>}
+          </div>
         </section>}
       </header>
 
@@ -464,8 +487,27 @@ export default function Home() {
           <nav aria-label="Menu links" className="flex flex-col gap-2">
             <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Browse categories</a>
             <button type="button" onClick={() => { setMenuOpen(false); setSearchOpen(true); }} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-left text-sm font-medium hover:bg-[#f0f2ed]">Search all reports</button>
-            {user ? <><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link></>}
+            {user ? <><Link href="/me" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/register" onClick={() => setMenuOpen(false)} className="rounded-2xl border border-[#e5e8e1] bg-white px-4 py-4 text-sm font-medium hover:bg-[#f0f2ed]">Join Shabdhan</Link></>}
           </nav>
+          <section aria-label="Appearance settings" className="mt-5 rounded-2xl border border-[#e5e8e1] bg-white p-4">
+            <button type="button" aria-expanded={appearanceOpen} onClick={() => setAppearanceOpen((open) => !open)} className="flex w-full items-center justify-between rounded-xl text-left text-sm font-semibold text-[#20362a]">
+              Appearance <span aria-hidden="true" className={`transition-transform ${appearanceOpen ? "rotate-180" : ""}`}>⌄</span>
+            </button>
+            {appearanceOpen && <div className="mt-3 space-y-4 border-t border-[#e8ebe5] pt-3">
+              <label className="block text-xs font-medium text-[#59665d]">Theme
+                <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+                </select>
+              </label>
+              <label className="block text-xs font-medium text-[#59665d]">Move by
+                <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                  <option value="one">One card</option>
+                  <option value="all">Whole row</option>
+                </select>
+              </label>
+            </div>}
+          </section>
           {user && <Link href="/reports" onClick={() => setMenuOpen(false)} className="mt-4 block rounded-2xl bg-[#183a2c] px-4 py-4 text-center text-sm font-semibold text-white hover:bg-[#24543e]">+ Create a report</Link>}
         </div>
       </section>}
@@ -504,8 +546,8 @@ export default function Home() {
           const shownReports = demoMode ? [] : feed.reports.slice(index, index + cardsPerPage);
 
           return (
-            <section key={category.id} aria-label={`${category.name} reports`} className="mb-6 overflow-hidden rounded-[1.65rem] border border-[#e2e6de] bg-white shadow-[0_8px_26px_rgba(31,54,37,.035)] sm:mb-7">
-              <div className="flex items-center justify-between gap-3 border-b border-[#edf0ea] px-5 py-4 sm:px-6">
+            <section key={category.id} aria-label={`${category.name} reports`} className="mb-6 sm:mb-7">
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-[1.65rem] border border-[#e2e6de] bg-white px-5 py-4 shadow-[0_8px_26px_rgba(31,54,37,.035)] sm:px-6">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7a8a7d]">Recent in</p>
                   <h2 className="mt-0.5 truncate text-lg font-semibold tracking-[-0.02em] text-[#23382a]"><Link href={`/search?category_id=${encodeURIComponent(category.id)}`} className="rounded-sm hover:text-[#52705a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#52705a]">{category.name}<span className="sr-only"> — view all reports in this category</span></Link></h2>
@@ -518,7 +560,7 @@ export default function Home() {
               </div>
 
               {demoMode ? (
-                <div className={`feed-report-grid feed-columns-${cardsPerPage} p-4 sm:p-5`}>
+                <div className={`feed-report-grid feed-columns-${cardsPerPage}`}>
                 {shownDemoReports.map((demoReport) => <article key={demoReport.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#f4eddb] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#705a28]">Demo only · fictional</span>
@@ -540,7 +582,7 @@ export default function Home() {
                 </article>)}
                 </div>
               ) : shownReports.length ? (
-                <div className={`feed-report-grid feed-columns-${cardsPerPage} p-4 sm:p-5`}>
+                <div className={`feed-report-grid feed-columns-${cardsPerPage}`}>
                 {shownReports.map((report) => {
                   const accountName = report.social_account?.display_name || report.social_account?.username;
                   const publicReportHex = formatPublicReportId(
@@ -583,7 +625,7 @@ export default function Home() {
                 })}
                 </div>
               ) : null}
-              {!demoMode && feed.total > feed.reports.length && <p className="px-5 pb-4 text-xs text-[#818b82] sm:px-6">Showing the {feed.reports.length} newest reports in this category.</p>}
+              {!demoMode && feed.total > feed.reports.length && <p className="px-1 pt-3 text-xs text-[#818b82]">Showing the {feed.reports.length} newest reports in this category.</p>}
             </section>
           );
         })}</div>}

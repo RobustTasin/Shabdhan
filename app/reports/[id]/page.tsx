@@ -852,7 +852,7 @@ export default function ReportDetailsPage() {
             {report.reporter?.username && (
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Created by</p>
-                <p className="mt-1 text-sm font-medium text-slate-900">@{report.reporter.username}</p>
+                <Link href={`/users/${report.reporter.id}`} className="mt-1 inline-flex text-sm font-medium text-slate-900 hover:text-emerald-800 hover:underline">@{report.reporter.username}</Link>
               </div>
             )}
             <div>
@@ -1447,7 +1447,7 @@ export default function ReportDetailsPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold text-slate-950">
-                          Corroborated by @{item.user.username}
+                          Corroborated by <Link href={`/users/${item.user.id}`} className="hover:text-emerald-800 hover:underline">@{item.user.username}</Link>
                         </p>
 
                         {item.user.is_verified && (
@@ -1567,7 +1567,7 @@ export default function ReportDetailsPage() {
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <p className="text-sm font-semibold text-slate-950">
-                              Comment by {comment.username?.trim() ? `@${comment.username.trim()}` : "User"}
+                              Comment by {comment.username?.trim() ? <Link href={`/users/${comment.user_id}`} className="hover:text-emerald-800 hover:underline">@{comment.username.trim()}</Link> : "User"}
                             </p>
 
                             <p className="mt-1 text-xs text-slate-400">
@@ -1709,7 +1709,7 @@ export default function ReportDetailsPage() {
                               <div className="flex items-start justify-between gap-4">
                                 <div>
                                   <p className="text-sm font-semibold text-slate-950">
-                                    Reply by {reply.username?.trim() ? `@${reply.username.trim()}` : "User"}
+                                    Reply by {reply.username?.trim() ? <Link href={`/users/${reply.user_id}`} className="hover:text-emerald-800 hover:underline">@{reply.username.trim()}</Link> : "User"}
                                   </p>
 
                                   <p className="mt-1 text-xs text-slate-400">
