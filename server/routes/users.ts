@@ -32,6 +32,63 @@ const USER_COLUMNS = `id,
            created_at,
            updated_at`;
 
+// Public profile data is deliberately limited to the username, aggregate
+// activity counts, and reports that are already visible in the public feed.
+router.get("/:id/profile", async (req, res) => {
+  try {
+    const userResult = await pool.query(
+      `SELECT id, username FROM users WHERE id = $1 AND is_active = TRUE`,
+      [req.params.id]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ status: "error", message: "Profile not found" });
+    }
+
+    const [statsResult, reportsResult] = await Promise.all([
+      pool.query(
+        `SELECT
+           COUNT(*)::int AS reports,
+           COUNT(*) FILTER (WHERE status = 'PUBLISHED' AND verification_status = 'VERIFIED')::int AS published,
+           COUNT(*) FILTER (WHERE status = 'REJECTED' OR verification_status = 'REJECTED')::int AS declined,
+           (SELECT COUNT(*)::int FROM disputes d WHERE d.submitted_by = $1) AS disputes,
+           (SELECT COUNT(*)::int FROM evidence e WHERE e.uploaded_by = $1) AS evidences
+         FROM reports
+         WHERE reporter_id = $1`,
+        [req.params.id]
+      ),
+      pool.query(
+        `SELECT
+           r.id, r.title, r.public_report_number, r.public_report_category_code,
+           r.published_at, r.created_at,
+           c.name AS category_name,
+           sa.platform, sa.username AS social_account_username
+         FROM reports r
+         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN categories c ON c.id = r.category_id
+         WHERE r.reporter_id = $1
+           AND r.status = 'PUBLISHED'
+           AND r.verification_status = 'VERIFIED'
+         ORDER BY COALESCE(r.published_at, r.created_at) DESC, r.id DESC`,
+        [req.params.id]
+      ),
+    ]);
+
+    return res.json({
+      status: "ok",
+      profile: {
+        id: userResult.rows[0].id,
+        username: userResult.rows[0].username,
+        stats: statsResult.rows[0],
+        reports: reportsResult.rows,
+      },
+    });
+  } catch (error) {
+    console.error("Failed to fetch public profile:", error);
+    return res.status(500).json({ status: "error", message: "Failed to fetch profile" });
+  }
+});
+
 // Get all users
 router.get(
   "/",

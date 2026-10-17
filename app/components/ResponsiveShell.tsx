@@ -22,9 +22,10 @@ export default function ResponsiveShell({
     pathname === "/forgot-password";
 
   const isPublicReportPage = /^\/reports\/[^/]+$/.test(pathname);
+  const isProfilePage = pathname === "/me" || /^\/users\/[^/]+$/.test(pathname);
 
   // Public pages use their own layouts instead of the authenticated dashboard shell.
-  if (pathname === "/" || pathname === "/search" || isPublicReportPage || isAuthPage) {
+  if (pathname === "/" || pathname === "/search" || isPublicReportPage || isProfilePage || isAuthPage) {
     return <>{children}</>;
   }
 
