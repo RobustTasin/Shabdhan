@@ -166,9 +166,13 @@ export default function Home() {
   useEffect(() => {
     const updateCardsPerPage = () => {
       const width = window.innerWidth;
-      const isWide = window.matchMedia("(min-aspect-ratio: 1/1)").matches;
-      const automaticColumns = width >= 1280 && isWide ? 3 : width >= 768 ? 2 : 1;
-      setCardsPerPage(automaticColumns);
+      const aspectRatio = window.innerWidth / window.innerHeight;
+      const reportsPerCategory = width < 768 ? 1
+        : aspectRatio >= 21 / 9 ? 5
+        : aspectRatio >= 16 / 9 ? 4
+        : aspectRatio >= 12 / 9 ? 3
+        : 2;
+      setCardsPerPage(reportsPerCategory);
     };
     updateCardsPerPage();
     window.addEventListener("resize", updateCardsPerPage);
@@ -490,7 +494,7 @@ export default function Home() {
           </div>
         )}
 
-        {!loading && !error && categorySections.map((category) => {
+        {!loading && !error && <div className="feed-category-layout">{categorySections.map((category) => {
           const feed = feeds[category.id] ?? { reports: [], total: 0 };
           const index = activeIndexes[category.id] ?? 0;
           const demoCategoryIndex = sampleCategories.findIndex((item) => item.id === category.id);
@@ -583,7 +587,7 @@ export default function Home() {
               {!demoMode && feed.total > feed.reports.length && <p className="px-5 pb-4 text-xs text-[#818b82] sm:px-6">Showing the {feed.reports.length} newest reports in this category.</p>}
             </section>
           );
-        })}
+        })}</div>}
       </section>
 
       {selectedDemo && (
