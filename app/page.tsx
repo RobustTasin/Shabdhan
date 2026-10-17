@@ -304,8 +304,13 @@ export default function Home() {
   function moveReport(categoryId: string, direction: -1 | 1, count: number) {
     setActiveIndexes((current) => {
       const index = current[categoryId] ?? 0;
+      const maxStart = Math.max(0, count - cardsPerPage);
       const step = feedAdvanceMode === "all" ? cardsPerPage : 1;
-      return { ...current, [categoryId]: Math.max(0, Math.min(count - 1, index + direction * step)) };
+      const previousPageStart = feedAdvanceMode === "all" && index === maxStart
+        ? Math.floor(Math.max(0, maxStart - 1) / step) * step
+        : index - step;
+      const nextIndex = direction < 0 ? previousPageStart : index + step;
+      return { ...current, [categoryId]: Math.max(0, Math.min(maxStart, nextIndex)) };
     });
   }
 
