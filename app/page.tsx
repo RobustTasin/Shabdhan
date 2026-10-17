@@ -127,7 +127,7 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [feedTheme, setFeedTheme] = useState<"light" | "dark">("light");
-  const [feedColumnsPreference, setFeedColumnsPreference] = useState<"auto" | "1" | "2" | "3">("auto");
+  const [feedAdvanceMode, setFeedAdvanceMode] = useState<"one" | "all">("one");
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -145,10 +145,8 @@ export default function Home() {
     try {
       const savedTheme = window.localStorage.getItem("shabdhan-feed-theme");
       if (savedTheme === "light" || savedTheme === "dark") setFeedTheme(savedTheme);
-      const savedColumns = window.localStorage.getItem("shabdhan-feed-columns");
-      if (savedColumns === "auto" || savedColumns === "1" || savedColumns === "2" || savedColumns === "3") {
-        setFeedColumnsPreference(savedColumns);
-      }
+      const savedAdvanceMode = window.localStorage.getItem("shabdhan-feed-advance-mode");
+      if (savedAdvanceMode === "one" || savedAdvanceMode === "all") setFeedAdvanceMode(savedAdvanceMode);
     } catch {
       // Keep the defaults if browser storage is unavailable.
     }
@@ -159,23 +157,23 @@ export default function Home() {
     if (!preferencesLoaded) return;
     try {
       window.localStorage.setItem("shabdhan-feed-theme", feedTheme);
-      window.localStorage.setItem("shabdhan-feed-columns", feedColumnsPreference);
+      window.localStorage.setItem("shabdhan-feed-advance-mode", feedAdvanceMode);
     } catch {
       // The controls still work for this visit when storage is unavailable.
     }
-  }, [feedTheme, feedColumnsPreference, preferencesLoaded]);
+  }, [feedTheme, feedAdvanceMode, preferencesLoaded]);
 
   useEffect(() => {
     const updateCardsPerPage = () => {
       const width = window.innerWidth;
       const isWide = window.matchMedia("(min-aspect-ratio: 1/1)").matches;
       const automaticColumns = width >= 1280 && isWide ? 3 : width >= 768 ? 2 : 1;
-      setCardsPerPage(width < 768 ? 1 : feedColumnsPreference === "auto" ? automaticColumns : Number(feedColumnsPreference));
+      setCardsPerPage(automaticColumns);
     };
     updateCardsPerPage();
     window.addEventListener("resize", updateCardsPerPage);
     return () => window.removeEventListener("resize", updateCardsPerPage);
-  }, [feedColumnsPreference]);
+  }, []);
 
   useEffect(() => {
     if (!menuOpen || window.innerWidth >= 768) return;
@@ -306,7 +304,8 @@ export default function Home() {
   function moveReport(categoryId: string, direction: -1 | 1, count: number) {
     setActiveIndexes((current) => {
       const index = current[categoryId] ?? 0;
-      return { ...current, [categoryId]: Math.max(0, Math.min(count - 1, index + direction)) };
+      const step = feedAdvanceMode === "all" ? cardsPerPage : 1;
+      return { ...current, [categoryId]: Math.max(0, Math.min(count - 1, index + direction * step)) };
     });
   }
 
@@ -425,15 +424,13 @@ export default function Home() {
             </select>
           </label>
           <label className="mt-3 block text-sm font-medium text-[#34453a]">
-            Cards per row
-            <select value={feedColumnsPreference} onChange={(event) => setFeedColumnsPreference(event.target.value as "auto" | "1" | "2" | "3")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
-              <option value="auto">Automatic</option>
-              <option value="1">1 card</option>
-              <option value="2">2 cards</option>
-              <option value="3">3 cards</option>
+            When you press an arrow
+            <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+              <option value="one">One card at a time</option>
+              <option value="all">All visible cards</option>
             </select>
           </label>
-          <p className="mt-3 text-xs leading-5 text-[#748076]">Mobile always shows one card. On larger screens, your selected layout is used.</p>
+          <p className="mt-3 text-xs leading-5 text-[#748076]">The feed layout adapts to your screen. On mobile, both options move one card.</p>
         </section>}
         {menuOpen && <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-[60] hidden bg-transparent md:block" />}
         {menuOpen && <section aria-label="Navigation menu" className="absolute right-3 top-[calc(100%+0.5rem)] z-[70] hidden max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-[#e5e8e1] bg-[#fbfcf9] p-4 shadow-[0_18px_50px_rgba(20,36,26,.18)] md:block">
