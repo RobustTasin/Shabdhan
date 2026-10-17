@@ -38,6 +38,10 @@ export type ApiReport = {
   published_at: string | null;
   created_at: string;
   updated_at: string;
+  upvote_count?: number;
+  downvote_count?: number;
+  current_user_vote?: 1 | -1 | null;
+  preview_image_url?: string | null;
   reporter?: {
     id: string;
     username: string;
@@ -136,7 +140,25 @@ export async function searchReports(params: {
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
 
-  return apiFetch<ReportListResponse>(`/reports/search${suffix}`);
+  return apiFetch<ReportListResponse>(`/reports/search${suffix}`, {
+    token: getToken() ?? undefined,
+  });
+}
+
+export async function setReportVote(
+  id: string,
+  vote: 1 | -1 | null
+): Promise<{
+  status: string;
+  vote: 1 | -1 | null;
+  upvote_count: number;
+  downvote_count: number;
+}> {
+  return apiFetch(`/reports/${encodeURIComponent(id)}/vote`, {
+    method: "PUT",
+    token: getToken() ?? undefined,
+    body: JSON.stringify({ vote }),
+  });
 }
 
 export async function getReport(id: string): Promise<{
