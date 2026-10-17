@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "./components/AuthProvider";
 import ResponsiveShell from "./components/ResponsiveShell";
+import { AppearanceProvider } from "./components/AppearanceProvider";
 
 export const metadata: Metadata = {
   title: {
@@ -28,7 +29,9 @@ export default function RootLayout({
     <html lang="en">
       <body className="overflow-x-hidden bg-slate-50 text-slate-950">
         <AuthProvider>
-          <ResponsiveShell>{children}</ResponsiveShell>
+          <AppearanceProvider>
+            <ResponsiveShell>{children}</ResponsiveShell>
+          </AppearanceProvider>
         </AuthProvider>
       </body>
     </html>

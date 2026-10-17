@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../components/AuthProvider";
 import ProfilePageLayout from "../components/ProfilePageLayout";
 import { getMyDisputes } from "../lib/disputes-api";
-import { getUserEvidence } from "../lib/evidence-api";
 import { getReports, reportStatusLabel, type ApiReport } from "../lib/reports-api";
 import { getPublicProfile, type PublicProfile } from "../lib/users-api";
 
@@ -37,9 +36,8 @@ export default function MePage() {
       getReports({ limit: 100 }),
       getPublicProfile(user.id),
       getMyDisputes(),
-      getUserEvidence(),
     ])
-      .then(([reportsResult, profileResult, disputesResult, evidenceResult]) => {
+      .then(([reportsResult, profileResult, disputesResult]) => {
         if (cancelled) return;
         if (reportsResult.status === "fulfilled") {
           const ownReports = reportsResult.value.reports;
@@ -57,9 +55,6 @@ export default function MePage() {
         if (profileResult.status === "fulfilled") setProfileStats(profileResult.value.profile.stats);
         if (disputesResult.status === "fulfilled") {
           setProfileStats((current) => current ? { ...current, disputes: disputesResult.value.disputes.length } : current);
-        }
-        if (evidenceResult.status === "fulfilled") {
-          setProfileStats((current) => current ? { ...current, evidences: evidenceResult.value.count } : current);
         }
       })
       .finally(() => {
