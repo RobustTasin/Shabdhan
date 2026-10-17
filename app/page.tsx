@@ -546,8 +546,8 @@ export default function Home() {
           const shownReports = demoMode ? [] : feed.reports.slice(index, index + cardsPerPage);
 
           return (
-            <section key={category.id} aria-label={`${category.name} reports`} className="mb-6 overflow-hidden rounded-[1.65rem] border border-[#e2e6de] bg-white shadow-[0_8px_26px_rgba(31,54,37,.035)] sm:mb-7">
-              <div className="flex items-center justify-between gap-3 border-b border-[#edf0ea] px-5 py-4 sm:px-6">
+            <section key={category.id} aria-label={`${category.name} reports`} className="mb-6 sm:mb-7">
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-[1.65rem] border border-[#e2e6de] bg-white px-5 py-4 shadow-[0_8px_26px_rgba(31,54,37,.035)] sm:px-6">
                 <div className="min-w-0">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7a8a7d]">Recent in</p>
                   <h2 className="mt-0.5 truncate text-lg font-semibold tracking-[-0.02em] text-[#23382a]"><Link href={`/search?category_id=${encodeURIComponent(category.id)}`} className="rounded-sm hover:text-[#52705a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#52705a]">{category.name}<span className="sr-only"> — view all reports in this category</span></Link></h2>
@@ -560,7 +560,7 @@ export default function Home() {
               </div>
 
               {demoMode ? (
-                <div className={`feed-report-grid feed-columns-${cardsPerPage} p-4 sm:p-5`}>
+                <div className={`feed-report-grid feed-columns-${cardsPerPage}`}>
                 {shownDemoReports.map((demoReport) => <article key={demoReport.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#f4eddb] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#705a28]">Demo only · fictional</span>
@@ -582,7 +582,7 @@ export default function Home() {
                 </article>)}
                 </div>
               ) : shownReports.length ? (
-                <div className={`feed-report-grid feed-columns-${cardsPerPage} p-4 sm:p-5`}>
+                <div className={`feed-report-grid feed-columns-${cardsPerPage}`}>
                 {shownReports.map((report) => {
                   const accountName = report.social_account?.display_name || report.social_account?.username;
                   const publicReportHex = formatPublicReportId(
@@ -625,7 +625,7 @@ export default function Home() {
                 })}
                 </div>
               ) : null}
-              {!demoMode && feed.total > feed.reports.length && <p className="px-5 pb-4 text-xs text-[#818b82] sm:px-6">Showing the {feed.reports.length} newest reports in this category.</p>}
+              {!demoMode && feed.total > feed.reports.length && <p className="px-1 pt-3 text-xs text-[#818b82]">Showing the {feed.reports.length} newest reports in this category.</p>}
             </section>
           );
         })}</div>}
