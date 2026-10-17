@@ -407,7 +407,10 @@ export default function ReportDetailsPage() {
   async function handleShareReport() {
     if (!report) return;
     const url = window.location.href;
-    const publicReportId = formatPublicReportId(report.id);
+    const publicReportId = formatPublicReportId(
+      report.public_report_category_code,
+      report.public_report_number
+    );
     try {
       if (navigator.share) {
         await navigator.share({ title: report.title, text: `Report ID: ${publicReportId}`, url });
@@ -424,7 +427,10 @@ export default function ReportDetailsPage() {
 
   async function handleCopyReportId() {
     if (!report) return;
-    const publicReportId = formatPublicReportId(report.id);
+    const publicReportId = formatPublicReportId(
+      report.public_report_category_code,
+      report.public_report_number
+    );
     try {
       await navigator.clipboard.writeText(publicReportId);
       setShareMessage("Report ID copied.");
@@ -670,7 +676,9 @@ export default function ReportDetailsPage() {
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm text-slate-500">Report ID: {formatPublicReportId(report.id)}</p>
+              <p className="text-sm text-slate-500">
+                Report ID: {formatPublicReportId(report.public_report_category_code, report.public_report_number)}
+              </p>
               <button type="button" onClick={() => void handleCopyReportId()} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Copy ID</button>
             </div>
 
@@ -1188,7 +1196,9 @@ export default function ReportDetailsPage() {
               {relatedReports.slice(0, 6).map((relatedReport) => (
                 <Link key={relatedReport.id} href={`/reports/${relatedReport.id}`} className="rounded-lg border border-indigo-100 bg-white p-3 transition hover:border-indigo-300">
                   <span className="block text-sm font-medium text-slate-900">{relatedReport.title}</span>
-                  <span className="mt-1 block text-[11px] text-slate-500">Report ID: {formatPublicReportId(relatedReport.id)} · {new Date(relatedReport.created_at).toLocaleDateString()}</span>
+                  <span className="mt-1 block text-[11px] text-slate-500">
+                    Report ID: {formatPublicReportId(relatedReport.public_report_category_code, relatedReport.public_report_number)} · {new Date(relatedReport.created_at).toLocaleDateString()}
+                  </span>
                 </Link>
               ))}
             </div>

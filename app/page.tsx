@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./components/AuthProvider";
+import { formatPublicReportId } from "../shared/report-id";
 import {
   getCategories,
   reportStatusLabel,
@@ -420,11 +421,18 @@ export default function Home() {
                 {shownReports.map((report) => {
                   const platform = report.social_account?.platform;
                   const accountName = report.social_account?.display_name || report.social_account?.username;
+                  const publicReportHex = formatPublicReportId(
+                    report.public_report_category_code,
+                    report.public_report_number
+                  ).split("-").at(-1) ?? "";
                   return <article key={report.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
                   {report.preview_image_url && <img src={report.preview_image_url} alt={`Evidence image for ${report.title}`} loading="lazy" decoding="async" className="mb-3 aspect-[4/3] w-full rounded-xl bg-[#edf1e9] object-cover" />}
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="rounded-full bg-[#f0f3ed] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#52705a]">{platform || "Public report"}</span>
-                    <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${statusClasses(report.verification_status)}`}>{reportStatusLabel(report.status, report.verification_status)}</span>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full bg-[#f0f3ed] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#52705a]">{platform || "Public report"}</span>
+                      <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${statusClasses(report.verification_status)}`}>{reportStatusLabel(report.status, report.verification_status)}</span>
+                    </div>
+                    <span aria-label={`Report number ${publicReportHex}`} className="shrink-0 rounded-full bg-[#f4f6f2] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-[#647267]">{publicReportHex}</span>
                   </div>
                   {accountName && <p className="mt-2 text-xs font-medium text-[#516356]">{report.social_account?.display_name ? `${accountName} · ` : ""}@{report.social_account?.username}</p>}
                   <h3 className="mt-1.5 text-base font-semibold leading-5 tracking-[-0.02em] text-[#20362a]"><Link href={`/reports/${report.id}`} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>

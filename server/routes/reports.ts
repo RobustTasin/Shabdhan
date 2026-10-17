@@ -10,7 +10,7 @@ import { createAuditLog } from "../utils/audit";
 import { createNotification } from "../utils/notifications";
 import { withTransaction } from "../utils/transaction";
 import { cloudinary } from "../config/cloudinary";
-import { parsePublicReportId } from "../../shared/report-id";
+import { categoryCodeFromName, parsePublicReportId } from "../../shared/report-id";
 
 const router = Router();
 
@@ -44,9 +44,10 @@ router.post(
         });
       }
 
+      let publicReportCategoryCode = "OTHER";
       if (category_id) {
         const category = await pool.query(
-          `SELECT id FROM categories WHERE id = $1 AND is_active = true`,
+          `SELECT id, name FROM categories WHERE id = $1 AND is_active = true`,
           [category_id]
         );
 
@@ -56,14 +57,16 @@ router.post(
             message: "Category not found",
           });
         }
+        publicReportCategoryCode = categoryCodeFromName(category.rows[0].name);
       }
 
       // reporter_id comes from the authenticated user
       const result = await pool.query(
         `INSERT INTO reports
-         (reporter_id, social_account_id, category_id, title, description)
-         VALUES ($1, $2, $3, $4, $5)
-         RETURNING id, reporter_id, social_account_id, category_id,
+         (reporter_id, social_account_id, category_id, public_report_category_code, title, description)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING id, public_report_number, public_report_category_code,
+                   reporter_id, social_account_id, category_id,
                    title, description, status,
                    verification_status, published_at,
                    created_at, updated_at`,
@@ -71,6 +74,7 @@ router.post(
           req.user!.id,
           social_account_id,
           category_id || null,
+          publicReportCategoryCode,
           title,
           description,
         ]
@@ -133,6 +137,8 @@ router.get(
       const result = await pool.query(
         `SELECT
            r.id,
+           r.public_report_number,
+           r.public_report_category_code,
            r.reporter_id,
            r.social_account_id,
            r.category_id,
@@ -213,8 +219,13 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
     if (search) {
       const reportId = parsePublicReportId(search);
       if (reportId) {
-        values.push(reportId);
-        conditions.push(`r.id = $${values.length}::uuid`);
+        if (reportId.type === "uuid") {
+          values.push(reportId.uuid);
+          conditions.push(`r.id = $${values.length}::uuid`);
+        } else {
+          values.push(reportId.categoryCode, reportId.serial);
+          conditions.push(`r.public_report_category_code = $${values.length - 1} AND r.public_report_number = $${values.length}::bigint`);
+        }
       } else {
         values.push(`%${search}%`);
         const searchParam = values.length;
@@ -265,6 +276,8 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
     const result = await pool.query(
       `SELECT
          r.id,
+         r.public_report_number,
+         r.public_report_category_code,
          r.title,
          r.description,
          r.status,
@@ -429,6 +442,7 @@ router.get(
       const result = await pool.query(
         `SELECT
            r.id, r.reporter_id, r.social_account_id, r.category_id,
+           r.public_report_number, r.public_report_category_code,
            r.title, r.description, r.status, r.verification_status,
            r.published_at, r.created_at, r.updated_at,
            json_build_object(
@@ -485,6 +499,8 @@ router.get(
       const result = await pool.query(
         `SELECT
            r.id,
+         r.public_report_number,
+         r.public_report_category_code,
            r.title,
            r.description,
            r.status,

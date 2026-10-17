@@ -28,6 +28,8 @@ export type SocialAccount = {
 
 export type ApiReport = {
   id: string;
+  public_report_number: string;
+  public_report_category_code: string;
   reporter_id: string;
   social_account_id: string;
   category_id: string | null;
