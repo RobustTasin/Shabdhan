@@ -30,6 +30,7 @@ export default function ProfilePageLayout({ children }: { children: ReactNode })
             <div className="flex items-center justify-between border-b border-[#e8ebe5] px-2 pb-3"><h2 className="text-base font-semibold text-[#20362a]">Menu</h2><button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#48594e] hover:bg-[#edf1e9]">×</button></div>
             <nav aria-label="Menu links" className="mt-2 flex flex-col gap-1">
               <Link href="/#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Browse feed</Link>
+              <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Advanced search</Link>
               {user ? <>
                 <Link href="/me" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link>
                 <Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link>

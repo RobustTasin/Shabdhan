@@ -52,7 +52,10 @@ router.get("/:id/profile", async (req, res) => {
            COUNT(*) FILTER (WHERE status = 'PUBLISHED' AND verification_status = 'VERIFIED')::int AS published,
            COUNT(*) FILTER (WHERE status = 'REJECTED' OR verification_status = 'REJECTED')::int AS declined,
            (SELECT COUNT(*)::int FROM disputes d WHERE d.submitted_by = $1) AS disputes,
-           (SELECT COUNT(*)::int FROM evidence e WHERE e.uploaded_by = $1) AS evidences
+           (SELECT COUNT(*)::int
+            FROM evidence e
+            JOIN reports evidence_report ON evidence_report.id = e.report_id
+            WHERE evidence_report.reporter_id = $1) AS evidences
          FROM reports
          WHERE reporter_id = $1`,
         [req.params.id]
