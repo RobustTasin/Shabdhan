@@ -173,6 +173,17 @@ export async function getReport(id: string): Promise<{
   });
 }
 
+export async function editReport(
+  id: string,
+  input: { title: string; description: string }
+): Promise<{ status: string; message: string; report: ApiReport }> {
+  return apiFetch(`/reports/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    token: getToken() ?? undefined,
+    body: input,
+  });
+}
+
 export async function createReport(input: {
   social_account_id: string;
   category_id?: string | null;

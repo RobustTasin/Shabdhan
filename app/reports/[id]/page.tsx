@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "../../components/AuthProvider";
 import PublicSiteHeader from "../../components/PublicSiteHeader";
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
 import {
   getEvidenceForReport,
@@ -18,6 +18,7 @@ import {
 } from "../../lib/evidence-api";
 import {
   getReport,
+  editReport,
   updateReportVerification,
   unpublishReport,
   deleteReport,
@@ -95,6 +96,11 @@ export default function ReportDetailsPage() {
   const canReviewEvidence = user?.role === "MODERATOR" || user?.role === "ADMIN";
 
   const [report, setReport] = useState<ApiReport | null>(null);
+  const [editingReport, setEditingReport] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [savingReport, setSavingReport] = useState(false);
+  const [editReportError, setEditReportError] = useState("");
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [reviewSuccess, setReviewSuccess] = useState("");
@@ -166,6 +172,8 @@ export default function ReportDetailsPage() {
       .then(
         ([reportResponse, evidenceResponse, commentsResponse, corroborationsResponse]) => {
           setReport(reportResponse.report);
+          setEditTitle(reportResponse.report.title);
+          setEditDescription(reportResponse.report.description);
           setEvidence(evidenceResponse.evidence);
           setComments(commentsResponse.comments);
           setCorroborations(corroborationsResponse.corroborations);
@@ -711,6 +719,24 @@ export default function ReportDetailsPage() {
       user.role === "ADMIN"
     )
   );
+  const isReportOwner = Boolean(user && user.id === report.reporter?.id);
+
+  async function handleEditReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!report || !isReportOwner || savingReport) return;
+    setSavingReport(true);
+    setEditReportError("");
+    try {
+      const response = await editReport(report.id, { title: editTitle, description: editDescription });
+      setReport((current) => current ? { ...current, ...response.report, reporter: current.reporter } : current);
+      setEditingReport(false);
+      setReviewSuccess(response.message);
+    } catch (err) {
+      setEditReportError(err instanceof Error ? err.message : "Could not update this report.");
+    } finally {
+      setSavingReport(false);
+    }
+  }
 
   return (
     <>
@@ -744,9 +770,27 @@ export default function ReportDetailsPage() {
               {reportStatusLabel(report.status, report.verification_status)}
             </span>
             <button type="button" onClick={() => void handleShareReport()} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Share report</button>
+            {isReportOwner && <button type="button" onClick={() => { setEditTitle(report.title); setEditDescription(report.description); setEditReportError(""); setEditingReport((open) => !open); }} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{editingReport ? "Cancel edit" : "Edit report"}</button>}
           </div>
         </div>
       </div>
+
+      {editingReport && isReportOwner && (
+        <form onSubmit={(event) => void handleEditReport(event)} className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+          <div>
+            <h2 className="font-semibold text-slate-950">Edit report</h2>
+            <p className="mt-1 text-sm text-slate-600">Saving changes will unpublish this report and send it back to moderators for review.</p>
+          </div>
+          <label className="block text-sm font-medium text-slate-700">Title
+            <input required maxLength={255} value={editTitle} onChange={(event) => setEditTitle(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900" />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">Description
+            <textarea required rows={5} value={editDescription} onChange={(event) => setEditDescription(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900" />
+          </label>
+          {editReportError && <p role="alert" className="text-sm text-red-700">{editReportError}</p>}
+          <button type="submit" disabled={savingReport || !editTitle.trim() || !editDescription.trim()} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">{savingReport ? "Saving…" : "Save and send for review"}</button>
+        </form>
+      )}
 
       {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
         <section className="rounded-xl border border-slate-200 bg-white p-5">

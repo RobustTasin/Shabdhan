@@ -582,6 +582,72 @@ router.get(
   }
 );
 
+// Owners may edit report text. Every edit is unpublished and returned to review.
+router.patch(
+  "/:id",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = String(req.params.id);
+      const title = typeof req.body?.title === "string" ? req.body.title.trim() : "";
+      const description = typeof req.body?.description === "string" ? req.body.description.trim() : "";
+
+      if (!title || !description) {
+        return res.status(400).json({ status: "error", message: "Title and description are required" });
+      }
+      if (title.length > 255) {
+        return res.status(400).json({ status: "error", message: "Title must be 255 characters or fewer" });
+      }
+
+      const result = await withTransaction(async (client) => {
+        const currentResult = await client.query(
+          `SELECT id, reporter_id, title, description
+           FROM reports WHERE id = $1 FOR UPDATE`,
+          [id]
+        );
+        const current = currentResult.rows[0];
+        if (!current) return { notFound: true as const };
+        if (current.reporter_id !== req.user!.id) return { forbidden: true as const };
+
+        const updated = await client.query(
+          `UPDATE reports
+           SET title = $1,
+               description = $2,
+               status = 'UNDER_REVIEW'::report_status,
+               verification_status = 'PENDING'::verification_status,
+               published_at = NULL,
+               updated_at = NOW()
+           WHERE id = $3
+           RETURNING id, public_report_number, public_report_category_code,
+                     title, description, status, verification_status,
+                     published_at, created_at, updated_at`,
+          [title, description, id]
+        );
+
+        await createAuditLog({
+          userId: req.user!.id,
+          action: "REPORT_EDITED",
+          entityType: "report",
+          entityId: id,
+          oldData: { title: current.title, description: current.description },
+          newData: { title, description, status: "UNDER_REVIEW", verification_status: "PENDING" },
+          req,
+          client,
+        });
+        return { report: updated.rows[0] };
+      });
+
+      if ("notFound" in result) return res.status(404).json({ status: "error", message: "Report not found" });
+      if ("forbidden" in result) return res.status(403).json({ status: "error", message: "Only the report owner can edit this report" });
+
+      return res.json({ status: "ok", message: "Report updated and sent for review", report: result.report });
+    } catch (error) {
+      console.error("Failed to edit report:", error);
+      return res.status(500).json({ status: "error", message: "Failed to edit report" });
+    }
+  }
+);
+
 // Get complete moderation details for a report
 router.get(
   "/:id/moderation",
