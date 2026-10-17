@@ -6,7 +6,6 @@ import { useAuth } from "./components/AuthProvider";
 import { formatPublicReportId } from "../shared/report-id";
 import {
   getCategories,
-  reportStatusLabel,
   searchReports,
   setReportVote,
   type ApiReport,
@@ -100,10 +99,13 @@ function FeedActionIcon({
   return <svg {...common}><circle cx="15" cy="4.5" r="2" /><circle cx="5" cy="10" r="2" /><circle cx="15" cy="15.5" r="2" /><path d="m6.8 9 6.4-3.5M6.8 11l6.4 3.5" /></svg>;
 }
 
-function statusClasses(status: ApiReport["verification_status"]) {
-  if (status === "VERIFIED") return "bg-[#e8f2e9] text-[#286044]";
-  if (status === "REJECTED") return "bg-rose-50 text-rose-700";
-  return "bg-amber-50 text-amber-800";
+function formatPublishedDate(value: string | null | undefined) {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 export default function Home() {
@@ -452,7 +454,6 @@ export default function Home() {
               ) : shownReports.length ? (
                 <div className="feed-report-grid p-4 sm:p-5">
                 {shownReports.map((report) => {
-                  const platform = report.social_account?.platform;
                   const accountName = report.social_account?.display_name || report.social_account?.username;
                   const publicReportHex = formatPublicReportId(
                     report.public_report_category_code,
@@ -460,18 +461,17 @@ export default function Home() {
                   ).split("-").at(-1) ?? "";
                   return <article key={report.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
                   {report.preview_image_url && <img src={report.preview_image_url} alt={`Evidence image for ${report.title}`} loading="lazy" decoding="async" className="mb-3 aspect-[4/3] w-full rounded-xl bg-[#edf1e9] object-cover" />}
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full bg-[#f0f3ed] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#52705a]">{platform || "Public report"}</span>
-                      <span className={`rounded-full px-2.5 py-1 text-[9px] font-semibold ${statusClasses(report.verification_status)}`}>{reportStatusLabel(report.status, report.verification_status)}</span>
-                    </div>
+                  <div className="flex min-w-0 items-center justify-between gap-2">
+                    <h3 className="min-w-0 flex-1 line-clamp-1 text-base font-semibold leading-5 tracking-[-0.02em] text-[#20362a]"><Link href={`/reports/${report.id}`} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>
                     <span aria-label={`Report number ${publicReportHex}`} className="shrink-0 rounded-full bg-[#f4f6f2] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-[#647267]">{publicReportHex}</span>
                   </div>
-                  {accountName && <p className="mt-2 text-xs font-medium text-[#516356]">{report.social_account?.display_name ? `${accountName} · ` : ""}@{report.social_account?.username}</p>}
-                  <h3 className="mt-1.5 text-base font-semibold leading-5 tracking-[-0.02em] text-[#20362a]"><Link href={`/reports/${report.id}`} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>
+                  <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
+                    <p className="min-w-0 truncate text-xs font-medium text-[#516356]">{accountName ? `${report.social_account?.display_name ? `${accountName} · ` : ""}@${report.social_account?.username}` : ""}</p>
+                    <time dateTime={report.published_at ?? undefined} className="shrink-0 text-[10px] text-[#899289]">{formatPublishedDate(report.published_at)}</time>
+                  </div>
                   <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#657267]">{report.description}</p>
                   <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-3">
-                    <span className="text-[10px] text-[#899289]">{report.created_at ? new Date(report.created_at).toLocaleDateString() : ""}</span>
+                    {Boolean(report.verified_evidence_count) && <Link href={`/reports/${report.id}#evidence`} className="relative z-10 rounded-full bg-[#edf4ec] px-2.5 py-1 text-[10px] font-semibold text-[#42634a] hover:bg-[#e2eee1]">{report.verified_evidence_count} {report.verified_evidence_count === 1 ? "source" : "sources"}</Link>}
                   </div>
                   <div className="relative z-10 mt-auto flex flex-wrap items-center gap-1.5 border-t border-[#edf0e9] pt-2" aria-label="Report actions">
                     {user ? (

@@ -480,6 +480,86 @@ router.post(
   }
 );
 
+// Delete evidence uploaded to a report when the user owns it or can moderate it.
+router.delete(
+  "/:id",
+  authenticate,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = String(req.params.id);
+      const result = await withTransaction(async (client) => {
+        const selected = await client.query(
+          `SELECT e.id, e.report_id, e.uploaded_by, e.evidence_type,
+                  e.file_name, e.file_url, e.cloudinary_public_id,
+                  r.reporter_id
+           FROM evidence e
+           JOIN reports r ON r.id = e.report_id
+           WHERE e.id = $1
+           FOR UPDATE OF e`,
+          [id]
+        );
+        const evidence = selected.rows[0];
+
+        if (!evidence) return { notFound: true as const };
+
+        const canDelete =
+          evidence.reporter_id === req.user!.id ||
+          req.user!.role === "ADMIN";
+
+        if (!canDelete) return { forbidden: true as const };
+
+        if (evidence.cloudinary_public_id) {
+          const resourceType =
+            evidence.evidence_type === "VIDEO"
+              ? "video"
+              : evidence.evidence_type === "DOCUMENT"
+                ? "raw"
+                : "image";
+          const removal = await cloudinary.uploader.destroy(
+            evidence.cloudinary_public_id,
+            { resource_type: resourceType, invalidate: true }
+          );
+
+          if (removal.result !== "ok" && removal.result !== "not found") {
+            throw new Error("Cloudinary did not confirm evidence removal");
+          }
+        }
+
+        await client.query(`DELETE FROM evidence WHERE id = $1`, [id]);
+        await createAuditLog({
+          userId: req.user!.id,
+          action: "EVIDENCE_DELETED",
+          entityType: "evidence",
+          entityId: id,
+          oldData: {
+            report_id: evidence.report_id,
+            evidence_type: evidence.evidence_type,
+            file_name: evidence.file_name,
+            file_url: evidence.file_url,
+          },
+          newData: { deleted: true },
+          req,
+          client,
+        });
+
+        return { deleted: true as const };
+      });
+
+      if ("notFound" in result) {
+        return res.status(404).json({ status: "error", message: "Evidence not found" });
+      }
+      if ("forbidden" in result) {
+        return res.status(403).json({ status: "error", message: "You do not have permission to delete this evidence" });
+      }
+
+      return res.json({ status: "ok", message: "Evidence deleted" });
+    } catch (error) {
+      console.error("Failed to delete evidence:", error);
+      return res.status(500).json({ status: "error", message: "Failed to delete evidence" });
+    }
+  }
+);
+
 // Verify or reject evidence
 router.patch(
   "/:id/verify",

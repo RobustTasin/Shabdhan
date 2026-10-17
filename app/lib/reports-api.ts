@@ -44,6 +44,7 @@ export type ApiReport = {
   downvote_count?: number;
   current_user_vote?: 1 | -1 | null;
   preview_image_url?: string | null;
+  verified_evidence_count?: number;
   reporter?: {
     id: string;
     username: string;
@@ -169,6 +170,17 @@ export async function getReport(id: string): Promise<{
 }> {
   return apiFetch(`/reports/${id}`, {
     token: getToken() ?? undefined,
+  });
+}
+
+export async function editReport(
+  id: string,
+  input: { title: string; description: string }
+): Promise<{ status: string; message: string; report: ApiReport }> {
+  return apiFetch(`/reports/${encodeURIComponent(id)}`, {
+    method: "PATCH",
+    token: getToken() ?? undefined,
+    body: input,
   });
 }
 

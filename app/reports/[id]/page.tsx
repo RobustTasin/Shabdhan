@@ -4,17 +4,21 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "../../components/AuthProvider";
 import PublicSiteHeader from "../../components/PublicSiteHeader";
-import { useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
 import {
   getEvidenceForReport,
+  deleteEvidence,
+  updateEvidenceVerification,
   addEvidenceLink,
   findAndAttachArchivedCopy,
   uploadEvidence,
   type Evidence,
+  type VerificationStatus,
 } from "../../lib/evidence-api";
 import {
   getReport,
+  editReport,
   updateReportVerification,
   unpublishReport,
   deleteReport,
@@ -89,8 +93,14 @@ export default function ReportDetailsPage() {
   const id = params.id;
   const router = useRouter();
   const { user } = useAuth();
+  const canReviewEvidence = user?.role === "MODERATOR" || user?.role === "ADMIN";
 
   const [report, setReport] = useState<ApiReport | null>(null);
+  const [editingReport, setEditingReport] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [savingReport, setSavingReport] = useState(false);
+  const [editReportError, setEditReportError] = useState("");
   const [reviewing, setReviewing] = useState(false);
   const [reviewError, setReviewError] = useState("");
   const [reviewSuccess, setReviewSuccess] = useState("");
@@ -99,6 +109,9 @@ export default function ReportDetailsPage() {
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [evidenceLoading, setEvidenceLoading] = useState(true);
   const [evidenceError, setEvidenceError] = useState("");
+  const [evidenceActionError, setEvidenceActionError] = useState("");
+  const [deletingEvidenceId, setDeletingEvidenceId] = useState<string | null>(null);
+  const [reviewingEvidenceId, setReviewingEvidenceId] = useState<string | null>(null);
 
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [description, setDescription] = useState("");
@@ -159,6 +172,8 @@ export default function ReportDetailsPage() {
       .then(
         ([reportResponse, evidenceResponse, commentsResponse, corroborationsResponse]) => {
           setReport(reportResponse.report);
+          setEditTitle(reportResponse.report.title);
+          setEditDescription(reportResponse.report.description);
           setEvidence(evidenceResponse.evidence);
           setComments(commentsResponse.comments);
           setCorroborations(corroborationsResponse.corroborations);
@@ -380,6 +395,50 @@ export default function ReportDetailsPage() {
       setEvidenceLinkError(err instanceof Error ? err.message : "Failed to add evidence link.");
     } finally {
       setAddingEvidenceLink(false);
+    }
+  }
+
+  async function handleDeleteEvidence(item: Evidence) {
+    if (
+      deletingEvidenceId || reviewingEvidenceId ||
+      !window.confirm(`Permanently delete “${item.file_name || "Evidence file"}”? This cannot be undone.`)
+    ) return;
+
+    setDeletingEvidenceId(item.id);
+    setEvidenceActionError("");
+    try {
+      await deleteEvidence(item.id);
+      setEvidence((current) => current.filter((evidenceItem) => evidenceItem.id !== item.id));
+    } catch (err) {
+      setEvidenceActionError(err instanceof Error ? err.message : "Failed to delete evidence.");
+    } finally {
+      setDeletingEvidenceId(null);
+    }
+  }
+
+  async function handleUpdateEvidenceVerification(
+    item: Evidence,
+    verificationStatus: VerificationStatus
+  ) {
+    if (reviewingEvidenceId || deletingEvidenceId) return;
+    if (
+      verificationStatus === "REJECTED" &&
+      !window.confirm("Reject this evidence? The uploader will be notified.")
+    ) return;
+
+    setReviewingEvidenceId(item.id);
+    setEvidenceActionError("");
+    try {
+      const response = await updateEvidenceVerification(item.id, verificationStatus);
+      setEvidence((current) => current.map((evidenceItem) =>
+        evidenceItem.id === item.id
+          ? { ...evidenceItem, ...response.evidence }
+          : evidenceItem
+      ));
+    } catch (err) {
+      setEvidenceActionError(err instanceof Error ? err.message : "Failed to update evidence status.");
+    } finally {
+      setReviewingEvidenceId(null);
     }
   }
 
@@ -660,6 +719,24 @@ export default function ReportDetailsPage() {
       user.role === "ADMIN"
     )
   );
+  const isReportOwner = Boolean(user && user.id === report.reporter?.id);
+
+  async function handleEditReport(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!report || !isReportOwner || savingReport) return;
+    setSavingReport(true);
+    setEditReportError("");
+    try {
+      const response = await editReport(report.id, { title: editTitle, description: editDescription });
+      setReport((current) => current ? { ...current, ...response.report, reporter: current.reporter } : current);
+      setEditingReport(false);
+      setReviewSuccess(response.message);
+    } catch (err) {
+      setEditReportError(err instanceof Error ? err.message : "Could not update this report.");
+    } finally {
+      setSavingReport(false);
+    }
+  }
 
   return (
     <>
@@ -693,9 +770,27 @@ export default function ReportDetailsPage() {
               {reportStatusLabel(report.status, report.verification_status)}
             </span>
             <button type="button" onClick={() => void handleShareReport()} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Share report</button>
+            {isReportOwner && <button type="button" onClick={() => { setEditTitle(report.title); setEditDescription(report.description); setEditReportError(""); setEditingReport((open) => !open); }} className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">{editingReport ? "Cancel edit" : "Edit report"}</button>}
           </div>
         </div>
       </div>
+
+      {editingReport && isReportOwner && (
+        <form onSubmit={(event) => void handleEditReport(event)} className="space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+          <div>
+            <h2 className="font-semibold text-slate-950">Edit report</h2>
+            <p className="mt-1 text-sm text-slate-600">Saving changes will unpublish this report and send it back to moderators for review.</p>
+          </div>
+          <label className="block text-sm font-medium text-slate-700">Title
+            <input required maxLength={255} value={editTitle} onChange={(event) => setEditTitle(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900" />
+          </label>
+          <label className="block text-sm font-medium text-slate-700">Description
+            <textarea required rows={5} value={editDescription} onChange={(event) => setEditDescription(event.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900" />
+          </label>
+          {editReportError && <p role="alert" className="text-sm text-red-700">{editReportError}</p>}
+          <button type="submit" disabled={savingReport || !editTitle.trim() || !editDescription.trim()} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50">{savingReport ? "Saving…" : "Save and send for review"}</button>
+        </form>
+      )}
 
       {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
         <section className="rounded-xl border border-slate-200 bg-white p-5">
@@ -754,6 +849,12 @@ export default function ReportDetailsPage() {
           </h2>
 
           <div className="mt-6 space-y-6">
+            {report.reporter?.username && (
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Created by</p>
+                <p className="mt-1 text-sm font-medium text-slate-900">@{report.reporter.username}</p>
+              </div>
+            )}
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 Description
@@ -1081,6 +1182,12 @@ export default function ReportDetailsPage() {
         ) : null}
 
         <div className="mt-6">
+          {evidenceActionError && (
+            <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              {evidenceActionError}
+            </p>
+          )}
+
           {evidenceLoading ? (
             <p className="text-sm text-slate-500">
               Loading evidence...
@@ -1131,13 +1238,50 @@ export default function ReportDetailsPage() {
                       )}
                     </div>
 
-                    <span
-                      className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${verificationBadgeClass(
-                        item.verification_status
-                      )}`}
-                    >
-                      {item.verification_status}
-                    </span>
+                    <div className="flex flex-col items-start gap-2">
+                      <span
+                        className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${verificationBadgeClass(
+                          item.verification_status
+                        )}`}
+                      >
+                        {item.verification_status}
+                      </span>
+
+                      {canReviewEvidence && (
+                        <div className="flex flex-wrap gap-2">
+                          {item.verification_status !== "VERIFIED" && (
+                            <button
+                              type="button"
+                              onClick={() => void handleUpdateEvidenceVerification(item, "VERIFIED")}
+                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
+                              className="rounded-md border border-green-200 px-2.5 py-1 text-xs font-medium text-green-800 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {reviewingEvidenceId === item.id ? "Saving…" : "Verify"}
+                            </button>
+                          )}
+                          {item.verification_status !== "REJECTED" && (
+                            <button
+                              type="button"
+                              onClick={() => void handleUpdateEvidenceVerification(item, "REJECTED")}
+                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
+                              className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-800 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {reviewingEvidenceId === item.id ? "Saving…" : "Reject"}
+                            </button>
+                          )}
+                          {item.verification_status !== "PENDING" && (
+                            <button
+                              type="button"
+                              onClick={() => void handleUpdateEvidenceVerification(item, "PENDING")}
+                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
+                              className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {reviewingEvidenceId === item.id ? "Saving…" : "Mark pending"}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {item.file_url && (
@@ -1149,6 +1293,19 @@ export default function ReportDetailsPage() {
                     >
                       Open evidence
                     </a>
+                  )}
+
+                  {user && (
+                    user.id === report?.reporter_id || user.role === "ADMIN"
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteEvidence(item)}
+                      disabled={deletingEvidenceId !== null}
+                      className="mt-4 ml-4 inline-block text-sm font-medium text-red-700 underline disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {deletingEvidenceId === item.id ? "Deleting…" : "Delete evidence"}
+                    </button>
                   )}
                 </div>
               ))}
@@ -1290,7 +1447,7 @@ export default function ReportDetailsPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold text-slate-950">
-                          {item.user.username}
+                          Corroborated by @{item.user.username}
                         </p>
 
                         {item.user.is_verified && (
@@ -1410,7 +1567,7 @@ export default function ReportDetailsPage() {
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <p className="text-sm font-semibold text-slate-950">
-                              {comment.username}
+                              Comment by @{comment.username}
                             </p>
 
                             <p className="mt-1 text-xs text-slate-400">
@@ -1552,7 +1709,7 @@ export default function ReportDetailsPage() {
                               <div className="flex items-start justify-between gap-4">
                                 <div>
                                   <p className="text-sm font-semibold text-slate-950">
-                                    {reply.username}
+                                    Reply by @{reply.username}
                                   </p>
 
                                   <p className="mt-1 text-xs text-slate-400">
