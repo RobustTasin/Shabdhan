@@ -849,6 +849,12 @@ export default function ReportDetailsPage() {
           </h2>
 
           <div className="mt-6 space-y-6">
+            {report.reporter?.username && (
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Created by</p>
+                <p className="mt-1 text-sm font-medium text-slate-900">@{report.reporter.username}</p>
+              </div>
+            )}
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                 Description
@@ -1441,7 +1447,7 @@ export default function ReportDetailsPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold text-slate-950">
-                          {item.user.username}
+                          Corroborated by @{item.user.username}
                         </p>
 
                         {item.user.is_verified && (
@@ -1561,7 +1567,7 @@ export default function ReportDetailsPage() {
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <p className="text-sm font-semibold text-slate-950">
-                              {comment.username}
+                              Comment by @{comment.username}
                             </p>
 
                             <p className="mt-1 text-xs text-slate-400">
@@ -1703,7 +1709,7 @@ export default function ReportDetailsPage() {
                               <div className="flex items-start justify-between gap-4">
                                 <div>
                                   <p className="text-sm font-semibold text-slate-950">
-                                    {reply.username}
+                                    Reply by @{reply.username}
                                   </p>
 
                                   <p className="mt-1 text-xs text-slate-400">
