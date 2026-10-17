@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 import { useAuth } from "../components/AuthProvider";
 import { getReports, reportStatusLabel, type ApiReport } from "../lib/reports-api";
+import { getPublicProfile, type PublicProfile } from "../lib/users-api";
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -17,6 +18,7 @@ function formatDate(value: string) {
 export default function MePage() {
   const { user, loading: authLoading } = useAuth();
   const [reports, setReports] = useState<ApiReport[]>([]);
+  const [profileStats, setProfileStats] = useState<PublicProfile["stats"] | null>(null);
   const [reportsLoading, setReportsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -28,14 +30,12 @@ export default function MePage() {
     }
 
     let cancelled = false;
-    void getReports({ limit: 100 })
-      .then((response) => {
-        if (!cancelled) setReports(response.reports);
-      })
-      .catch((loadError) => {
-        if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : "Could not load your reports.");
-        }
+    void Promise.allSettled([getReports({ limit: 100 }), getPublicProfile(user.id)])
+      .then(([reportsResult, profileResult]) => {
+        if (cancelled) return;
+        if (reportsResult.status === "fulfilled") setReports(reportsResult.value.reports);
+        else setError(reportsResult.reason instanceof Error ? reportsResult.reason.message : "Could not load your reports.");
+        if (profileResult.status === "fulfilled") setProfileStats(profileResult.value.profile.stats);
       })
       .finally(() => {
         if (!cancelled) setReportsLoading(false);
@@ -64,11 +64,6 @@ export default function MePage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-10">
-      <div>
-        <p className="text-sm font-medium text-slate-500">Your space</p>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">Me</h1>
-      </div>
-
       <section aria-label="Profile details" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
@@ -77,18 +72,31 @@ export default function MePage() {
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">Profile</p>
               <h2 className="mt-1 truncate text-xl font-semibold text-slate-950">@{user.username}</h2>
               <p className="mt-1 truncate text-sm text-slate-500">{user.email}</p>
+              <Link href={`/users/${user.id}`} className="mt-1 inline-flex text-xs font-medium text-emerald-900 hover:underline">View public profile</Link>
             </div>
           </div>
           <Link href="/reports" className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-900">+ Create report</Link>
         </div>
+        <dl aria-label="Profile activity statistics" className="mt-6 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-5">
+          {([
+            ["Reports", profileStats?.reports],
+            ["Disputes", profileStats?.disputes],
+            ["Published", profileStats?.published],
+            ["Declined", profileStats?.declined],
+            ["Evidences", profileStats?.evidences],
+          ] as const).map(([label, value]) => (
+            <div key={label} className="rounded-2xl bg-slate-50 px-4 py-3">
+              <dt className="text-xs font-medium text-slate-500">{label}</dt>
+              <dd className="mt-1 text-xl font-semibold tabular-nums text-slate-950">{value ?? "—"}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
       <section aria-labelledby="my-reports-heading" className="space-y-5">
         <div className="flex flex-col gap-3 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">Your activity</p>
-            <h2 id="my-reports-heading" className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">My reports</h2>
-            <p className="mt-1 text-sm text-slate-500">Reports you’ve created and their current review status.</p>
+            <h2 id="my-reports-heading" className="text-2xl font-semibold tracking-tight text-slate-950">Reports &amp; Status</h2>
           </div>
           {!reportsLoading && <span className="w-fit rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900">{reports.length} {reports.length === 1 ? "report" : "reports"}</span>}
         </div>
@@ -118,7 +126,10 @@ export default function MePage() {
                     <span>{formatDate(report.created_at)}</span>
                   </p>
                 </div>
-                <span className="w-fit shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">{reportStatusLabel(report.status, report.verification_status)}</span>
+                <div className="flex shrink-0 items-center gap-3 self-start sm:self-center">
+                  <span className="text-xs font-medium tabular-nums text-slate-500">{report.public_report_category_code}-{String(report.public_report_number).padStart(5, "0")}</span>
+                  <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">{reportStatusLabel(report.status, report.verification_status)}</span>
+                </div>
               </Link>
             ))}
           </div>

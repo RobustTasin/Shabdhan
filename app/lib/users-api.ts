@@ -1,5 +1,29 @@
 import { apiFetch } from "./api";
 import { getToken, type UserRole } from "./auth";
+import type { ApiReport } from "./reports-api";
+
+export type PublicProfile = {
+  id: string;
+  username: string;
+  stats: {
+    reports: number;
+    disputes: number;
+    published: number;
+    declined: number;
+    evidences: number;
+  };
+  reports: Array<Pick<ApiReport, "id" | "title" | "public_report_number" | "public_report_category_code" | "published_at" | "created_at"> & {
+    category_name: string | null;
+    platform: string;
+    social_account_username: string;
+  }>;
+};
+
+export async function getPublicProfile(id: string) {
+  return apiFetch<{ status: string; profile: PublicProfile }>(
+    `/users/${encodeURIComponent(id)}/profile`
+  );
+}
 
 export type ApiUser = {
   id: string;
