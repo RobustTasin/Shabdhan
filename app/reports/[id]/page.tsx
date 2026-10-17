@@ -40,6 +40,7 @@ import {
   getCorroborationsForReport,
   type ApiCorroboration,
 } from "../../lib/corroborations-api";
+import { formatPublicReportId } from "../../../shared/report-id";
 
 function formatFileSizeFromType(file: File) {
   const bytes = file.size;
@@ -406,9 +407,10 @@ export default function ReportDetailsPage() {
   async function handleShareReport() {
     if (!report) return;
     const url = window.location.href;
+    const publicReportId = formatPublicReportId(report.id);
     try {
       if (navigator.share) {
-        await navigator.share({ title: report.title, text: `Report ID: ${report.id}`, url });
+        await navigator.share({ title: report.title, text: `Report ID: ${publicReportId}`, url });
         setShareMessage("Share menu opened.");
       } else {
         await navigator.clipboard.writeText(url);
@@ -422,11 +424,12 @@ export default function ReportDetailsPage() {
 
   async function handleCopyReportId() {
     if (!report) return;
+    const publicReportId = formatPublicReportId(report.id);
     try {
-      await navigator.clipboard.writeText(report.id);
+      await navigator.clipboard.writeText(publicReportId);
       setShareMessage("Report ID copied.");
     } catch {
-      setShareMessage(`Report ID: ${report.id}`);
+      setShareMessage(`Report ID: ${publicReportId}`);
     }
   }
 
@@ -667,7 +670,7 @@ export default function ReportDetailsPage() {
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm text-slate-500">Report ID: {report.id}</p>
+              <p className="text-sm text-slate-500">Report ID: {formatPublicReportId(report.id)}</p>
               <button type="button" onClick={() => void handleCopyReportId()} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Copy ID</button>
             </div>
 
@@ -1185,7 +1188,7 @@ export default function ReportDetailsPage() {
               {relatedReports.slice(0, 6).map((relatedReport) => (
                 <Link key={relatedReport.id} href={`/reports/${relatedReport.id}`} className="rounded-lg border border-indigo-100 bg-white p-3 transition hover:border-indigo-300">
                   <span className="block text-sm font-medium text-slate-900">{relatedReport.title}</span>
-                  <span className="mt-1 block text-[11px] text-slate-500">Report ID: {relatedReport.id} · {new Date(relatedReport.created_at).toLocaleDateString()}</span>
+                  <span className="mt-1 block text-[11px] text-slate-500">Report ID: {formatPublicReportId(relatedReport.id)} · {new Date(relatedReport.created_at).toLocaleDateString()}</span>
                 </Link>
               ))}
             </div>

@@ -111,7 +111,7 @@ export default function SearchPage() {
                 <input
                   value={search}
                   onChange={(event) => handleSearchChange(event.target.value)}
-                  placeholder="Report name, username, brand or company..."
+                  placeholder="Report name or ID, username, brand or company..."
                   className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-slate-400"
                 />
               </div>
