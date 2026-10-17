@@ -52,6 +52,15 @@ function SearchIcon() {
   );
 }
 
+function SettingsIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
+      <path d="M12 8.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6Z" stroke="currentColor" strokeWidth="1.6" />
+      <path d="m19.3 13.6 1.1.9-1.8 3.1-1.4-.5a8 8 0 0 1-1.5.9l-.3 1.5h-3.6l-.3-1.5a8 8 0 0 1-1.5-.9l-1.4.5-1.8-3.1 1.1-.9a7 7 0 0 1 0-1.8l-1.1-.9 1.8-3.1 1.4.5a8 8 0 0 1 1.5-.9l.3-1.5h3.6l.3 1.5a8 8 0 0 1 1.5.9l1.4-.5 1.8 3.1-1.1.9a7 7 0 0 1 0 1.8Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function MenuIcon({ open }: { open: boolean }) {
   return open ? (
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-5 w-5">
@@ -116,9 +125,15 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [feedTheme, setFeedTheme] = useState<"light" | "dark">("light");
+  const [feedColumnsPreference, setFeedColumnsPreference] = useState<"auto" | "1" | "2" | "3">("auto");
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const searchPanelRef = useRef<HTMLFormElement>(null);
+  const settingsPanelRef = useRef<HTMLElement>(null);
+  const settingsButtonRef = useRef<HTMLButtonElement>(null);
   const [selectedDemo, setSelectedDemo] = useState<DemoReport | null>(null);
   const [pendingVote, setPendingVote] = useState<string | null>(null);
   const [voteErrors, setVoteErrors] = useState<Record<string, string>>({});
@@ -127,15 +142,40 @@ export default function Home() {
   const [cardsPerPage, setCardsPerPage] = useState(1);
 
   useEffect(() => {
+    try {
+      const savedTheme = window.localStorage.getItem("shabdhan-feed-theme");
+      if (savedTheme === "light" || savedTheme === "dark") setFeedTheme(savedTheme);
+      const savedColumns = window.localStorage.getItem("shabdhan-feed-columns");
+      if (savedColumns === "auto" || savedColumns === "1" || savedColumns === "2" || savedColumns === "3") {
+        setFeedColumnsPreference(savedColumns);
+      }
+    } catch {
+      // Keep the defaults if browser storage is unavailable.
+    }
+    setPreferencesLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!preferencesLoaded) return;
+    try {
+      window.localStorage.setItem("shabdhan-feed-theme", feedTheme);
+      window.localStorage.setItem("shabdhan-feed-columns", feedColumnsPreference);
+    } catch {
+      // The controls still work for this visit when storage is unavailable.
+    }
+  }, [feedTheme, feedColumnsPreference, preferencesLoaded]);
+
+  useEffect(() => {
     const updateCardsPerPage = () => {
       const width = window.innerWidth;
       const isWide = window.matchMedia("(min-aspect-ratio: 1/1)").matches;
-      setCardsPerPage(width >= 1280 && isWide ? 3 : width >= 768 ? 2 : 1);
+      const automaticColumns = width >= 1280 && isWide ? 3 : width >= 768 ? 2 : 1;
+      setCardsPerPage(width < 768 ? 1 : feedColumnsPreference === "auto" ? automaticColumns : Number(feedColumnsPreference));
     };
     updateCardsPerPage();
     window.addEventListener("resize", updateCardsPerPage);
     return () => window.removeEventListener("resize", updateCardsPerPage);
-  }, []);
+  }, [feedColumnsPreference]);
 
   useEffect(() => {
     if (!menuOpen || window.innerWidth >= 768) return;
@@ -156,6 +196,23 @@ export default function Home() {
     document.addEventListener("pointerdown", closeOnOutsidePointer);
     return () => document.removeEventListener("pointerdown", closeOnOutsidePointer);
   }, [searchOpen]);
+
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!settingsPanelRef.current?.contains(target) && !settingsButtonRef.current?.contains(target)) setSettingsOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSettingsOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [settingsOpen]);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -249,7 +306,7 @@ export default function Home() {
   function moveReport(categoryId: string, direction: -1 | 1, count: number) {
     setActiveIndexes((current) => {
       const index = current[categoryId] ?? 0;
-      return { ...current, [categoryId]: Math.max(0, Math.min(count - 1, index + direction * cardsPerPage)) };
+      return { ...current, [categoryId]: Math.max(0, Math.min(count - 1, index + direction)) };
     });
   }
 
@@ -323,7 +380,7 @@ export default function Home() {
   const categorySections = demoMode ? sampleCategories : visibleCategories;
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#f5f6f2] text-[#1e2924]">
+    <main data-feed-theme={feedTheme} className="feed-root flex min-h-screen flex-col bg-[#f5f6f2] text-[#1e2924]">
       <header className="relative sticky top-0 z-[70] border-b border-[#e5e8e1] bg-[#fbfcf9]/95 backdrop-blur-xl">
         <div className="mx-auto flex h-[68px] max-w-5xl items-center gap-3 px-4 sm:px-6">
           <Link href="/" aria-label="Shabdhan feed" className="flex shrink-0 items-center gap-2.5">
@@ -332,7 +389,7 @@ export default function Home() {
           </Link>
 
           <nav aria-label="Main navigation" className="ml-auto flex items-center gap-1.5">
-            <a href="#public-feed" className="rounded-full bg-[#edf1e9] px-3.5 py-2 text-sm font-semibold text-[#244a34]">Feed</a>
+            <a href="#public-feed" className="hidden rounded-full bg-[#edf1e9] px-3.5 py-2 text-sm font-semibold text-[#244a34] sm:inline-flex">Feed</a>
             <button type="button" aria-label={searchOpen ? "Close search" : "Open search"} aria-expanded={searchOpen} onClick={() => setSearchOpen(searchOpen ? false : true)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
               <SearchIcon />
             </button>
@@ -341,6 +398,9 @@ export default function Home() {
                 <span className="sm:hidden">+</span><span className="hidden sm:inline">+ Create</span>
               </Link>
             )}
+            <button ref={settingsButtonRef} type="button" aria-label="Feed view settings" aria-expanded={settingsOpen} onClick={() => { setSettingsOpen((open) => !open); setMenuOpen(false); }} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
+              <SettingsIcon />
+            </button>
             <button type="button" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
               <MenuIcon open={menuOpen} />
             </button>
@@ -352,6 +412,29 @@ export default function Home() {
           <button type="submit" aria-label="Submit search" disabled={!searchQuery.trim()} className="rounded-xl bg-[#183a2c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#24543e] disabled:cursor-not-allowed disabled:opacity-50">Search</button>
           <button type="button" aria-label="Close search" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#48594e] transition hover:bg-[#edf1e9]"><MenuIcon open /></button>
         </form>}
+        {settingsOpen && <section ref={settingsPanelRef} aria-label="Feed view settings" className="absolute right-3 top-[calc(100%+0.5rem)] z-[75] w-[min(22rem,calc(100vw-1.5rem))] rounded-2xl border border-[#e5e8e1] bg-[#fbfcf9] p-4 shadow-[0_18px_50px_rgba(20,36,26,.18)]">
+          <div className="flex items-center justify-between border-b border-[#e8ebe5] px-1 pb-3">
+            <h2 className="text-base font-semibold text-[#20362a]">Feed view settings</h2>
+            <button type="button" aria-label="Close feed view settings" onClick={() => setSettingsOpen(false)} className="rounded-lg px-2 py-1 text-xs font-medium text-[#59665d] hover:bg-[#edf1e9]">Close</button>
+          </div>
+          <label className="mt-4 block text-sm font-medium text-[#34453a]">
+            Theme
+            <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </label>
+          <label className="mt-3 block text-sm font-medium text-[#34453a]">
+            Cards per row
+            <select value={feedColumnsPreference} onChange={(event) => setFeedColumnsPreference(event.target.value as "auto" | "1" | "2" | "3")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+              <option value="auto">Automatic</option>
+              <option value="1">1 card</option>
+              <option value="2">2 cards</option>
+              <option value="3">3 cards</option>
+            </select>
+          </label>
+          <p className="mt-3 text-xs leading-5 text-[#748076]">Mobile always shows one card. On larger screens, your selected layout is used.</p>
+        </section>}
         {menuOpen && <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-[60] hidden bg-transparent md:block" />}
         {menuOpen && <section aria-label="Navigation menu" className="absolute right-3 top-[calc(100%+0.5rem)] z-[70] hidden max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-[#e5e8e1] bg-[#fbfcf9] p-4 shadow-[0_18px_50px_rgba(20,36,26,.18)] md:block">
           <div className="flex items-center justify-between border-b border-[#e8ebe5] px-2 pb-3">
@@ -430,7 +513,7 @@ export default function Home() {
               </div>
 
               {demoMode ? (
-                <div className="feed-report-grid p-4 sm:p-5">
+                <div className={`feed-report-grid feed-columns-${cardsPerPage} p-4 sm:p-5`}>
                 {shownDemoReports.map((demoReport) => <article key={demoReport.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#f4eddb] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#705a28]">Demo only · fictional</span>
@@ -452,7 +535,7 @@ export default function Home() {
                 </article>)}
                 </div>
               ) : shownReports.length ? (
-                <div className="feed-report-grid p-4 sm:p-5">
+                <div className={`feed-report-grid feed-columns-${cardsPerPage} p-4 sm:p-5`}>
                 {shownReports.map((report) => {
                   const accountName = report.social_account?.display_name || report.social_account?.username;
                   const publicReportHex = formatPublicReportId(
