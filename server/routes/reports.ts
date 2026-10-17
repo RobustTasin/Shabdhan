@@ -10,6 +10,7 @@ import { createAuditLog } from "../utils/audit";
 import { createNotification } from "../utils/notifications";
 import { withTransaction } from "../utils/transaction";
 import { cloudinary } from "../config/cloudinary";
+import { parsePublicReportId } from "../../shared/report-id";
 
 const router = Router();
 
@@ -210,17 +211,23 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
     const values: unknown[] = [];
 
     if (search) {
-      values.push(`%${search}%`);
-      const searchParam = values.length;
+      const reportId = parsePublicReportId(search);
+      if (reportId) {
+        values.push(reportId);
+        conditions.push(`r.id = $${values.length}::uuid`);
+      } else {
+        values.push(`%${search}%`);
+        const searchParam = values.length;
 
-      conditions.push(`
-        (
-          r.title ILIKE $${searchParam}
-          OR r.description ILIKE $${searchParam}
-          OR sa.username ILIKE $${searchParam}
-          OR sa.display_name ILIKE $${searchParam}
-        )
-      `);
+        conditions.push(`
+          (
+            r.title ILIKE $${searchParam}
+            OR r.description ILIKE $${searchParam}
+            OR sa.username ILIKE $${searchParam}
+            OR sa.display_name ILIKE $${searchParam}
+          )
+        `);
+      }
     }
 
     if (categoryId) {
