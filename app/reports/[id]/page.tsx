@@ -105,6 +105,8 @@ export default function ReportDetailsPage() {
   const [addingEvidenceLink, setAddingEvidenceLink] = useState(false);
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
+  const [evidenceLinkError, setEvidenceLinkError] = useState("");
+  const [evidenceLinkSuccess, setEvidenceLinkSuccess] = useState("");
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [evidenceLabel, setEvidenceLabel] = useState("");
   const [evidenceLinkDescription, setEvidenceLinkDescription] = useState("");
@@ -360,8 +362,8 @@ export default function ReportDetailsPage() {
   async function handleAddEvidenceLink() {
     if (!id || !evidenceUrl.trim() || addingEvidenceLink) return;
     setAddingEvidenceLink(true);
-    setUploadError("");
-    setUploadSuccess("");
+    setEvidenceLinkError("");
+    setEvidenceLinkSuccess("");
     try {
       const response = await addEvidenceLink(id, evidenceUrl.trim(), {
         label: evidenceLabel.trim() || undefined,
@@ -371,9 +373,9 @@ export default function ReportDetailsPage() {
       setEvidenceUrl("");
       setEvidenceLabel("");
       setEvidenceLinkDescription("");
-      setUploadSuccess("Evidence link added. Anyone viewing this public report can open it.");
+      setEvidenceLinkSuccess("Evidence link added. Anyone viewing this public report can open it.");
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : "Failed to add evidence link.");
+      setEvidenceLinkError(err instanceof Error ? err.message : "Failed to add evidence link.");
     } finally {
       setAddingEvidenceLink(false);
     }
@@ -968,6 +970,8 @@ export default function ReportDetailsPage() {
                 </>
               )}
             </div>
+            {evidenceLinkError && <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{evidenceLinkError}</p>}
+            {evidenceLinkSuccess && <p role="status" className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{evidenceLinkSuccess}</p>}
             {archiveMessage && <p role={archiveMessageError ? "alert" : "status"} className={`mt-3 text-sm ${archiveMessageError ? "text-red-700" : "text-green-800"}`}>{archiveMessage}</p>}
             <p className="mt-3 text-xs leading-5 text-slate-500">Shabdhan can find and attach an existing Internet Archive snapshot. If none exists, save the public page with the Archive and check again. The snapshot is hosted by the Internet Archive, not copied onto Shabdhan, and capture is not guaranteed for every page.</p>
           </div>
