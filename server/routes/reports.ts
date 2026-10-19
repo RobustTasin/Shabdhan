@@ -179,7 +179,7 @@ router.get(
            ) END AS social_account,
            CASE
              WHEN c.id IS NULL THEN NULL
-             ELSE CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
+             ELSE json_build_object(
                'id', c.id,
                'name', c.name,
                'description', c.description
@@ -370,7 +370,7 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
          ) END AS social_account,
          CASE
            WHEN c.id IS NULL THEN NULL
-           ELSE CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
+           ELSE json_build_object(
              'id', c.id,
              'name', c.name,
              'description', c.description
@@ -521,7 +521,7 @@ router.get(
              'account_id', sa.account_id
            ) END AS social_account,
            CASE WHEN c.id IS NULL THEN NULL
-             ELSE CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
+             ELSE json_build_object(
                'id', c.id, 'name', c.name, 'description', c.description
              )
            END AS category
@@ -593,7 +593,7 @@ router.get(
            ) END AS social_account,
            CASE
              WHEN c.id IS NULL THEN NULL
-             ELSE CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
+             ELSE json_build_object(
                'id', c.id,
                'name', c.name,
                'description', c.description
