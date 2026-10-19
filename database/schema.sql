@@ -134,7 +134,7 @@ CREATE TABLE reports (
 
     CONSTRAINT reports_incident_location_check
         CHECK (
-            (incident_type = 'ONLINE' AND incident_platform <> '')
+            (incident_type = 'ONLINE' AND incident_platform IS NOT NULL AND incident_platform <> '')
             OR (incident_type = 'OFFLINE' AND incident_platform IS NULL)
         )
 );
