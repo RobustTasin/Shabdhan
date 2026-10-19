@@ -872,6 +872,15 @@ export default function ReportDetailsPage() {
 
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Incident location
+                </p>
+                <p className="mt-1 text-sm text-slate-900">
+                  {report.incident_type === "OFFLINE" ? "Offline" : `Online · ${report.incident_platform}`}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Verification
                 </p>
 
