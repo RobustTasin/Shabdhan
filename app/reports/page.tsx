@@ -101,12 +101,12 @@ export default function ReportsPage() {
 
   async function handleCreateReport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!title.trim() || !description.trim() || !socialAccountId || !incidentType || (incidentType === "ONLINE" && !incidentPlatform)) return;
+    if (!title.trim() || !description.trim() || !incidentType || (incidentType === "ONLINE" && !incidentPlatform)) return;
     try {
       setSubmitting(true);
       setError("");
       await createReport({
-        social_account_id: socialAccountId,
+        social_account_id: socialAccountId || null,
         category_id: categoryId || null,
         incident_type: incidentType,
         incident_platform: incidentType === "ONLINE" ? incidentPlatform : null,
@@ -265,14 +265,14 @@ export default function ReportsPage() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-slate-700">Social account</label>
+                    <label className="text-sm font-medium text-slate-700">Social account (optional)</label>
                     <button type="button" onClick={() => setShowSocialAccount(true)} className="text-xs font-medium text-slate-700 underline">+ Add account</button>
                   </div>
                   {socialAccounts.length === 0 ? (
-                    <p className="mt-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">Add a social account before creating a report.</p>
+                    <p className="mt-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">You can create this report without linking a social account.</p>
                   ) : (
-                    <select value={socialAccountId} onChange={(event) => setSocialAccountId(event.target.value)} required className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
-                      <option value="">Select a social account</option>
+                    <select value={socialAccountId} onChange={(event) => setSocialAccountId(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                      <option value="">No linked social account</option>
                       {socialAccounts.map((account) => <option key={account.id} value={account.id}>{account.platform} · @{account.username}</option>)}
                     </select>
                   )}
@@ -281,7 +281,7 @@ export default function ReportsPage() {
 
               <div className="mt-7 flex justify-end gap-3">
                 <button type="button" onClick={() => setShowCreate(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium">Cancel</button>
-                <button type="submit" disabled={submitting || !title.trim() || !description.trim() || !socialAccountId || !incidentType || (incidentType === "ONLINE" && !incidentPlatform)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40">
+                <button type="submit" disabled={submitting || !title.trim() || !description.trim() || !incidentType || (incidentType === "ONLINE" && !incidentPlatform)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40">
                   {submitting ? "Creating..." : "Create report"}
                 </button>
               </div>
