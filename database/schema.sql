@@ -110,7 +110,7 @@ CREATE TABLE reports (
         REFERENCES users(id)
         ON DELETE CASCADE,
 
-    social_account_id UUID NOT NULL
+    social_account_id UUID
         REFERENCES social_accounts(id)
         ON DELETE CASCADE,
 
