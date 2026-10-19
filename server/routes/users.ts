@@ -64,10 +64,11 @@ router.get("/:id/profile", async (req, res) => {
         `SELECT
            r.id, r.title, r.public_report_number, r.public_report_category_code,
            r.published_at, r.created_at,
+           r.incident_type, r.incident_platform,
            c.name AS category_name,
            sa.platform, sa.username AS social_account_username
          FROM reports r
-         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
          LEFT JOIN categories c ON c.id = r.category_id
          WHERE r.reporter_id = $1
            AND r.status = 'PUBLISHED'
