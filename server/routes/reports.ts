@@ -23,10 +23,10 @@ router.post(
     try {
       const { social_account_id, category_id, incident_type, incident_platform, title, description } = req.body;
 
-      if (!social_account_id || !title || !description || (incident_type !== "ONLINE" && incident_type !== "OFFLINE")) {
+      if (!title || !description || (incident_type !== "ONLINE" && incident_type !== "OFFLINE")) {
         return res.status(400).json({
           status: "error",
-          message: "Social account, incident location, title, and description are required",
+          message: "Incident location, title, and description are required",
         });
       }
 
@@ -43,19 +43,21 @@ router.post(
       const incidentType = incident_type as IncidentType;
       const incidentPlatform = incidentType === "ONLINE" ? incident_platform as string : null;
 
-      // Make sure the referenced social account exists
-      const socialAccount = await pool.query(
-        `SELECT id
-         FROM social_accounts
-         WHERE id = $1`,
-        [social_account_id]
-      );
+      // Validate the social account when the reporter chooses to link one.
+      if (social_account_id) {
+        const socialAccount = await pool.query(
+          `SELECT id
+           FROM social_accounts
+           WHERE id = $1`,
+          [social_account_id]
+        );
 
-      if (socialAccount.rows.length === 0) {
-        return res.status(404).json({
-          status: "error",
-          message: "Social account not found",
-        });
+        if (socialAccount.rows.length === 0) {
+          return res.status(404).json({
+            status: "error",
+            message: "Social account not found",
+          });
+        }
       }
 
       let publicReportCategoryCode = "OTHER";
@@ -167,24 +169,24 @@ router.get(
            r.published_at,
            r.created_at,
            r.updated_at,
-           json_build_object(
+           CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
              'id', sa.id,
              'platform', sa.platform,
              'username', sa.username,
              'profile_url', sa.profile_url,
              'display_name', sa.display_name,
              'account_id', sa.account_id
-           ) AS social_account,
+           ) END AS social_account,
            CASE
              WHEN c.id IS NULL THEN NULL
-             ELSE json_build_object(
+             ELSE CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
                'id', c.id,
                'name', c.name,
                'description', c.description
              )
            END AS category
          FROM reports r
-         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
          LEFT JOIN categories c ON c.id = r.category_id
          WHERE ${where}
          ORDER BY r.created_at DESC
@@ -319,7 +321,7 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
     const countResult = await pool.query(
       `SELECT COUNT(*)::int AS total
        FROM reports r
-       JOIN social_accounts sa ON sa.id = r.social_account_id
+       LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
        LEFT JOIN categories c ON c.id = r.category_id
        ${whereClause}`,
       values
@@ -365,17 +367,17 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
            'username', sa.username,
            'profile_url', sa.profile_url,
            'display_name', sa.display_name
-         ) AS social_account,
+         ) END AS social_account,
          CASE
            WHEN c.id IS NULL THEN NULL
-           ELSE json_build_object(
+           ELSE CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
              'id', c.id,
              'name', c.name,
              'description', c.description
            )
          END AS category
        FROM reports r
-       JOIN social_accounts sa ON sa.id = r.social_account_id
+       LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
        LEFT JOIN categories c ON c.id = r.category_id
        ${whereClause}
        ORDER BY r.created_at DESC, r.id DESC
@@ -496,7 +498,7 @@ router.get(
         `SELECT COUNT(*)::int AS total
          FROM reports r
          JOIN users u ON u.id = r.reporter_id
-         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
          ${whereClause}`,
         values
       );
@@ -517,15 +519,15 @@ router.get(
              'id', sa.id, 'platform', sa.platform, 'username', sa.username,
              'profile_url', sa.profile_url, 'display_name', sa.display_name,
              'account_id', sa.account_id
-           ) AS social_account,
+           ) END AS social_account,
            CASE WHEN c.id IS NULL THEN NULL
-             ELSE json_build_object(
+             ELSE CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
                'id', c.id, 'name', c.name, 'description', c.description
              )
            END AS category
          FROM reports r
          JOIN users u ON u.id = r.reporter_id
-         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
          LEFT JOIN categories c ON c.id = r.category_id
          ${whereClause}
          ORDER BY r.created_at DESC, r.id DESC
@@ -588,10 +590,10 @@ router.get(
              'profile_url', sa.profile_url,
              'display_name', sa.display_name,
              'account_id', sa.account_id
-           ) AS social_account,
+           ) END AS social_account,
            CASE
              WHEN c.id IS NULL THEN NULL
-             ELSE json_build_object(
+             ELSE CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
                'id', c.id,
                'name', c.name,
                'description', c.description
@@ -599,7 +601,7 @@ router.get(
            END AS category
          FROM reports r
          JOIN users u ON u.id = r.reporter_id
-         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
          LEFT JOIN categories c ON c.id = r.category_id
          WHERE r.id = $1
            AND (
@@ -743,10 +745,10 @@ router.get(
              'profile_url', sa.profile_url,
              'display_name', sa.display_name,
              'account_id', sa.account_id
-           ) AS social_account
+           ) END AS social_account
          FROM reports r
          JOIN users u ON u.id = r.reporter_id
-         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
          WHERE r.id = $1`,
         [id]
       );
