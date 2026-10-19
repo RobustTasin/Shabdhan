@@ -198,8 +198,10 @@ export default function ReportsPage() {
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                         <span>{report.category?.name ?? "Uncategorized"}</span>
                         {isModerator && report.reporter?.username && <><span>•</span><span>Reporter: @{report.reporter.username}</span></>}
-                        <span>•</span>
-                        <span>{report.social_account?.platform} · @{report.social_account?.username}</span>
+                        {report.social_account?.id && <>
+                          <span>•</span>
+                          <span>{report.social_account.platform} · @{report.social_account.username}</span>
+                        </>}
                         <span>•</span>
                         <span>{report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform ?? "Platform not set"}`}</span>
                         <span>•</span>
