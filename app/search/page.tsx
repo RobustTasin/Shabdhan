@@ -189,15 +189,15 @@ export default function SearchPage() {
                       </h3>
 
                       <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                        <span>
-                          {report.social_account?.platform}
-                        </span>
-
-                        <span>•</span>
-
-                        <span>
-                          @{report.social_account?.username}
-                        </span>
+                        {report.social_account?.id ? (
+                          <>
+                            <span>{report.social_account.platform}</span>
+                            <span>•</span>
+                            <span>@{report.social_account.username}</span>
+                          </>
+                        ) : (
+                          <span>{report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform}`}</span>
+                        )}
 
                         {report.social_account?.display_name && (
                           <>
