@@ -32,7 +32,7 @@ export type ApiReport = {
   public_report_number: string;
   public_report_category_code: string;
   reporter_id: string;
-  social_account_id: string;
+  social_account_id: string | null;
   category_id: string | null;
   incident_type: IncidentType;
   incident_platform: string | null;
