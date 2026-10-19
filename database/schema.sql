@@ -120,7 +120,7 @@ CREATE TABLE reports (
     description TEXT NOT NULL,
 
     incident_type VARCHAR(10) NOT NULL DEFAULT 'ONLINE',
-    incident_platform VARCHAR(100) NOT NULL,
+    incident_platform VARCHAR(100),
 
     status report_status NOT NULL DEFAULT 'DRAFT',
 
