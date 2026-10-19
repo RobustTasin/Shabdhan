@@ -683,6 +683,7 @@ router.patch(
                updated_at = NOW()
            WHERE id = $3
            RETURNING id, public_report_number, public_report_category_code,
+                     incident_type, incident_platform,
                      title, description, status, verification_status,
                      published_at, created_at, updated_at`,
           [title, description, id]
@@ -985,6 +986,8 @@ router.patch(
              id,
              reporter_id,
              social_account_id,
+             incident_type,
+             incident_platform,
              title,
              description,
              status,
@@ -1083,7 +1086,7 @@ router.patch(
         const updated = await client.query(
           `UPDATE reports SET status = 'DRAFT'::report_status, published_at = NULL, updated_at = NOW()
            WHERE id = $1
-           RETURNING id, reporter_id, title, status, verification_status, published_at, updated_at`, [id]
+           RETURNING id, reporter_id, incident_type, incident_platform, title, status, verification_status, published_at, updated_at`, [id]
         );
         await createAuditLog({
           userId: req.user!.id,
