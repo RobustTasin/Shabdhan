@@ -5,6 +5,9 @@ ALTER TABLE reports
     ADD COLUMN incident_type VARCHAR(10),
     ADD COLUMN incident_platform VARCHAR(100);
 
+ALTER TABLE reports
+    ALTER COLUMN social_account_id DROP NOT NULL;
+
 UPDATE reports r
 SET incident_type = 'ONLINE',
     incident_platform = sa.platform
