@@ -361,7 +361,7 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
             AND e.file_url IS NOT NULL
           ORDER BY e.created_at DESC, e.id DESC
           LIMIT 1) AS preview_image_url,
-         json_build_object(
+         CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
            'id', sa.id,
            'platform', sa.platform,
            'username', sa.username,
@@ -515,7 +515,7 @@ router.get(
            json_build_object(
              'id', u.id, 'username', u.username
            ) AS reporter,
-           json_build_object(
+           CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
              'id', sa.id, 'platform', sa.platform, 'username', sa.username,
              'profile_url', sa.profile_url, 'display_name', sa.display_name,
              'account_id', sa.account_id
@@ -583,7 +583,7 @@ router.get(
              'username', u.username,
              'is_verified', u.is_verified
            ) AS reporter,
-           json_build_object(
+           CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
              'id', sa.id,
              'platform', sa.platform,
              'username', sa.username,
@@ -738,7 +738,7 @@ router.get(
              'role', u.role,
              'is_verified', u.is_verified
            ) AS reporter,
-           json_build_object(
+           CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
              'id', sa.id,
              'platform', sa.platform,
              'username', sa.username,
