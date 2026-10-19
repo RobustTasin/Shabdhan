@@ -562,7 +562,7 @@ export default function Home() {
               </div>
 
               {demoMode ? (
-                <div className={`feed-report-grid feed-columns-${cardsPerPage}`}>
+                <div className={`feed-report-grid feed-columns-${Math.max(1, shownCount)}`}>
                 {shownDemoReports.map((demoReport) => <article key={demoReport.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#f4eddb] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#705a28]">Demo only · fictional</span>
@@ -584,7 +584,7 @@ export default function Home() {
                 </article>)}
                 </div>
               ) : shownReports.length ? (
-                <div className={`feed-report-grid feed-columns-${cardsPerPage}`}>
+                <div className={`feed-report-grid feed-columns-${Math.max(1, shownCount)}`}>
                 {shownReports.map((report) => {
                   const accountName = report.social_account?.display_name || report.social_account?.username;
                   const publicReportHex = formatPublicReportId(
