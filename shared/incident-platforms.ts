@@ -1,9 +1,7 @@
 export type IncidentType = "ONLINE" | "OFFLINE";
 
-export const INCIDENT_TYPES: IncidentType[] = ["OFFLINE", "ONLINE"];
-
-// Popularity order is tailored to Bangladesh, followed by other commonly used
-// messaging, social, publishing, marketplace, and communication services.
+// Popularity order is tailored to Bangladesh for the leading services; the
+// remaining choices cover common messaging, publishing, commerce, and web services.
 export const ONLINE_INCIDENT_PLATFORMS = [
   "Facebook",
   "TikTok",
@@ -13,18 +11,27 @@ export const ONLINE_INCIDENT_PLATFORMS = [
   "Instagram",
   "IMO",
   "Telegram",
-  "X (Twitter)",
+  "Google Search or Maps",
   "LinkedIn",
+  "X (Twitter)",
   "Snapchat",
   "Likee",
+  "Daraz",
+  "Bikroy",
+  "Amazon",
+  "Alibaba",
   "Reddit",
   "Discord",
   "Threads",
   "Pinterest",
   "Twitch",
-  "Google Search or Maps",
+  "Viber",
+  "WeChat",
+  "Signal",
+  "LINE",
+  "Google Business Profile",
   "Website, blog, or forum",
-  "Online marketplace",
+  "Gaming platform (Steam, Roblox, PlayStation, Xbox)",
   "Email",
   "SMS or phone messaging",
   "Other platform",
