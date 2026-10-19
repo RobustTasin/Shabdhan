@@ -916,6 +916,7 @@ export default function ReportDetailsPage() {
           </div>
         </section>
 
+        {report.social_account?.id && (
         <section className="rounded-xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-950">
             Reported account
@@ -966,6 +967,7 @@ export default function ReportDetailsPage() {
             )}
           </div>
         </section>
+        )}
       </div>
 
       <section className="rounded-xl border border-slate-200 bg-white p-6">
