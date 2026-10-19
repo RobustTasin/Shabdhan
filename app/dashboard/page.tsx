@@ -200,8 +200,11 @@ export default function DashboardPage() {
 
                   <p className="mt-1 text-xs text-slate-500">
                     {report.category?.name ?? "Uncategorized"} ·{" "}
-                    {report.social_account?.platform} · @
-                    {report.social_account?.username}
+                    {report.social_account?.id
+                      ? `${report.social_account.platform} · @${report.social_account.username}`
+                      : report.incident_type === "OFFLINE"
+                        ? "Offline incident"
+                        : `Online · ${report.incident_platform}`}
                     {isModerator && report.reporter?.username
                       ? ` · Reporter: @${report.reporter.username}`
                       : ""}
