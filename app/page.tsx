@@ -142,11 +142,14 @@ export default function Home() {
   const [shareFeedback, setShareFeedback] = useState<Record<string, string>>({});
   const [copiedDemoId, setCopiedDemoId] = useState<string | null>(null);
   const [cardsPerPage, setCardsPerPage] = useState(1);
+  const [feedCardSize, setFeedCardSize] = useState<"large" | "medium" | "small">("large");
 
   useEffect(() => {
     try {
       const savedAdvanceMode = window.localStorage.getItem("shabdhan-feed-advance-mode");
       if (savedAdvanceMode === "one" || savedAdvanceMode === "all") setFeedAdvanceMode(savedAdvanceMode);
+      const savedCardSize = window.localStorage.getItem("shabdhan-feed-card-size");
+      if (savedCardSize === "large" || savedCardSize === "medium" || savedCardSize === "small") setFeedCardSize(savedCardSize);
     } catch {
       // Keep the defaults if browser storage is unavailable.
     }
@@ -157,25 +160,34 @@ export default function Home() {
     if (!preferencesLoaded) return;
     try {
       window.localStorage.setItem("shabdhan-feed-advance-mode", feedAdvanceMode);
+      window.localStorage.setItem("shabdhan-feed-card-size", feedCardSize);
     } catch {
       // The controls still work for this visit when storage is unavailable.
     }
-  }, [feedAdvanceMode, preferencesLoaded]);
+  }, [feedAdvanceMode, feedCardSize, preferencesLoaded]);
 
   useEffect(() => {
     const updateCardsPerPage = () => {
       const width = window.innerWidth;
       const aspectRatio = window.innerWidth / window.innerHeight;
-      const reportsPerCategory = width < 768 ? 1
-        : aspectRatio >= 16 / 9 ? 2
-        : aspectRatio >= 12 / 9 ? 3
-        : 2;
-      setCardsPerPage(reportsPerCategory);
+      if (width < 768) {
+        setCardsPerPage(1);
+        return;
+      }
+      if (aspectRatio < 16 / 9) {
+        setCardsPerPage(2);
+        return;
+      }
+
+      // Wide screens fit 3 cards at 16:9, scaling up to 7 at 32:9.
+      const baseColumns = Math.min(7, 3 + Math.floor(((aspectRatio - 16 / 9) / (16 / 9)) * 4));
+      const sizeAdjustment = feedCardSize === "small" ? 2 : feedCardSize === "medium" ? 1 : 0;
+      setCardsPerPage(Math.min(7, baseColumns + sizeAdjustment));
     };
     updateCardsPerPage();
     window.addEventListener("resize", updateCardsPerPage);
     return () => window.removeEventListener("resize", updateCardsPerPage);
-  }, []);
+  }, [feedCardSize]);
 
   useEffect(() => {
     if (!menuOpen || window.innerWidth >= 768) return;
@@ -459,6 +471,13 @@ export default function Home() {
                   <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
                     <option value="light">Light</option>
                     <option value="dark">Dark</option>
+                  </select>
+                </label>
+                <label className="block text-xs font-medium text-[#59665d]">Card size
+                  <select value={feedCardSize} onChange={(event) => setFeedCardSize(event.target.value as "large" | "medium" | "small")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                    <option value="large">Large</option>
+                    <option value="medium">Medium</option>
+                    <option value="small">Small</option>
                   </select>
                 </label>
                 <label className="block text-xs font-medium text-[#59665d]">Move by
