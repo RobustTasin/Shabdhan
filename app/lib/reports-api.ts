@@ -1,5 +1,6 @@
 import { apiFetch } from "./api";
 import { getToken } from "./auth";
+import { type IncidentType } from "../../shared/incident-platforms";
 
 export type ReportStatus =
   | "DRAFT"
@@ -33,6 +34,8 @@ export type ApiReport = {
   reporter_id: string;
   social_account_id: string;
   category_id: string | null;
+  incident_type: IncidentType;
+  incident_platform: string | null;
   title: string;
   description: string;
   status: ReportStatus;
@@ -202,6 +205,8 @@ export async function editReport(
 export async function createReport(input: {
   social_account_id: string;
   category_id?: string | null;
+  incident_type: IncidentType;
+  incident_platform?: string | null;
   title: string;
   description: string;
 }): Promise<{ status: string; report: ApiReport }> {
