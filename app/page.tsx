@@ -640,7 +640,7 @@ export default function Home() {
                     <span aria-label={`Report number ${publicReportHex}`} className="shrink-0 rounded-full bg-[#f4f6f2] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-[#647267]">{publicReportHex}</span>
                   </div>
                   <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
-                    <p className="min-w-0 truncate text-xs font-medium text-[#516356]">{accountName ? `${report.social_account?.display_name ? `${accountName} · ` : ""}@${report.social_account?.username}` : ""}</p>
+                    <p className="min-w-0 truncate text-xs font-medium text-[#516356]">{accountName ? `${report.social_account?.display_name ? `${accountName} · ` : ""}@${report.social_account?.username}` : report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform}`}</p>
                     <time dateTime={report.published_at ?? undefined} className="shrink-0 text-[10px] text-[#899289]">{formatPublishedDate(report.published_at)}</time>
                   </div>
                   <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#657267]">{report.description}</p>
