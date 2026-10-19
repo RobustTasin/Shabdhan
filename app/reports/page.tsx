@@ -201,6 +201,8 @@ export default function ReportsPage() {
                         <span>•</span>
                         <span>{report.social_account?.platform} · @{report.social_account?.username}</span>
                         <span>•</span>
+                        <span>{report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform ?? "Platform not set"}`}</span>
+                        <span>•</span>
                         <span>Updated {new Date(report.updated_at).toLocaleDateString()}</span>
                       </div>
                     </div>
