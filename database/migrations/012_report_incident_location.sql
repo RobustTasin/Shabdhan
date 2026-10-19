@@ -14,7 +14,6 @@ WHERE sa.id = r.social_account_id;
 ALTER TABLE reports
     ALTER COLUMN incident_type SET DEFAULT 'ONLINE',
     ALTER COLUMN incident_type SET NOT NULL,
-    ALTER COLUMN incident_platform SET NOT NULL,
     ADD CONSTRAINT reports_incident_location_check
         CHECK (
             (incident_type = 'ONLINE' AND incident_platform <> '')
