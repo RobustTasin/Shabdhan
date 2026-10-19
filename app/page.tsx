@@ -143,6 +143,7 @@ export default function Home() {
   const [copiedDemoId, setCopiedDemoId] = useState<string | null>(null);
   const [cardsPerPage, setCardsPerPage] = useState(1);
   const [feedCardSize, setFeedCardSize] = useState<"large" | "medium" | "small">("large");
+  const [feedCategoryColumns, setFeedCategoryColumns] = useState<"one" | "two">("one");
 
   useEffect(() => {
     try {
@@ -150,6 +151,8 @@ export default function Home() {
       if (savedAdvanceMode === "one" || savedAdvanceMode === "all") setFeedAdvanceMode(savedAdvanceMode);
       const savedCardSize = window.localStorage.getItem("shabdhan-feed-card-size");
       if (savedCardSize === "large" || savedCardSize === "medium" || savedCardSize === "small") setFeedCardSize(savedCardSize);
+      const savedCategoryColumns = window.localStorage.getItem("shabdhan-feed-category-columns");
+      if (savedCategoryColumns === "one" || savedCategoryColumns === "two") setFeedCategoryColumns(savedCategoryColumns);
     } catch {
       // Keep the defaults if browser storage is unavailable.
     }
@@ -161,10 +164,11 @@ export default function Home() {
     try {
       window.localStorage.setItem("shabdhan-feed-advance-mode", feedAdvanceMode);
       window.localStorage.setItem("shabdhan-feed-card-size", feedCardSize);
+      window.localStorage.setItem("shabdhan-feed-category-columns", feedCategoryColumns);
     } catch {
       // The controls still work for this visit when storage is unavailable.
     }
-  }, [feedAdvanceMode, feedCardSize, preferencesLoaded]);
+  }, [feedAdvanceMode, feedCardSize, feedCategoryColumns, preferencesLoaded]);
 
   useEffect(() => {
     const updateCardsPerPage = () => {
@@ -181,7 +185,7 @@ export default function Home() {
 
       // Wide screens fit 3 cards at 16:9, scaling up to 7 at 32:9.
       const baseColumns = Math.min(7, 3 + Math.floor(((aspectRatio - 16 / 9) / (16 / 9)) * 4));
-      const sizeAdjustment = feedCardSize === "small" ? 2 : feedCardSize === "medium" ? 1 : 0;
+      const sizeAdjustment = feedCardSize === "small" ? 3 : feedCardSize === "medium" ? 1 : 0;
       setCardsPerPage(Math.min(7, baseColumns + sizeAdjustment));
     };
     updateCardsPerPage();
@@ -480,6 +484,12 @@ export default function Home() {
                     <option value="small">Small</option>
                   </select>
                 </label>
+                <label className="block text-xs font-medium text-[#59665d]">Categories side by side
+                  <select value={feedCategoryColumns} onChange={(event) => setFeedCategoryColumns(event.target.value as "one" | "two")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                    <option value="one">One category</option>
+                    <option value="two">Two categories</option>
+                  </select>
+                </label>
                 <label className="block text-xs font-medium text-[#59665d]">Move by
                   <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
                     <option value="one">One card</option>
@@ -523,6 +533,12 @@ export default function Home() {
                     <option value="small">Small</option>
                   </select>
                 </label>
+                <label className="block text-xs font-medium text-[#59665d]">Categories side by side
+                  <select value={feedCategoryColumns} onChange={(event) => setFeedCategoryColumns(event.target.value as "one" | "two")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                    <option value="one">One category</option>
+                    <option value="two">Two categories</option>
+                  </select>
+                </label>
                 <label className="block text-xs font-medium text-[#59665d]">Move by
                   <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
                     <option value="one">One card</option>
@@ -563,7 +579,7 @@ export default function Home() {
           </div>
         )}
 
-        {!loading && !error && <div className="feed-category-layout">{categorySections.map((category) => {
+        {!loading && !error && <div className={`feed-category-layout feed-category-columns-${feedCategoryColumns}`}>{categorySections.map((category) => {
           const feed = feeds[category.id] ?? { reports: [], total: 0 };
           const index = activeIndexes[category.id] ?? 0;
           const demoCategoryIndex = sampleCategories.findIndex((item) => item.id === category.id);
