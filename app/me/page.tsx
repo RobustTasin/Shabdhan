@@ -143,7 +143,9 @@ export default function MePage() {
                   <p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
                     <span>{report.category?.name ?? "Uncategorized"}</span>
                     <span aria-hidden="true">·</span>
-                    <span>{report.social_account?.platform} · @{report.social_account?.username}</span>
+                    <span>{report.social_account?.id
+                      ? `${report.social_account.platform} · @${report.social_account.username}`
+                      : report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform}`}</span>
                     <span aria-hidden="true">·</span>
                     <span>{formatDate(report.created_at)}</span>
                   </p>
