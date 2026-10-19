@@ -52,7 +52,7 @@ export type ApiReport = {
     id: string;
     username: string;
   };
-  social_account?: SocialAccount;
+  social_account?: SocialAccount | null;
   category?: Category | null;
 };
 
