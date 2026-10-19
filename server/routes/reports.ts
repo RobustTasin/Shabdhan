@@ -11,6 +11,7 @@ import { createNotification } from "../utils/notifications";
 import { withTransaction } from "../utils/transaction";
 import { cloudinary } from "../config/cloudinary";
 import { categoryCodeFromName, parsePublicReportId } from "../../shared/report-id";
+import { ONLINE_INCIDENT_PLATFORMS, type IncidentType } from "../../shared/incident-platforms";
 
 const router = Router();
 
@@ -20,14 +21,27 @@ router.post(
   authenticate,
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { social_account_id, category_id, title, description } = req.body;
+      const { social_account_id, category_id, incident_type, incident_platform, title, description } = req.body;
 
-      if (!social_account_id || !title || !description) {
+      if (!social_account_id || !title || !description || (incident_type !== "ONLINE" && incident_type !== "OFFLINE")) {
         return res.status(400).json({
           status: "error",
-          message: "Social account, title, and description are required",
+          message: "Social account, incident location, title, and description are required",
         });
       }
+
+      if (incident_type === "ONLINE" && (
+        typeof incident_platform !== "string" ||
+        !(ONLINE_INCIDENT_PLATFORMS as readonly string[]).includes(incident_platform)
+      )) {
+        return res.status(400).json({
+          status: "error",
+          message: "Select a valid platform for an online incident",
+        });
+      }
+
+      const incidentType = incident_type as IncidentType;
+      const incidentPlatform = incidentType === "ONLINE" ? incident_platform as string : null;
 
       // Make sure the referenced social account exists
       const socialAccount = await pool.query(
@@ -63,11 +77,11 @@ router.post(
       // reporter_id comes from the authenticated user
       const result = await pool.query(
         `INSERT INTO reports
-         (reporter_id, social_account_id, category_id, public_report_category_code, title, description)
-         VALUES ($1, $2, $3, $4, $5, $6)
+         (reporter_id, social_account_id, category_id, public_report_category_code, incident_type, incident_platform, title, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING id, public_report_number, public_report_category_code,
                    reporter_id, social_account_id, category_id,
-                   title, description, status,
+                   incident_type, incident_platform, title, description, status,
                    verification_status, published_at,
                    created_at, updated_at`,
         [
@@ -75,6 +89,8 @@ router.post(
           social_account_id,
           category_id || null,
           publicReportCategoryCode,
+          incidentType,
+          incidentPlatform,
           title,
           description,
         ]
@@ -139,6 +155,8 @@ router.get(
            r.id,
            r.public_report_number,
            r.public_report_category_code,
+           r.incident_type,
+           r.incident_platform,
            r.reporter_id,
            r.social_account_id,
            r.category_id,
@@ -318,6 +336,8 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
          r.id,
          r.public_report_number,
          r.public_report_category_code,
+         r.incident_type,
+         r.incident_platform,
          r.title,
          r.description,
          r.status,
@@ -486,6 +506,8 @@ router.get(
         `SELECT
            r.id, r.reporter_id, r.social_account_id, r.category_id,
            r.public_report_number, r.public_report_category_code,
+ r.incident_type,
+ r.incident_platform,
            r.title, r.description, r.status, r.verification_status,
            r.published_at, r.created_at, r.updated_at,
            json_build_object(
@@ -544,6 +566,8 @@ router.get(
            r.id,
          r.public_report_number,
          r.public_report_category_code,
+         r.incident_type,
+         r.incident_platform,
            r.title,
            r.description,
            r.status,
