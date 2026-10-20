@@ -20,12 +20,13 @@ export default function ResponsiveShell({
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/forgot-password";
+  const isPublicMembershipPage = pathname === "/apply" || pathname === "/membership/accept" || pathname === "/account/create";
 
   const isPublicReportPage = /^\/reports\/[^/]+$/.test(pathname);
   const isProfilePage = pathname === "/me" || /^\/users\/[^/]+$/.test(pathname);
 
   // Public pages use their own layouts instead of the authenticated dashboard shell.
-  if (pathname === "/" || pathname === "/search" || isPublicReportPage || isProfilePage || isAuthPage) {
+  if (pathname === "/" || pathname === "/search" || isPublicReportPage || isProfilePage || isAuthPage || isPublicMembershipPage) {
     return <>{children}</>;
   }
 

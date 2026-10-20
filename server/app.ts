@@ -16,6 +16,8 @@ import auditLogsRouter from "./routes/auditLogs";
 import commentsRouter from "./routes/comments";
 import riskScoresRouter from "./routes/riskScores";
 import notificationsRouter from "./routes/notifications";
+import membershipApplicationsRouter from "./routes/membershipApplications";
+import passwordResetApplicationsRouter from "./routes/passwordResetApplications";
 
 
 const app = express();
@@ -57,6 +59,9 @@ app.use("/api/comments", commentsRouter);
 app.use("/api/risk-scores", riskScoresRouter);
 
 app.use("/api/notifications", notificationsRouter);
+
+app.use("/api/membership-applications", membershipApplicationsRouter);
+app.use("/api/password-reset-applications", passwordResetApplicationsRouter);
 
 // ============================================================
 // HEALTH CHECK

@@ -26,9 +26,10 @@ export default function PublicSiteHeader() {
               <Link href="/dashboard" className="rounded-full bg-emerald-950 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-900 sm:px-4">Dashboard</Link>
             </>
           ) : (
-            <Link href="/login" className="rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-4">
-              Log in
-            </Link>
+            <>
+              <Link href="/login" className="rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-4">Log in</Link>
+              <Link href="/apply" className="rounded-full bg-emerald-950 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-900 sm:px-4">Apply</Link>
+            </>
           )}
         </nav>
       </div>

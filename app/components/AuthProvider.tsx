@@ -16,7 +16,6 @@ import {
   getStoredUser,
   getToken,
   login,
-  register,
   type AuthUser,
 } from "../lib/auth";
 import { getSafeReturnPath } from "../lib/navigation";
@@ -25,11 +24,6 @@ type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   loginUser: (email: string, password: string) => Promise<AuthUser>;
-  registerUser: (
-    username: string,
-    email: string,
-    password: string
-  ) => Promise<AuthUser>;
   logout: () => void;
   refreshUser: () => Promise<void>;
 };
@@ -38,7 +32,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(
   undefined
 );
 
-const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/search", "/reports"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/search", "/reports", "/apply", "/membership/accept", "/account/create"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.includes(pathname) || /^\/reports\/[^/]+$/.test(pathname) || /^\/users\/[^/]+$/.test(pathname);
@@ -81,22 +75,6 @@ export function AuthProvider({
     setUser(loggedInUser);
 
     return loggedInUser;
-  }
-
-  async function registerUser(
-    username: string,
-    email: string,
-    password: string
-  ): Promise<AuthUser> {
-    const registeredUser = await register(
-      username,
-      email,
-      password
-    );
-
-    setUser(registeredUser);
-
-    return registeredUser;
   }
 
   useEffect(() => {
@@ -159,7 +137,6 @@ export function AuthProvider({
         user,
         loading,
         loginUser,
-        registerUser,
         logout,
         refreshUser,
       }}
