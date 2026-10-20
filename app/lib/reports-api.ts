@@ -203,7 +203,7 @@ export async function editReport(
 }
 
 export async function createReport(input: {
-  social_account_id: string;
+  social_account_id?: string | null;
   category_id?: string | null;
   incident_type: IncidentType;
   incident_platform?: string | null;
