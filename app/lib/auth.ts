@@ -76,48 +76,6 @@ export async function login(
   return response.user;
 }
 
-export async function sendVerification(
-  email: string,
-  destination: "user" | "admin" = "user"
-): Promise<void> {
-  await apiFetch<{ status: string; message: string }>(
-    "/auth/send-verification",
-    {
-      method: "POST",
-      body: { email, destination },
-    }
-  );
-}
-
-export async function verifyEmail(
-  email: string,
-  code: string
-): Promise<void> {
-  await apiFetch<{ status: string; message: string }>("/auth/verify-email", {
-    method: "POST",
-    body: { email, code },
-  });
-}
-
-export async function register(
-  username: string,
-  email: string,
-  password: string
-): Promise<AuthUser> {
-  const response = await apiFetch<AuthResponse>("/auth/register", {
-    method: "POST",
-    body: JSON.stringify({
-      username,
-      email,
-      password,
-    }),
-  });
-
-  setAuth(response.token, response.user);
-
-  return response.user;
-}
-
 export async function getCurrentUser(): Promise<AuthUser> {
   const token = getToken();
 
@@ -142,44 +100,4 @@ export async function getCurrentUser(): Promise<AuthUser> {
 
 export function logout() {
   clearAuth();
-}
-
-
-export async function sendPasswordReset(
-  email: string,
-  destination: "user" | "admin" = "user"
-): Promise<void> {
-  await apiFetch<{ status: string; message: string }>(
-    "/auth/forgot-password",
-    {
-      method: "POST",
-      body: { email, destination },
-    }
-  );
-}
-
-export async function verifyPasswordReset(
-  email: string,
-  code: string
-): Promise<void> {
-  await apiFetch<{ status: string; message: string }>(
-    "/auth/verify-reset-code",
-    {
-      method: "POST",
-      body: { email, code },
-    }
-  );
-}
-
-export async function resetPassword(
-  email: string,
-  password: string
-): Promise<void> {
-  await apiFetch<{ status: string; message: string }>(
-    "/auth/reset-password",
-    {
-      method: "POST",
-      body: { email, password },
-    }
-  );
 }

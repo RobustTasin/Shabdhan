@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/app/components/AuthProvider";
 import {
@@ -211,6 +212,18 @@ export default function ModerationPage() {
           moderation activity.
         </p>
       </div>
+
+      <Link href="/moderation/applications" className="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 transition hover:border-emerald-300 hover:bg-emerald-100 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-semibold text-emerald-950">Membership applications</h2>
+          <p className="mt-1 text-sm text-emerald-900/75">Review membership applications. Email each applicant with the decision within 48 hours.</p>
+        </div>
+        <span className="text-sm font-semibold text-emerald-950">Open review queue →</span>
+      </Link>
+      <Link href="/moderation/pass-reset-applications" className="mt-3 flex flex-col gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 p-5 transition hover:border-indigo-300 hover:bg-indigo-100 sm:flex-row sm:items-center sm:justify-between">
+        <div><h2 className="font-semibold text-indigo-950">Pass-Res Applications</h2><p className="mt-1 text-sm text-indigo-900/75">Review password reset requests, issue a six-letter code, and email it manually.</p></div>
+        <span className="text-sm font-semibold text-indigo-950">Open queue →</span>
+      </Link>
 
       {error && (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

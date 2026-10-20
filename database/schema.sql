@@ -67,6 +67,58 @@ CREATE TABLE users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Membership applicants are reviewed before they can create an account.
+CREATE SEQUENCE membership_application_number_seq;
+
+CREATE TABLE membership_applications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    application_number BIGINT NOT NULL DEFAULT nextval('membership_application_number_seq'),
+    email VARCHAR(255) NOT NULL,
+    social_platform VARCHAR(50) NOT NULL,
+    social_url TEXT NOT NULL,
+    status VARCHAR(12) NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING', 'APPROVED', 'DECLINED')),
+    reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMPTZ,
+    account_created_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT membership_applications_application_number_unique UNIQUE (application_number),
+    CONSTRAINT membership_applications_social_url_web_only
+        CHECK (social_url ~* '^https?://')
+);
+
+CREATE UNIQUE INDEX idx_membership_applications_pending_email
+    ON membership_applications (LOWER(email))
+    WHERE status = 'PENDING';
+
+CREATE INDEX idx_membership_applications_status_created
+    ON membership_applications (status, created_at DESC);
+
+CREATE SEQUENCE password_reset_application_number_seq;
+
+CREATE TABLE password_reset_applications (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    application_number BIGINT NOT NULL DEFAULT nextval('password_reset_application_number_seq') UNIQUE,
+    email VARCHAR(255) NOT NULL,
+    status VARCHAR(12) NOT NULL DEFAULT 'PENDING'
+        CHECK (status IN ('PENDING', 'APPROVED', 'DECLINED', 'COMPLETED')),
+    code_hash CHAR(64),
+    code_expires_at TIMESTAMPTZ,
+    attempts SMALLINT NOT NULL DEFAULT 0,
+    reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    reviewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CHECK ((status = 'APPROVED' AND code_hash IS NOT NULL AND code_expires_at IS NOT NULL)
+        OR status <> 'APPROVED')
+);
+
+CREATE UNIQUE INDEX idx_password_reset_applications_pending_email
+    ON password_reset_applications (LOWER(email)) WHERE status = 'PENDING';
+CREATE INDEX idx_password_reset_applications_status_created
+    ON password_reset_applications (status, created_at DESC);
+
 -- ============================================================
 -- SOCIAL ACCOUNTS
 -- ============================================================

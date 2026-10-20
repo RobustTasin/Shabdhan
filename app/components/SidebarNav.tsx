@@ -76,40 +76,38 @@ export default function SidebarNav({
         })}
 
         {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
-          <Link
-            href="/moderation"
-            onClick={onNavigate}
-            title={compact ? "Moderation" : undefined}
-            aria-label="Moderation"
-            className={`flex items-center rounded-lg transition ${
-              compact
-                ? "justify-center px-2 py-3"
-                : "gap-3 px-3 py-2.5"
-            } ${
-              pathname === "/moderation" ||
-              pathname.startsWith("/moderation/")
-                ? "bg-slate-900 text-white"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-            }`}
-          >
-            <span
-              aria-hidden="true"
-              className={`flex h-6 w-6 shrink-0 items-center justify-center text-base ${
-                pathname === "/moderation" ||
-                pathname.startsWith("/moderation/")
-                  ? "text-white"
-                  : "text-slate-500"
-              }`}
+          <>
+            <Link
+              href="/moderation"
+              onClick={onNavigate}
+              title={compact ? "Moderation" : undefined}
+              aria-label="Moderation"
+              className={`flex items-center rounded-lg transition ${compact ? "justify-center px-2 py-3" : "gap-3 px-3 py-2.5"} ${pathname === "/moderation" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"}`}
             >
-              ⚙
-            </span>
-
-            {!compact && (
-              <span className="truncate text-sm font-medium">
-                Moderation
-              </span>
-            )}
-          </Link>
+              <span aria-hidden="true" className={`flex h-6 w-6 shrink-0 items-center justify-center text-base ${pathname === "/moderation" ? "text-white" : "text-slate-500"}`}>⚙</span>
+              {!compact && <span className="truncate text-sm font-medium">Moderation</span>}
+            </Link>
+            <Link
+              href="/moderation/applications"
+              onClick={onNavigate}
+              title={compact ? "Membership applications" : undefined}
+              aria-label="Membership applications"
+              className={`flex items-center rounded-lg transition ${compact ? "justify-center px-2 py-3" : "gap-3 px-3 py-2.5"} ${pathname.startsWith("/moderation/applications") ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"}`}
+            >
+              <span aria-hidden="true" className={`flex h-6 w-6 shrink-0 items-center justify-center text-base ${pathname.startsWith("/moderation/applications") ? "text-white" : "text-slate-500"}`}>✉</span>
+              {!compact && <span className="truncate text-sm font-medium">Membership applications</span>}
+            </Link>
+            <Link
+              href="/moderation/pass-reset-applications"
+              onClick={onNavigate}
+              title={compact ? "Pass-Res Applications" : undefined}
+              aria-label="Pass-Res Applications"
+              className={`flex items-center rounded-lg transition ${compact ? "justify-center px-2 py-3" : "gap-3 px-3 py-2.5"} ${pathname.startsWith("/moderation/pass-reset-applications") ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"}`}
+            >
+              <span aria-hidden="true" className={`flex h-6 w-6 shrink-0 items-center justify-center text-base ${pathname.startsWith("/moderation/pass-reset-applications") ? "text-white" : "text-slate-500"}`}>⌑</span>
+              {!compact && <span className="truncate text-sm font-medium">Pass-Res Applications</span>}
+            </Link>
+          </>
         )}
       </div>
 
