@@ -14,8 +14,10 @@ export type PublicProfile = {
   };
   reports: Array<Pick<ApiReport, "id" | "title" | "public_report_number" | "public_report_category_code" | "published_at" | "created_at"> & {
     category_name: string | null;
-    platform: string;
-    social_account_username: string;
+    platform: string | null;
+    social_account_username: string | null;
+    incident_type: ApiReport["incident_type"];
+    incident_platform: string | null;
   }>;
 };
 

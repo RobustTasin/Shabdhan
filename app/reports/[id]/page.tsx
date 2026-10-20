@@ -872,6 +872,15 @@ export default function ReportDetailsPage() {
 
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                  Incident location
+                </p>
+                <p className="mt-1 text-sm text-slate-900">
+                  {report.incident_type === "OFFLINE" ? "Offline" : `Online · ${report.incident_platform}`}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Verification
                 </p>
 
@@ -907,6 +916,7 @@ export default function ReportDetailsPage() {
           </div>
         </section>
 
+        {report.social_account?.id && (
         <section className="rounded-xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-950">
             Reported account
@@ -957,6 +967,7 @@ export default function ReportDetailsPage() {
             )}
           </div>
         </section>
+        )}
       </div>
 
       <section className="rounded-xl border border-slate-200 bg-white p-6">
@@ -1327,6 +1338,7 @@ export default function ReportDetailsPage() {
           </div>
         </div>
 
+        {report.social_account_id && (
         <div className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50/60 p-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -1359,6 +1371,7 @@ export default function ReportDetailsPage() {
             <p className="mt-4 text-xs text-slate-500">No other published reports about this subject yet. A new report will appear here after it has been reviewed and published.</p>
           )}
         </div>
+        )}
 
         {user && user.id !== report.reporter?.id ? (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">

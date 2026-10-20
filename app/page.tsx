@@ -142,11 +142,17 @@ export default function Home() {
   const [shareFeedback, setShareFeedback] = useState<Record<string, string>>({});
   const [copiedDemoId, setCopiedDemoId] = useState<string | null>(null);
   const [cardsPerPage, setCardsPerPage] = useState(1);
+  const [feedCardSize, setFeedCardSize] = useState<"large" | "medium" | "small">("large");
+  const [feedCategoryColumns, setFeedCategoryColumns] = useState<"one" | "two">("one");
 
   useEffect(() => {
     try {
       const savedAdvanceMode = window.localStorage.getItem("shabdhan-feed-advance-mode");
       if (savedAdvanceMode === "one" || savedAdvanceMode === "all") setFeedAdvanceMode(savedAdvanceMode);
+      const savedCardSize = window.localStorage.getItem("shabdhan-feed-card-size");
+      if (savedCardSize === "large" || savedCardSize === "medium" || savedCardSize === "small") setFeedCardSize(savedCardSize);
+      const savedCategoryColumns = window.localStorage.getItem("shabdhan-feed-category-columns");
+      if (savedCategoryColumns === "one" || savedCategoryColumns === "two") setFeedCategoryColumns(savedCategoryColumns);
     } catch {
       // Keep the defaults if browser storage is unavailable.
     }
@@ -157,25 +163,35 @@ export default function Home() {
     if (!preferencesLoaded) return;
     try {
       window.localStorage.setItem("shabdhan-feed-advance-mode", feedAdvanceMode);
+      window.localStorage.setItem("shabdhan-feed-card-size", feedCardSize);
+      window.localStorage.setItem("shabdhan-feed-category-columns", feedCategoryColumns);
     } catch {
       // The controls still work for this visit when storage is unavailable.
     }
-  }, [feedAdvanceMode, preferencesLoaded]);
+  }, [feedAdvanceMode, feedCardSize, feedCategoryColumns, preferencesLoaded]);
 
   useEffect(() => {
     const updateCardsPerPage = () => {
       const width = window.innerWidth;
       const aspectRatio = window.innerWidth / window.innerHeight;
-      const reportsPerCategory = width < 768 ? 1
-        : aspectRatio >= 16 / 9 ? 2
-        : aspectRatio >= 12 / 9 ? 3
-        : 2;
-      setCardsPerPage(reportsPerCategory);
+      if (width < 768) {
+        setCardsPerPage(1);
+        return;
+      }
+      if (aspectRatio < 16 / 9) {
+        setCardsPerPage(2);
+        return;
+      }
+
+      // Wide screens fit 3 cards at 16:9, scaling up to 7 at 32:9.
+      const baseColumns = Math.min(7, 3 + Math.floor(((aspectRatio - 16 / 9) / (16 / 9)) * 4));
+      const sizeAdjustment = feedCardSize === "small" ? 3 : feedCardSize === "medium" ? 1 : 0;
+      setCardsPerPage(Math.min(7, baseColumns + sizeAdjustment));
     };
     updateCardsPerPage();
     window.addEventListener("resize", updateCardsPerPage);
     return () => window.removeEventListener("resize", updateCardsPerPage);
-  }, []);
+  }, [feedCardSize]);
 
   useEffect(() => {
     if (!menuOpen || window.innerWidth >= 768) return;
@@ -438,7 +454,7 @@ export default function Home() {
             <button type="button" aria-label="Close search" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#48594e] transition hover:bg-[#edf1e9]"><MenuIcon open /></button>
           </div>
           {searchQuery.trim().length < 2 ? null : searchLoading ? <p role="status" className="px-3 pb-1 pt-3 text-sm text-[#788279]">Searching reports…</p> : searchError ? <p role="alert" className="px-3 pb-1 pt-3 text-sm text-rose-700">{searchError}</p> : searchMatches.length === 0 ? <p className="px-3 pb-1 pt-3 text-sm text-[#788279]">No matching reports found.</p> : <div className="mt-2 max-h-[min(60vh,24rem)] overflow-y-auto border-t border-[#edf0eb] pt-2">
-            {searchMatches.map((report) => <Link key={report.id} href={`/reports/${report.id}`} onClick={() => setSearchOpen(false)} className="block rounded-xl px-3 py-3 transition hover:bg-[#f4f6f2]"><span className="block truncate text-sm font-semibold text-[#20362a]">{report.title}</span><span className="mt-1 flex flex-wrap gap-x-2 text-xs text-[#788279]"><span>{report.category?.name ?? "Uncategorized"}</span><span aria-hidden="true">·</span><span>{report.social_account?.platform} · @{report.social_account?.username}</span></span></Link>)}
+            {searchMatches.map((report) => <Link key={report.id} href={`/reports/${report.id}`} onClick={() => setSearchOpen(false)} className="block rounded-xl px-3 py-3 transition hover:bg-[#f4f6f2]"><span className="block truncate text-sm font-semibold text-[#20362a]">{report.title}</span><span className="mt-1 flex flex-wrap gap-x-2 text-xs text-[#788279]"><span>{report.category?.name ?? "Uncategorized"}</span><span aria-hidden="true">·</span><span>{report.social_account?.id ? `${report.social_account.platform} · @${report.social_account.username}` : report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform}`}</span></span></Link>)}
             <Link href={`/search?q=${encodeURIComponent(searchQuery.trim())}`} onClick={() => setSearchOpen(false)} className="mt-1 block rounded-xl px-3 py-3 text-sm font-semibold text-[#244a34] hover:bg-[#edf1e9]">See all results for “{searchQuery.trim()}”</Link>
           </div>}
         </form>}
@@ -459,6 +475,19 @@ export default function Home() {
                   <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
                     <option value="light">Light</option>
                     <option value="dark">Dark</option>
+                  </select>
+                </label>
+                <label className="block text-xs font-medium text-[#59665d]">Card size
+                  <select value={feedCardSize} onChange={(event) => setFeedCardSize(event.target.value as "large" | "medium" | "small")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                    <option value="large">Large</option>
+                    <option value="medium">Medium</option>
+                    <option value="small">Small</option>
+                  </select>
+                </label>
+                <label className="block text-xs font-medium text-[#59665d]">Categories side by side
+                  <select value={feedCategoryColumns} onChange={(event) => setFeedCategoryColumns(event.target.value as "one" | "two")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                    <option value="one">One category</option>
+                    <option value="two">Two categories</option>
                   </select>
                 </label>
                 <label className="block text-xs font-medium text-[#59665d]">Move by
@@ -495,6 +524,19 @@ export default function Home() {
                   <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
                     <option value="light">Light</option>
                     <option value="dark">Dark</option>
+                  </select>
+                </label>
+                <label className="block text-xs font-medium text-[#59665d]">Card size
+                  <select value={feedCardSize} onChange={(event) => setFeedCardSize(event.target.value as "large" | "medium" | "small")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                    <option value="large">Large</option>
+                    <option value="medium">Medium</option>
+                    <option value="small">Small</option>
+                  </select>
+                </label>
+                <label className="block text-xs font-medium text-[#59665d]">Categories side by side
+                  <select value={feedCategoryColumns} onChange={(event) => setFeedCategoryColumns(event.target.value as "one" | "two")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                    <option value="one">One category</option>
+                    <option value="two">Two categories</option>
                   </select>
                 </label>
                 <label className="block text-xs font-medium text-[#59665d]">Move by
@@ -537,7 +579,7 @@ export default function Home() {
           </div>
         )}
 
-        {!loading && !error && <div className="feed-category-layout">{categorySections.map((category) => {
+        {!loading && !error && <div className={`feed-category-layout feed-category-columns-${feedCategoryColumns}`}>{categorySections.map((category) => {
           const feed = feeds[category.id] ?? { reports: [], total: 0 };
           const index = activeIndexes[category.id] ?? 0;
           const demoCategoryIndex = sampleCategories.findIndex((item) => item.id === category.id);
@@ -562,7 +604,7 @@ export default function Home() {
               </div>
 
               {demoMode ? (
-                <div className={`feed-report-grid feed-columns-${cardsPerPage}`}>
+                <div className={`feed-report-grid feed-columns-${Math.max(1, shownCount)}`}>
                 {shownDemoReports.map((demoReport) => <article key={demoReport.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#f4eddb] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#705a28]">Demo only · fictional</span>
@@ -584,7 +626,7 @@ export default function Home() {
                 </article>)}
                 </div>
               ) : shownReports.length ? (
-                <div className={`feed-report-grid feed-columns-${cardsPerPage}`}>
+                <div className={`feed-report-grid feed-columns-${Math.max(1, shownCount)}`}>
                 {shownReports.map((report) => {
                   const accountName = report.social_account?.display_name || report.social_account?.username;
                   const publicReportHex = formatPublicReportId(
@@ -598,7 +640,7 @@ export default function Home() {
                     <span aria-label={`Report number ${publicReportHex}`} className="shrink-0 rounded-full bg-[#f4f6f2] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-[#647267]">{publicReportHex}</span>
                   </div>
                   <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
-                    <p className="min-w-0 truncate text-xs font-medium text-[#516356]">{accountName ? `${report.social_account?.display_name ? `${accountName} · ` : ""}@${report.social_account?.username}` : ""}</p>
+                    <p className="min-w-0 truncate text-xs font-medium text-[#516356]">{accountName ? `${report.social_account?.display_name ? `${accountName} · ` : ""}@${report.social_account?.username}` : report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform}`}</p>
                     <time dateTime={report.published_at ?? undefined} className="shrink-0 text-[10px] text-[#899289]">{formatPublishedDate(report.published_at)}</time>
                   </div>
                   <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#657267]">{report.description}</p>

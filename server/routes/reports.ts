@@ -11,6 +11,7 @@ import { createNotification } from "../utils/notifications";
 import { withTransaction } from "../utils/transaction";
 import { cloudinary } from "../config/cloudinary";
 import { categoryCodeFromName, parsePublicReportId } from "../../shared/report-id";
+import { ONLINE_INCIDENT_PLATFORMS, type IncidentType } from "../../shared/incident-platforms";
 
 const router = Router();
 
@@ -20,28 +21,43 @@ router.post(
   authenticate,
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { social_account_id, category_id, title, description } = req.body;
+      const { social_account_id, category_id, incident_type, incident_platform, title, description } = req.body;
 
-      if (!social_account_id || !title || !description) {
+      if (!title || !description || (incident_type !== "ONLINE" && incident_type !== "OFFLINE")) {
         return res.status(400).json({
           status: "error",
-          message: "Social account, title, and description are required",
+          message: "Incident location, title, and description are required",
         });
       }
 
-      // Make sure the referenced social account exists
-      const socialAccount = await pool.query(
-        `SELECT id
-         FROM social_accounts
-         WHERE id = $1`,
-        [social_account_id]
-      );
-
-      if (socialAccount.rows.length === 0) {
-        return res.status(404).json({
+      if (incident_type === "ONLINE" && (
+        typeof incident_platform !== "string" ||
+        !(ONLINE_INCIDENT_PLATFORMS as readonly string[]).includes(incident_platform)
+      )) {
+        return res.status(400).json({
           status: "error",
-          message: "Social account not found",
+          message: "Select a valid platform for an online incident",
         });
+      }
+
+      const incidentType = incident_type as IncidentType;
+      const incidentPlatform = incidentType === "ONLINE" ? incident_platform as string : null;
+
+      // Validate the social account when the reporter chooses to link one.
+      if (social_account_id) {
+        const socialAccount = await pool.query(
+          `SELECT id
+           FROM social_accounts
+           WHERE id = $1`,
+          [social_account_id]
+        );
+
+        if (socialAccount.rows.length === 0) {
+          return res.status(404).json({
+            status: "error",
+            message: "Social account not found",
+          });
+        }
       }
 
       let publicReportCategoryCode = "OTHER";
@@ -63,11 +79,11 @@ router.post(
       // reporter_id comes from the authenticated user
       const result = await pool.query(
         `INSERT INTO reports
-         (reporter_id, social_account_id, category_id, public_report_category_code, title, description)
-         VALUES ($1, $2, $3, $4, $5, $6)
+         (reporter_id, social_account_id, category_id, public_report_category_code, incident_type, incident_platform, title, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
          RETURNING id, public_report_number, public_report_category_code,
                    reporter_id, social_account_id, category_id,
-                   title, description, status,
+                   incident_type, incident_platform, title, description, status,
                    verification_status, published_at,
                    created_at, updated_at`,
         [
@@ -75,6 +91,8 @@ router.post(
           social_account_id,
           category_id || null,
           publicReportCategoryCode,
+          incidentType,
+          incidentPlatform,
           title,
           description,
         ]
@@ -139,6 +157,8 @@ router.get(
            r.id,
            r.public_report_number,
            r.public_report_category_code,
+           r.incident_type,
+           r.incident_platform,
            r.reporter_id,
            r.social_account_id,
            r.category_id,
@@ -149,14 +169,14 @@ router.get(
            r.published_at,
            r.created_at,
            r.updated_at,
-           json_build_object(
+           CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
              'id', sa.id,
              'platform', sa.platform,
              'username', sa.username,
              'profile_url', sa.profile_url,
              'display_name', sa.display_name,
              'account_id', sa.account_id
-           ) AS social_account,
+           ) END AS social_account,
            CASE
              WHEN c.id IS NULL THEN NULL
              ELSE json_build_object(
@@ -166,7 +186,7 @@ router.get(
              )
            END AS category
          FROM reports r
-         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
          LEFT JOIN categories c ON c.id = r.category_id
          WHERE ${where}
          ORDER BY r.created_at DESC
@@ -301,7 +321,7 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
     const countResult = await pool.query(
       `SELECT COUNT(*)::int AS total
        FROM reports r
-       JOIN social_accounts sa ON sa.id = r.social_account_id
+       LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
        LEFT JOIN categories c ON c.id = r.category_id
        ${whereClause}`,
       values
@@ -318,6 +338,8 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
          r.id,
          r.public_report_number,
          r.public_report_category_code,
+         r.incident_type,
+         r.incident_platform,
          r.title,
          r.description,
          r.status,
@@ -339,13 +361,13 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
             AND e.file_url IS NOT NULL
           ORDER BY e.created_at DESC, e.id DESC
           LIMIT 1) AS preview_image_url,
-         json_build_object(
+         CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
            'id', sa.id,
            'platform', sa.platform,
            'username', sa.username,
            'profile_url', sa.profile_url,
            'display_name', sa.display_name
-         ) AS social_account,
+         ) END AS social_account,
          CASE
            WHEN c.id IS NULL THEN NULL
            ELSE json_build_object(
@@ -355,7 +377,7 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
            )
          END AS category
        FROM reports r
-       JOIN social_accounts sa ON sa.id = r.social_account_id
+       LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
        LEFT JOIN categories c ON c.id = r.category_id
        ${whereClause}
        ORDER BY r.created_at DESC, r.id DESC
@@ -476,7 +498,7 @@ router.get(
         `SELECT COUNT(*)::int AS total
          FROM reports r
          JOIN users u ON u.id = r.reporter_id
-         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
          ${whereClause}`,
         values
       );
@@ -486,16 +508,18 @@ router.get(
         `SELECT
            r.id, r.reporter_id, r.social_account_id, r.category_id,
            r.public_report_number, r.public_report_category_code,
+ r.incident_type,
+ r.incident_platform,
            r.title, r.description, r.status, r.verification_status,
            r.published_at, r.created_at, r.updated_at,
            json_build_object(
              'id', u.id, 'username', u.username
            ) AS reporter,
-           json_build_object(
+           CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
              'id', sa.id, 'platform', sa.platform, 'username', sa.username,
              'profile_url', sa.profile_url, 'display_name', sa.display_name,
              'account_id', sa.account_id
-           ) AS social_account,
+           ) END AS social_account,
            CASE WHEN c.id IS NULL THEN NULL
              ELSE json_build_object(
                'id', c.id, 'name', c.name, 'description', c.description
@@ -503,7 +527,7 @@ router.get(
            END AS category
          FROM reports r
          JOIN users u ON u.id = r.reporter_id
-         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
          LEFT JOIN categories c ON c.id = r.category_id
          ${whereClause}
          ORDER BY r.created_at DESC, r.id DESC
@@ -544,6 +568,8 @@ router.get(
            r.id,
          r.public_report_number,
          r.public_report_category_code,
+         r.incident_type,
+         r.incident_platform,
            r.title,
            r.description,
            r.status,
@@ -557,14 +583,14 @@ router.get(
              'username', u.username,
              'is_verified', u.is_verified
            ) AS reporter,
-           json_build_object(
+           CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
              'id', sa.id,
              'platform', sa.platform,
              'username', sa.username,
              'profile_url', sa.profile_url,
              'display_name', sa.display_name,
              'account_id', sa.account_id
-           ) AS social_account,
+           ) END AS social_account,
            CASE
              WHEN c.id IS NULL THEN NULL
              ELSE json_build_object(
@@ -575,7 +601,7 @@ router.get(
            END AS category
          FROM reports r
          JOIN users u ON u.id = r.reporter_id
-         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
          LEFT JOIN categories c ON c.id = r.category_id
          WHERE r.id = $1
            AND (
@@ -657,6 +683,7 @@ router.patch(
                updated_at = NOW()
            WHERE id = $3
            RETURNING id, public_report_number, public_report_category_code,
+                     incident_type, incident_platform,
                      title, description, status, verification_status,
                      published_at, created_at, updated_at`,
           [title, description, id]
@@ -712,17 +739,17 @@ router.get(
              'role', u.role,
              'is_verified', u.is_verified
            ) AS reporter,
-           json_build_object(
+           CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
              'id', sa.id,
              'platform', sa.platform,
              'username', sa.username,
              'profile_url', sa.profile_url,
              'display_name', sa.display_name,
              'account_id', sa.account_id
-           ) AS social_account
+           ) END AS social_account
          FROM reports r
          JOIN users u ON u.id = r.reporter_id
-         JOIN social_accounts sa ON sa.id = r.social_account_id
+         LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
          WHERE r.id = $1`,
         [id]
       );
@@ -959,6 +986,8 @@ router.patch(
              id,
              reporter_id,
              social_account_id,
+             incident_type,
+             incident_platform,
              title,
              description,
              status,
@@ -1057,7 +1086,7 @@ router.patch(
         const updated = await client.query(
           `UPDATE reports SET status = 'DRAFT'::report_status, published_at = NULL, updated_at = NOW()
            WHERE id = $1
-           RETURNING id, reporter_id, title, status, verification_status, published_at, updated_at`, [id]
+           RETURNING id, reporter_id, incident_type, incident_platform, title, status, verification_status, published_at, updated_at`, [id]
         );
         await createAuditLog({
           userId: req.user!.id,

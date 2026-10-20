@@ -110,7 +110,7 @@ CREATE TABLE reports (
         REFERENCES users(id)
         ON DELETE CASCADE,
 
-    social_account_id UUID NOT NULL
+    social_account_id UUID
         REFERENCES social_accounts(id)
         ON DELETE CASCADE,
 
@@ -118,6 +118,9 @@ CREATE TABLE reports (
 
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
+
+    incident_type VARCHAR(10) NOT NULL DEFAULT 'ONLINE',
+    incident_platform VARCHAR(100),
 
     status report_status NOT NULL DEFAULT 'DRAFT',
 
@@ -127,7 +130,13 @@ CREATE TABLE reports (
     published_at TIMESTAMPTZ,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT reports_incident_location_check
+        CHECK (
+            (incident_type = 'ONLINE' AND incident_platform IS NOT NULL AND incident_platform <> '')
+            OR (incident_type = 'OFFLINE' AND incident_platform IS NULL)
+        )
 );
 
 

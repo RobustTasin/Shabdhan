@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "../components/AuthProvider";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { ONLINE_INCIDENT_PLATFORMS, type IncidentType } from "../../shared/incident-platforms";
 import {
   createReport,
   createSocialAccount,
@@ -32,6 +33,8 @@ export default function ReportsPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [incidentType, setIncidentType] = useState<IncidentType | "">("");
+  const [incidentPlatform, setIncidentPlatform] = useState("");
   const [socialAccountId, setSocialAccountId] = useState("");
   const [platform, setPlatform] = useState("Facebook");
   const [username, setUsername] = useState("");
@@ -98,18 +101,22 @@ export default function ReportsPage() {
 
   async function handleCreateReport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!title.trim() || !description.trim() || !socialAccountId) return;
+    if (!title.trim() || !description.trim() || !incidentType || (incidentType === "ONLINE" && !incidentPlatform)) return;
     try {
       setSubmitting(true);
       setError("");
       await createReport({
-        social_account_id: socialAccountId,
+        social_account_id: socialAccountId || null,
         category_id: categoryId || null,
+        incident_type: incidentType,
+        incident_platform: incidentType === "ONLINE" ? incidentPlatform : null,
         title: title.trim(),
         description: description.trim(),
       });
       setTitle("");
       setDescription("");
+      setIncidentType("");
+      setIncidentPlatform("");
       setShowCreate(false);
       await loadData();
     } catch (err) {
@@ -191,8 +198,12 @@ export default function ReportsPage() {
                       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                         <span>{report.category?.name ?? "Uncategorized"}</span>
                         {isModerator && report.reporter?.username && <><span>•</span><span>Reporter: @{report.reporter.username}</span></>}
+                        {report.social_account?.id && <>
+                          <span>•</span>
+                          <span>{report.social_account.platform} · @{report.social_account.username}</span>
+                        </>}
                         <span>•</span>
-                        <span>{report.social_account?.platform} · @{report.social_account?.username}</span>
+                        <span>{report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform ?? "Platform not set"}`}</span>
                         <span>•</span>
                         <span>Updated {new Date(report.updated_at).toLocaleDateString()}</span>
                       </div>
@@ -227,6 +238,26 @@ export default function ReportsPage() {
                   <label className="text-sm font-medium text-slate-700">Description</label>
                   <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe what you are reporting..." rows={4} required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
                 </div>
+                <fieldset>
+                  <legend className="text-sm font-medium text-slate-700">Where did the incident happen?</legend>
+                  <div className="mt-2 grid grid-cols-2 gap-3">
+                    {(["OFFLINE", "ONLINE"] as const).map((type) => (
+                      <label key={type} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 text-sm ${incidentType === type ? "border-slate-900 bg-slate-50 font-medium" : "border-slate-200"}`}>
+                        <input type="radio" name="incident_type" value={type} checked={incidentType === type} onChange={() => { setIncidentType(type); if (type === "OFFLINE") setIncidentPlatform(""); }} required />
+                        {type === "OFFLINE" ? "Offline" : "Online"}
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                {incidentType === "ONLINE" && (
+                  <div>
+                    <label htmlFor="incident-platform" className="text-sm font-medium text-slate-700">Platform where it happened</label>
+                    <select id="incident-platform" value={incidentPlatform} onChange={(event) => setIncidentPlatform(event.target.value)} required className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                      <option value="">Select a platform</option>
+                      {ONLINE_INCIDENT_PLATFORMS.map((item) => <option key={item} value={item}>{item}</option>)}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="text-sm font-medium text-slate-700">Category</label>
                   <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
@@ -236,14 +267,14 @@ export default function ReportsPage() {
                 </div>
                 <div>
                   <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-slate-700">Social account</label>
+                    <label className="text-sm font-medium text-slate-700">Social account (optional)</label>
                     <button type="button" onClick={() => setShowSocialAccount(true)} className="text-xs font-medium text-slate-700 underline">+ Add account</button>
                   </div>
                   {socialAccounts.length === 0 ? (
-                    <p className="mt-2 rounded-lg bg-amber-50 p-3 text-xs text-amber-800">Add a social account before creating a report.</p>
+                    <p className="mt-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">You can create this report without linking a social account.</p>
                   ) : (
-                    <select value={socialAccountId} onChange={(event) => setSocialAccountId(event.target.value)} required className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
-                      <option value="">Select a social account</option>
+                    <select value={socialAccountId} onChange={(event) => setSocialAccountId(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
+                      <option value="">No linked social account</option>
                       {socialAccounts.map((account) => <option key={account.id} value={account.id}>{account.platform} · @{account.username}</option>)}
                     </select>
                   )}
@@ -252,7 +283,7 @@ export default function ReportsPage() {
 
               <div className="mt-7 flex justify-end gap-3">
                 <button type="button" onClick={() => setShowCreate(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium">Cancel</button>
-                <button type="submit" disabled={submitting || !title.trim() || !description.trim() || !socialAccountId} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40">
+                <button type="submit" disabled={submitting || !title.trim() || !description.trim() || !incidentType || (incidentType === "ONLINE" && !incidentPlatform)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40">
                   {submitting ? "Creating..." : "Create report"}
                 </button>
               </div>
