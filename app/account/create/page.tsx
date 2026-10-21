@@ -30,7 +30,7 @@ export default function CreateAccountPage() {
     setBusy(true);
     try {
       const response = await completeMembership({ email: email.trim(), username: username.trim(), password });
-      setAuth(response.token, response.user); window.location.assign("/dashboard");
+      setAuth(response.token, response.user); window.location.assign("/me");
     } catch (e) { setError(e instanceof Error ? e.message : "Unable to create account"); }
     finally { setBusy(false); }
   }

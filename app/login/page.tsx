@@ -24,11 +24,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await loginUser(email, password);
+      const user = await loginUser(email, password);
       const next = getSafeReturnPath(
         new URLSearchParams(window.location.search).get("next")
       );
-      router.replace(next ?? "/dashboard");
+      router.replace(next ?? (user.role === "MODERATOR" || user.role === "ADMIN" ? "/dashboard" : "/me"));
     } catch (err) {
       setError(
         err instanceof Error

@@ -8,6 +8,7 @@ import { useAuth } from "./AuthProvider";
 
 export default function ProfilePageLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
+  const isModerator = user?.role === "MODERATOR" || user?.role === "ADMIN";
   const { theme, setTheme } = useAppearance();
   const [menuOpen, setMenuOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
@@ -48,7 +49,8 @@ export default function ProfilePageLayout({ children }: { children: ReactNode })
               <Link href="/#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Browse Categories</Link>
               <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">আমার বাংলাদেশ</Link>
               {user ? <>
-                <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link>
+                {isModerator && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link>}
+                <Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Create a report</Link>
                 <Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link>
                 <button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e8ebe5] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button>
               </> : <>

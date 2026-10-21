@@ -76,7 +76,7 @@ export default function DisputesPage() {
           </p>
 
           <Link
-            href="/reports"
+            href="/create-report"
             className="mt-5 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
           >
             View reports

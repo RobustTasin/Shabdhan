@@ -2,20 +2,13 @@
 
 import Link from "next/link";
 import { useAuth } from "../components/AuthProvider";
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { ONLINE_INCIDENT_PLATFORMS, type IncidentType } from "../../shared/incident-platforms";
+import { useCallback, useEffect, useState } from "react";
 import {
-  createReport,
-  createSocialAccount,
-  getCategories,
   getModerationReports,
   getReports,
-  getSocialAccounts,
   searchReports,
   reportStatusLabel,
   type ApiReport,
-  type Category,
-  type SocialAccount,
 } from "../lib/reports-api";
 
 export default function ReportsPage() {
@@ -24,24 +17,8 @@ export default function ReportsPage() {
   const isLoggedIn = Boolean(user);
   const isModerator = role === "MODERATOR" || role === "ADMIN";
   const [reports, setReports] = useState<ApiReport[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showCreate, setShowCreate] = useState(false);
-  const [showSocialAccount, setShowSocialAccount] = useState(false);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [incidentType, setIncidentType] = useState<IncidentType | "">("");
-  const [incidentPlatform, setIncidentPlatform] = useState("");
-  const [socialAccountId, setSocialAccountId] = useState("");
-  const [platform, setPlatform] = useState("Facebook");
-  const [username, setUsername] = useState("");
-  const [profileUrl, setProfileUrl] = useState("");
-  const [displayName, setDisplayName] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [creatingAccount, setCreatingAccount] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -53,21 +30,8 @@ export default function ReportsPage() {
           : getReports({ limit: 100 })
         : searchReports({ limit: 100 });
 
-      const [rr, cr, sr] = await Promise.all([
-        reportsRequest,
-        getCategories(),
-        user ? getSocialAccounts() : Promise.resolve({ social_accounts: [] as SocialAccount[] }),
-      ]);
+      const rr = await reportsRequest;
       setReports(rr.reports);
-      setCategories(cr.categories);
-      setSocialAccounts(sr.social_accounts);
-
-      if (cr.categories[0]) {
-        setCategoryId((current) => current || cr.categories[0].id);
-      }
-      if (sr.social_accounts[0]) {
-        setSocialAccountId((current) => current || sr.social_accounts[0].id);
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load reports");
     } finally {
@@ -91,66 +55,6 @@ export default function ReportsPage() {
     };
   }, [authLoading, loadData]);
 
-  useEffect(() => {
-    const requestedSocialAccountId = new URLSearchParams(window.location.search).get("social_account_id");
-    if (requestedSocialAccountId && isLoggedIn) {
-      setSocialAccountId(requestedSocialAccountId);
-      setShowCreate(true);
-    }
-  }, [isLoggedIn]);
-
-  async function handleCreateReport(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!title.trim() || !description.trim() || !incidentType || (incidentType === "ONLINE" && !incidentPlatform)) return;
-    try {
-      setSubmitting(true);
-      setError("");
-      await createReport({
-        social_account_id: socialAccountId || null,
-        category_id: categoryId || null,
-        incident_type: incidentType,
-        incident_platform: incidentType === "ONLINE" ? incidentPlatform : null,
-        title: title.trim(),
-        description: description.trim(),
-      });
-      setTitle("");
-      setDescription("");
-      setIncidentType("");
-      setIncidentPlatform("");
-      setShowCreate(false);
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create report");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function handleCreateSocialAccount(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!platform.trim() || !username.trim()) return;
-    try {
-      setCreatingAccount(true);
-      setError("");
-      const response = await createSocialAccount({
-        platform: platform.trim(),
-        username: username.trim(),
-        profile_url: profileUrl.trim() || undefined,
-        display_name: displayName.trim() || undefined,
-      });
-      setSocialAccounts((current) => [response.social_account, ...current]);
-      setSocialAccountId(response.social_account.id);
-      setUsername("");
-      setProfileUrl("");
-      setDisplayName("");
-      setShowSocialAccount(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create social account");
-    } finally {
-      setCreatingAccount(false);
-    }
-  }
-
   return (
     <main className="min-h-screen bg-slate-50 p-6 lg:p-8">
       <div className="mx-auto max-w-7xl">
@@ -161,11 +65,11 @@ export default function ReportsPage() {
             <p className="mt-2 text-sm text-slate-600">{isModerator ? "Review and manage reports submitted by all users." : isLoggedIn ? "Create and manage your reports, or browse public reports." : "Browse public reports. Sign in only when you want to create a report."}</p>
           </div>
           {isLoggedIn ? (
-            <button type="button" onClick={() => setShowCreate(true)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">
+            <Link href="/create-report" className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">
               + Create report
-            </button>
+            </Link>
           ) : (
-            <Link href={`/login?next=${encodeURIComponent(`/reports${typeof window !== "undefined" ? window.location.search : ""}`)}`} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">
+            <Link href={`/login?next=${encodeURIComponent(`/create-report${typeof window !== "undefined" ? window.location.search : ""}`)}`} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">
               Sign in to create a report
             </Link>
           )}
@@ -218,101 +122,6 @@ export default function ReportsPage() {
           </div>
         </section>
 
-        {showCreate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-            <form onSubmit={handleCreateReport} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h2 className="text-lg font-semibold">Create a report</h2>
-                  <p className="mt-1 text-sm text-slate-500">Start a new verification report.</p>
-                </div>
-                <button type="button" onClick={() => setShowCreate(false)} className="rounded-lg px-2 py-1 text-slate-400 hover:bg-slate-100">✕</button>
-              </div>
-
-              <div className="mt-6 space-y-5">
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Report title</label>
-                  <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="Enter a report title" required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Description</label>
-                  <textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="Describe what you are reporting..." rows={4} required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-                </div>
-                <fieldset>
-                  <legend className="text-sm font-medium text-slate-700">Where did the incident happen?</legend>
-                  <div className="mt-2 grid grid-cols-2 gap-3">
-                    {(["OFFLINE", "ONLINE"] as const).map((type) => (
-                      <label key={type} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 text-sm ${incidentType === type ? "border-slate-900 bg-slate-50 font-medium" : "border-slate-200"}`}>
-                        <input type="radio" name="incident_type" value={type} checked={incidentType === type} onChange={() => { setIncidentType(type); if (type === "OFFLINE") setIncidentPlatform(""); }} required />
-                        {type === "OFFLINE" ? "Offline" : "Online"}
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-                {incidentType === "ONLINE" && (
-                  <div>
-                    <label htmlFor="incident-platform" className="text-sm font-medium text-slate-700">Platform where it happened</label>
-                    <select id="incident-platform" value={incidentPlatform} onChange={(event) => setIncidentPlatform(event.target.value)} required className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
-                      <option value="">Select a platform</option>
-                      {ONLINE_INCIDENT_PLATFORMS.map((item) => <option key={item} value={item}>{item}</option>)}
-                    </select>
-                  </div>
-                )}
-                <div>
-                  <label className="text-sm font-medium text-slate-700">Category</label>
-                  <select value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
-                    <option value="">No category</option>
-                    {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <div className="flex items-center justify-between">
-                    <label className="text-sm font-medium text-slate-700">Social account (optional)</label>
-                    <button type="button" onClick={() => setShowSocialAccount(true)} className="text-xs font-medium text-slate-700 underline">+ Add account</button>
-                  </div>
-                  {socialAccounts.length === 0 ? (
-                    <p className="mt-2 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">You can create this report without linking a social account.</p>
-                  ) : (
-                    <select value={socialAccountId} onChange={(event) => setSocialAccountId(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
-                      <option value="">No linked social account</option>
-                      {socialAccounts.map((account) => <option key={account.id} value={account.id}>{account.platform} · @{account.username}</option>)}
-                    </select>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-7 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowCreate(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium">Cancel</button>
-                <button type="submit" disabled={submitting || !title.trim() || !description.trim() || !incidentType || (incidentType === "ONLINE" && !incidentPlatform)} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40">
-                  {submitting ? "Creating..." : "Create report"}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
-
-        {showSocialAccount && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/40 p-4">
-            <form onSubmit={handleCreateSocialAccount} className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl">
-              <h2 className="text-lg font-semibold">Add social account</h2>
-              <p className="mt-1 text-sm text-slate-500">Add the account referenced by your report.</p>
-              <div className="mt-6 space-y-4">
-                <select value={platform} onChange={(event) => setPlatform(event.target.value)} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
-                  <option>Facebook</option><option>Instagram</option><option>YouTube</option><option>TikTok</option><option>X</option><option>LinkedIn</option><option>Other</option>
-                </select>
-                <input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="Username" required className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-                <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Display name (optional)" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-                <input value={profileUrl} onChange={(event) => setProfileUrl(event.target.value)} placeholder="Profile URL (optional)" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" />
-              </div>
-              <div className="mt-6 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowSocialAccount(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm">Cancel</button>
-                <button type="submit" disabled={creatingAccount} className="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-40">
-                  {creatingAccount ? "Adding..." : "Add account"}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
       </div>
     </main>
   );

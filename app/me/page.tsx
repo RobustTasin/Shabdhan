@@ -98,7 +98,7 @@ export default function MePage() {
               <Link href={`/users/${user.id}`} className="mt-1 inline-flex text-xs font-medium text-emerald-900 hover:underline">View public profile</Link>
             </div>
           </div>
-          <Link href="/reports" className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-900">+ Create report</Link>
+          <Link href="/create-report" className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-900">+ Create report</Link>
         </div>
         <dl aria-label="Profile activity statistics" className="mt-6 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-5">
           {([
@@ -132,7 +132,7 @@ export default function MePage() {
             <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-xl font-bold text-emerald-900">S</div>
             <h3 className="mt-4 text-sm font-semibold text-slate-900">No reports yet</h3>
             <p className="mt-1 text-sm text-slate-500">When you create a report, it will appear here.</p>
-            <Link href="/reports" className="mt-5 inline-flex rounded-xl bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">Create your first report</Link>
+            <Link href="/create-report" className="mt-5 inline-flex rounded-xl bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">Create your first report</Link>
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-100">
