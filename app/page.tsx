@@ -428,7 +428,7 @@ export default function Home() {
         <div className="mx-auto flex h-[68px] w-full items-center gap-3 px-4 sm:px-6 lg:px-8 xl:px-10">
           <Link href="/" aria-label="Shabdhan feed" className="flex shrink-0 items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#123d3b] text-sm font-bold text-[#e1f3ef]">S</span>
-            <span className="text-lg font-semibold tracking-[-0.04em]">shabdhan<span className="text-[#5b918b]">.</span></span>
+            <span className="text-lg font-semibold tracking-[-0.04em]"><span className="text-[#006A4E]">sha</span><span className="text-[#F42A41]">bd</span><span className="text-[#006A4E]">han.</span></span>
           </Link>
 
           <nav aria-label="Main navigation" className="ml-auto flex items-center gap-1.5">
@@ -504,7 +504,7 @@ export default function Home() {
             </section>
             <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
             <Link href="/categories" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse categories</Link>
-            <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">আমার বাংলাদেশ</Link>
+            <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl bg-[#F42A41] px-3 py-3 text-sm font-semibold text-[#101820] hover:bg-[#e9243b]">আমার বাংলাদেশ</Link>
             {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e3eeec] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Apply for membership</Link></>}
           </nav>
         </section>}
@@ -553,7 +553,7 @@ export default function Home() {
             </section>
             <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
             <Link href="/categories" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse categories</Link>
-            <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">আমার বাংলাদেশ</Link>
+            <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl bg-[#F42A41] px-3 py-3 text-sm font-semibold text-[#101820] hover:bg-[#e9243b]">আমার বাংলাদেশ</Link>
             {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e3eeec] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Apply for membership</Link></>}
           </nav>
           {user && <Link href="/create-report" onClick={() => setMenuOpen(false)} className="mt-4 block rounded-2xl bg-[#123d3b] px-4 py-4 text-center text-sm font-semibold text-white hover:bg-[#1e615b]">+ Create a report</Link>}
@@ -700,7 +700,7 @@ export default function Home() {
 
       <footer className="border-t border-[#e0eae8] bg-white">
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-2 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:max-w-none lg:px-8 xl:px-10">
-          <Link href="/" className="font-semibold text-[#365b58]">shabdhan.</Link>
+          <Link href="/" className="font-semibold"><span className="text-[#006A4E]">sha</span><span className="text-[#F42A41]">bd</span><span className="text-[#006A4E]">han.</span></Link>
           <p>Explore openly. Read carefully. Participate responsibly.</p>
         </div>
       </footer>

@@ -1,6 +1,7 @@
 import { apiFetch } from "./api";
 import { getToken } from "./auth";
 import { type IncidentType } from "../../shared/incident-platforms";
+import { type ReportLocationValue, locationCountryName } from "../../shared/report-location";
 
 export type ReportStatus =
   | "DRAFT"
@@ -37,6 +38,12 @@ export type ApiReport = {
   category_id: string | null;
   incident_type: IncidentType;
   incident_platform: string | null;
+  location_scope?: "BANGLADESH" | "ABROAD" | null;
+  location_country_code?: string | null;
+  location_country_name?: string | null;
+  location_division?: string | null;
+  location_district?: string | null;
+  location_sub_district?: string | null;
   title: string;
   description: string;
   status: ReportStatus;
@@ -75,6 +82,15 @@ export type PublicReportStatus = {
   resolved: number;
   declined: number;
 };
+export type PublicReportStatistic = { label: string; report_count: number };
+export async function getPublicReportStatistics(params: { groupBy: string; sortBy?: "count" | "label"; direction?: "asc" | "desc"; categoryId?: string; fromMonth?: string; toMonth?: string }): Promise<PublicReportStatistic[]> {
+  const query = new URLSearchParams({ group_by: params.groupBy, sort_by: params.sortBy ?? "count", direction: params.direction ?? "desc" });
+  if (params.categoryId) query.set("category_id", params.categoryId);
+  if (params.fromMonth) query.set("from_month", params.fromMonth);
+  if (params.toMonth) query.set("to_month", params.toMonth);
+  const response = await apiFetch<{ status: string; statistics: PublicReportStatistic[] }>(`/reports/public-statistics?${query}`);
+  return response.statistics;
+}
 
 export async function getPublicReportStatus(): Promise<PublicReportStatus> {
   const response = await apiFetch<{ status: string; counts: PublicReportStatus }>(
@@ -150,6 +166,12 @@ export async function searchReports(params: {
   categoryId?: string;
   platform?: string;
   socialAccountId?: string;
+  countryCode?: string;
+  division?: string;
+  district?: string;
+  subDistrict?: string;
+  fromMonth?: string;
+  toMonth?: string;
 } = {}): Promise<ReportListResponse> {
   const query = new URLSearchParams();
 
@@ -159,6 +181,12 @@ export async function searchReports(params: {
   if (params.categoryId) query.set("category_id", params.categoryId);
   if (params.platform) query.set("platform", params.platform);
   if (params.socialAccountId) query.set("social_account_id", params.socialAccountId);
+  if (params.countryCode) query.set("country_code", params.countryCode);
+  if (params.division) query.set("division", params.division);
+  if (params.district) query.set("district", params.district);
+  if (params.subDistrict) query.set("sub_district", params.subDistrict);
+  if (params.fromMonth) query.set("from_month", params.fromMonth);
+  if (params.toMonth) query.set("to_month", params.toMonth);
 
   const suffix = query.toString() ? `?${query.toString()}` : "";
 
@@ -208,13 +236,21 @@ export async function createReport(input: {
   category_id?: string | null;
   incident_type: IncidentType;
   incident_platform?: string | null;
+  location?: ReportLocationValue;
   title: string;
   description: string;
 }): Promise<{ status: string; report: ApiReport }> {
   return apiFetch("/reports", {
     method: "POST",
     token: getToken() ?? undefined,
-    body: JSON.stringify(input),
+    body: JSON.stringify({ ...input, ...(input.location ? {
+      location_scope: input.location.scope || null,
+      location_country_code: input.location.scope ? (input.location.scope === "BANGLADESH" ? "BD" : input.location.countryCode) : null,
+      location_country_name: input.location.scope ? locationCountryName(input.location) : null,
+      location_division: input.location.scope === "BANGLADESH" ? input.location.division : null,
+      location_district: input.location.scope === "BANGLADESH" ? input.location.district : null,
+      location_sub_district: input.location.scope === "BANGLADESH" ? input.location.subDistrict : null,
+    } : {}) }),
   });
 }
 

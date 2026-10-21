@@ -811,6 +811,11 @@ export default function ReportDetailsPage() {
                 </p>
               </div>
 
+              {report.location_country_name && <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{report.incident_type === "OFFLINE" ? "Incident location" : "Reported entity location"}</p>
+                <p className="mt-1 text-sm text-slate-900">{[report.location_sub_district, report.location_district, report.location_division, report.location_country_name].filter(Boolean).join(" · ")}</p>
+              </div>}
+
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Created
@@ -1256,7 +1261,6 @@ export default function ReportDetailsPage() {
           </p>
         ) : (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm text-slate-700">You can read this report without signing in. Sign in only if you want to corroborate or comment.</p>
             <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#corroborations`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in to participate</Link>
           </div>
         )}
@@ -1361,7 +1365,6 @@ export default function ReportDetailsPage() {
         </div>
         ) : (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm text-slate-700">Read public comments without an account. Sign in only to add a comment or reply.</p>
             <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#comments`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in to comment</Link>
           </div>
         )}

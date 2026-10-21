@@ -12,6 +12,7 @@ import { withTransaction } from "../utils/transaction";
 import { cloudinary } from "../config/cloudinary";
 import { categoryCodeFromName, parsePublicReportId } from "../../shared/report-id";
 import { ONLINE_INCIDENT_PLATFORMS, type IncidentType } from "../../shared/incident-platforms";
+import { bangladeshSubDistricts, reportCountries } from "../../shared/report-location";
 
 const router = Router();
 
@@ -21,7 +22,8 @@ router.post(
   authenticate,
   async (req: AuthenticatedRequest, res) => {
     try {
-      const { social_account_id, category_id, incident_type, incident_platform, title, description } = req.body;
+      const { social_account_id, category_id, incident_type, incident_platform, title, description,
+        location_scope, location_country_code, location_division, location_district, location_sub_district } = req.body;
 
       if (!title || !description || (incident_type !== "ONLINE" && incident_type !== "OFFLINE")) {
         return res.status(400).json({
@@ -42,6 +44,27 @@ router.post(
 
       const incidentType = incident_type as IncidentType;
       const incidentPlatform = incidentType === "ONLINE" ? incident_platform as string : null;
+      const hasAnyLocation = [location_scope, location_country_code, location_division, location_district, location_sub_district].some(Boolean);
+      if (incidentType === "OFFLINE" && !hasAnyLocation) {
+        return res.status(400).json({ status: "error", message: "Choose the incident location." });
+      }
+      let countryCode: string | null = null;
+      let countryName: string | null = null;
+      let division: string | null = null;
+      let district: string | null = null;
+      let subDistrict: string | null = null;
+      if (hasAnyLocation) {
+        if (location_scope === "BANGLADESH" && location_country_code === "BD" &&
+            typeof location_division === "string" && typeof location_district === "string" && typeof location_sub_district === "string" &&
+            bangladeshSubDistricts(location_division, location_district).includes(location_sub_district)) {
+          countryCode = "BD"; countryName = "Bangladesh";
+          division = location_division; district = location_district; subDistrict = location_sub_district;
+        } else if (location_scope === "ABROAD" && typeof location_country_code === "string" && location_country_code !== "BD") {
+          const country = reportCountries.find((item) => item.code === location_country_code);
+          if (country) { countryCode = country.code; countryName = country.name; }
+        }
+        if (!countryCode) return res.status(400).json({ status: "error", message: "Select a valid location. Bangladesh requires a division, district, and sub-district; abroad requires a country." });
+      }
 
       // Validate the social account when the reporter chooses to link one.
       if (social_account_id) {
@@ -79,11 +102,12 @@ router.post(
       // reporter_id comes from the authenticated user
       const result = await pool.query(
         `INSERT INTO reports
-         (reporter_id, social_account_id, category_id, public_report_category_code, incident_type, incident_platform, title, description)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         (reporter_id, social_account_id, category_id, public_report_category_code, incident_type, incident_platform, location_scope, location_country_code, location_country_name, location_division, location_district, location_sub_district, title, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
          RETURNING id, public_report_number, public_report_category_code,
                    reporter_id, social_account_id, category_id,
-                   incident_type, incident_platform, title, description, status,
+                   incident_type, incident_platform, location_scope, location_country_code, location_country_name,
+                   location_division, location_district, location_sub_district, title, description, status,
                    verification_status, published_at,
                    created_at, updated_at`,
         [
@@ -93,6 +117,12 @@ router.post(
           publicReportCategoryCode,
           incidentType,
           incidentPlatform,
+          countryCode ? (countryCode === "BD" ? "BANGLADESH" : "ABROAD") : null,
+          countryCode,
+          countryName,
+          division,
+          district,
+          subDistrict,
           title,
           description,
         ]
@@ -249,6 +279,48 @@ router.get("/public-status", async (_req, res) => {
   }
 });
 
+router.get("/public-statistics", async (req, res) => {
+  const groupColumns: Record<string, string> = {
+    category: "COALESCE(c.name, 'Uncategorized')",
+    location: "CASE WHEN r.location_scope = 'BANGLADESH' THEN CONCAT_WS(', ', r.location_sub_district, r.location_district, r.location_division, r.location_country_name) ELSE COALESCE(r.location_country_name, 'Location not supplied') END",
+    country: "COALESCE(r.location_country_name, 'Location not supplied')",
+    division: "COALESCE(r.location_division, 'Not applicable')",
+    district: "COALESCE(r.location_district, 'Not applicable')",
+    sub_district: "COALESCE(r.location_sub_district, 'Not applicable')",
+    month: "TO_CHAR(DATE_TRUNC('month', r.created_at), 'YYYY-MM')",
+    incident_type: "r.incident_type",
+  };
+  try {
+    const groupBy = String(req.query.group_by || "division");
+    if (!(groupBy in groupColumns)) return res.status(400).json({ status: "error", message: "Invalid statistics grouping." });
+    const conditions = ["r.status <> 'DRAFT'"];
+    const values: unknown[] = [];
+    const categoryId = String(req.query.category_id || "").trim();
+    if (categoryId === "uncategorized") conditions.push("r.category_id IS NULL");
+    else if (categoryId) { values.push(categoryId); conditions.push(`r.category_id = $${values.length}`); }
+    for (const [key, op] of [["from_month", ">="], ["to_month", "<="]] as const) {
+      const month = String(req.query[key] || "");
+      if (month) {
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return res.status(400).json({ status: "error", message: "Months must use YYYY-MM format." });
+        values.push(`${month}-01`);
+        conditions.push(`r.created_at ${op} $${values.length}::date ${key === "to_month" ? "+ INTERVAL '1 month'" : ""}`);
+      }
+    }
+    const sortBy = String(req.query.sort_by || "count");
+    const direction = String(req.query.direction || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
+    const sortExpression = sortBy === "label" ? "label" : "report_count";
+    const result = await pool.query(
+      `SELECT ${groupColumns[groupBy]} AS label, COUNT(*)::int AS report_count
+       FROM reports r LEFT JOIN categories c ON c.id = r.category_id
+       WHERE ${conditions.join(" AND ")}
+       GROUP BY 1 ORDER BY ${sortExpression} ${direction}, label ASC LIMIT 1000`, values);
+    return res.json({ status: "ok", group_by: groupBy, statistics: result.rows });
+  } catch (error) {
+    console.error("Failed to fetch public report statistics:", error);
+    return res.status(500).json({ status: "error", message: "Failed to fetch public report statistics" });
+  }
+});
+
 // Public report search
 router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, res) => {
   try {
@@ -256,6 +328,12 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
     const categoryId = String(req.query.category_id || "").trim();
     const platform = String(req.query.platform || "").trim();
     const socialAccountId = String(req.query.social_account_id || "").trim();
+    const countryCode = String(req.query.country_code || "").trim();
+    const division = String(req.query.division || "").trim();
+    const district = String(req.query.district || "").trim();
+    const subDistrict = String(req.query.sub_district || "").trim();
+    const fromMonth = String(req.query.from_month || "").trim();
+    const toMonth = String(req.query.to_month || "").trim();
 
     const page = Math.max(Number(req.query.page) || 1, 1);
     const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 100);
@@ -316,6 +394,18 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
       conditions.push(`r.social_account_id = $${values.length}`);
     }
 
+    if (countryCode) { values.push(countryCode); conditions.push(`r.location_country_code = $${values.length}`); }
+    if (division) { values.push(division); conditions.push(`r.location_division = $${values.length}`); }
+    if (district) { values.push(district); conditions.push(`r.location_district = $${values.length}`); }
+    if (subDistrict) { values.push(subDistrict); conditions.push(`r.location_sub_district = $${values.length}`); }
+    for (const [month, op] of [[fromMonth, ">="], [toMonth, "<="]] as const) {
+      if (month) {
+        if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return res.status(400).json({ status: "error", message: "Months must use YYYY-MM format." });
+        values.push(`${month}-01`);
+        conditions.push(`r.created_at ${op} $${values.length}::date ${op === "<=" ? "+ INTERVAL '1 month'" : ""}`);
+      }
+    }
+
     const whereClause = `WHERE ${conditions.join(" AND ")}`;
 
     const countResult = await pool.query(
@@ -340,6 +430,12 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
          r.public_report_category_code,
          r.incident_type,
          r.incident_platform,
+         r.location_scope,
+         r.location_country_code,
+         r.location_country_name,
+         r.location_division,
+         r.location_district,
+         r.location_sub_district,
          r.title,
          r.description,
          r.status,
@@ -570,6 +666,8 @@ router.get(
          r.public_report_category_code,
          r.incident_type,
          r.incident_platform,
+         r.location_scope, r.location_country_code, r.location_country_name,
+         r.location_division, r.location_district, r.location_sub_district,
            r.title,
            r.description,
            r.status,
