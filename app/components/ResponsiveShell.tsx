@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import SidebarNav from "./SidebarNav";
 import NotificationLink from "./NotificationLink";
+import { useAuth } from "./AuthProvider";
 
 export default function ResponsiveShell({
   children,
@@ -12,6 +13,8 @@ export default function ResponsiveShell({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { user } = useAuth();
+  const homeHref = user?.role === "MODERATOR" || user?.role === "ADMIN" ? "/dashboard" : "/me";
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [compactExpanded, setCompactExpanded] = useState(false);
@@ -26,7 +29,7 @@ export default function ResponsiveShell({
   const isProfilePage = pathname === "/me" || /^\/users\/[^/]+$/.test(pathname);
 
   // Public pages use their own layouts instead of the authenticated dashboard shell.
-  if (pathname === "/" || pathname === "/search" || isPublicReportPage || isProfilePage || isAuthPage || isPublicMembershipPage) {
+  if (pathname === "/" || pathname === "/search" || pathname === "/create-report" || isPublicReportPage || isProfilePage || isAuthPage || isPublicMembershipPage) {
     return <>{children}</>;
   }
 
@@ -35,7 +38,7 @@ export default function ResponsiveShell({
       {/* Desktop full sidebar */}
       <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white xl:flex xl:flex-col">
         <div className="flex h-16 items-center border-b border-slate-200 px-6">
-          <Link href="/dashboard">
+          <Link href={homeHref}>
             <div className="text-xl font-bold tracking-tight">
               Shabdhan
             </div>
@@ -76,7 +79,7 @@ export default function ResponsiveShell({
         >
           {compactExpanded ? (
             <>
-              <Link href="/dashboard" className="min-w-0">
+              <Link href={homeHref} className="min-w-0">
                 <div className="truncate text-xl font-bold tracking-tight">
                   Shabdhan
                 </div>
@@ -99,7 +102,7 @@ export default function ResponsiveShell({
           ) : (
             <>
               <Link
-                href="/dashboard"
+                href={homeHref}
                 aria-label="Shabdhan dashboard"
                 className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-sm font-bold text-white"
               >
@@ -145,7 +148,7 @@ export default function ResponsiveShell({
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-4">
           <Link
-            href="/dashboard"
+            href={homeHref}
             onClick={() => setMobileMenuOpen(false)}
           >
             <div className="text-xl font-bold tracking-tight">
@@ -187,7 +190,7 @@ export default function ResponsiveShell({
             </button>
 
             <Link
-              href="/dashboard"
+              href={homeHref}
               className="truncate text-lg font-bold tracking-tight md:hidden"
             >
               Shabdhan

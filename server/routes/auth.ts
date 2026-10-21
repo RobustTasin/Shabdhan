@@ -17,6 +17,7 @@ const router = Router();
 
 const membershipSchema = z.object({
   email: z.string().trim().email().max(255).transform((value) => value.toLowerCase()),
+  code: z.string().trim().regex(/^[A-Za-z]{6}$/).transform((value) => value.toUpperCase()),
   username: z.string().trim().min(3).max(50).regex(/^[A-Za-z0-9_]+$/),
   password: z.string().min(8).max(128),
 });
@@ -31,16 +32,26 @@ router.post("/complete-membership", async (req, res) => {
   try {
     await client.query("BEGIN");
     const application = await client.query(
-      `SELECT id, email FROM membership_applications
+      `SELECT id, email, code_hash, attempts FROM membership_applications
        WHERE LOWER(email) = $1 AND status = 'APPROVED' AND account_created_at IS NULL
+         AND code_expires_at > NOW()
        ORDER BY reviewed_at DESC LIMIT 1 FOR UPDATE`, [email]
     );
     if (application.rows.length === 0) {
       await client.query("ROLLBACK");
-      return res.status(403).json({ status: "error", message: "This email is not eligible to create an account yet" });
+      return res.status(403).json({ status: "error", message: "No valid membership approval code was found for this email" });
     }
 
-    const { id: applicationId } = application.rows[0];
+    const { id: applicationId, code_hash: codeHash, attempts } = application.rows[0];
+    if (attempts >= 5) {
+      await client.query("ROLLBACK");
+      return res.status(429).json({ status: "error", message: "Too many code attempts. Contact a moderator for a new code." });
+    }
+    if (!(await bcrypt.compare(parsed.data.code, String(codeHash).trim()))) {
+      await client.query("UPDATE membership_applications SET attempts = attempts + 1, updated_at = NOW() WHERE id = $1", [applicationId]);
+      await client.query("COMMIT");
+      return res.status(403).json({ status: "error", message: "The membership code is incorrect" });
+    }
     // Serialize username claims case-insensitively so concurrent account
     // creation requests cannot claim the same visible name with different case.
     await client.query("SELECT pg_advisory_xact_lock(hashtextextended(LOWER($1), 0))", [username]);

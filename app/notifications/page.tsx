@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useAuth } from "../components/AuthProvider";
 import {
   getNotifications,
   markAllNotificationsAsRead,
@@ -30,6 +31,7 @@ function notificationHref(notification: ApiNotification) {
 }
 
 export default function NotificationsPage() {
+  const { user } = useAuth();
   const [notifications, setNotifications] = useState<ApiNotification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -125,10 +127,10 @@ export default function NotificationsPage() {
           </p>
 
           <Link
-            href="/dashboard"
+            href={user?.role === "MODERATOR" || user?.role === "ADMIN" ? "/dashboard" : "/me"}
             className="mt-5 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800"
           >
-            Back to dashboard
+            {user?.role === "MODERATOR" || user?.role === "ADMIN" ? "Back to dashboard" : "Back to Me"}
           </Link>
         </div>
       ) : (

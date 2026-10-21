@@ -7,6 +7,7 @@ import {
   approveMembershipApplication,
   declineMembershipApplication,
   getMembershipApplications,
+  issueMembershipApplicationCode,
 } from "../../lib/membership-api";
 import {
   formatMembershipApplicationNumber,
@@ -25,6 +26,7 @@ export default function MembershipApplicationsPage() {
   const canModerate = user?.role === "MODERATOR" || user?.role === "ADMIN";
   const [filter, setFilter] = useState<Filter>("PENDING");
   const [applications, setApplications] = useState<MembershipApplication[]>([]);
+  const [codes, setCodes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -51,18 +53,20 @@ export default function MembershipApplicationsPage() {
     if (!authLoading) void loadApplications(filter);
   }, [authLoading, filter, loadApplications]);
 
-  async function runAction(
-    application: MembershipApplication,
-    action: "approve" | "decline"
-  ) {
+  async function runAction(application: MembershipApplication, action: "approve" | "decline" | "issue-code") {
+    const code = codes[application.id]?.toUpperCase() ?? "";
+    if (action !== "decline" && !/^[A-Z]{6}$/.test(code)) { setError("Enter a six-letter code before approving."); return; }
     if (action === "decline" && !window.confirm(`Decline ${formatMembershipApplicationNumber(application.application_number)}?`)) return;
     setBusyId(application.id);
     setError("");
     setNotice("");
     try {
       const response = action === "approve"
-        ? await approveMembershipApplication(application.id)
-        : await declineMembershipApplication(application.id);
+        ? await approveMembershipApplication(application.id, code)
+        : action === "issue-code"
+          ? await issueMembershipApplicationCode(application.id, code)
+          : await declineMembershipApplication(application.id);
+      if (action !== "decline") setCodes((prev) => ({ ...prev, [application.id]: code }));
       setNotice(response.message);
       await loadApplications(filter);
     } catch (actionError) {
@@ -92,7 +96,7 @@ export default function MembershipApplicationsPage() {
         <div>
           <Link href="/moderation" className="text-sm font-medium text-slate-500 hover:text-slate-900">← Moderation</Link>
           <h1 className="mt-2 text-2xl font-semibold text-slate-950">Membership applications</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Review the social profile, then manually email the decision within 48 hours. Approved applicants can check eligibility on the account creation page.</p>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Review the social profile, enter a six-letter code when approving, then manually email the decision and code within 48 hours. Codes expire after 48 hours.</p>
         </div>
         <label className="text-sm font-medium text-slate-700">Show
           <select value={filter} onChange={(event) => setFilter(event.target.value as Filter)} className="ml-2 rounded-lg border border-slate-300 bg-white px-3 py-2">
@@ -143,13 +147,20 @@ export default function MembershipApplicationsPage() {
                   </div>
                 </dl>
                 {application.status !== "PENDING" && <p className="mt-4 text-xs text-slate-500">Reviewed {formatDate(application.reviewed_at)}{application.reviewed_by_username ? ` by ${application.reviewed_by_username}` : ""}{application.account_created_at ? ` · Account created ${formatDate(application.account_created_at)}` : ""}</p>}
+                {application.status === "APPROVED" && !application.account_created_at && <div className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-950">
+                  {codes[application.id] ? <><p>Manually email this code before {application.code_expires_at ? formatDate(application.code_expires_at) : "it expires"}.</p><p className="mt-2 font-mono text-xl font-bold tracking-[0.3em]">{codes[application.id]}</p></> : application.code_expires_at ? <p>A code is set and expires {formatDate(application.code_expires_at)}. It is only displayed immediately after being set; issue a new code below if you need to email it again.</p> : <p>No approval code has been set. Set one before the applicant can create an account.</p>}
+                </div>}
                 <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
                   {application.status === "PENDING" ? (
                     <>
-                      <button type="button" disabled={busy} onClick={() => void runAction(application, "approve")} className="rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{busy ? "Working…" : "Accept"}</button>
+                      <label className="min-w-48 flex-1 text-sm font-medium text-slate-700">Six-letter approval code<input aria-label={`Six-letter approval code for ${application.email}`} value={codes[application.id] ?? ""} maxLength={6} onChange={(event) => setCodes((prev) => ({ ...prev, [application.id]: event.target.value.replace(/[^a-z]/gi, "").slice(0, 6).toUpperCase() }))} placeholder="ABCDEF" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase tracking-widest" /></label>
+                      <button type="button" disabled={busy || !/^[A-Z]{6}$/.test(codes[application.id] ?? "")} onClick={() => void runAction(application, "approve")} className="rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{busy ? "Working…" : "Accept"}</button>
                       <button type="button" disabled={busy} onClick={() => void runAction(application, "decline")} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Decline</button>
                     </>
-                  ) : null}
+                  ) : application.status === "APPROVED" && !application.account_created_at ? <>
+                    <label className="min-w-48 flex-1 text-sm font-medium text-slate-700">{application.code_expires_at ? "Replace approval code" : "Set approval code"}<input aria-label={`New six-letter approval code for ${application.email}`} value={codes[application.id] ?? ""} maxLength={6} onChange={(event) => setCodes((prev) => ({ ...prev, [application.id]: event.target.value.replace(/[^a-z]/gi, "").slice(0, 6).toUpperCase() }))} placeholder="ABCDEF" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase tracking-widest" /></label>
+                    <button type="button" disabled={busy || !/^[A-Z]{6}$/.test(codes[application.id] ?? "")} onClick={() => void runAction(application, "issue-code")} className="self-end rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{busy ? "Working…" : "Set code"}</button>
+                  </> : null}
                 </div>
               </article>
             );

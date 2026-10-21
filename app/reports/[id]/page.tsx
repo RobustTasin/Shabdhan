@@ -1347,8 +1347,8 @@ export default function ReportDetailsPage() {
             </div>
             <Link
               href={user
-                ? `/reports?social_account_id=${encodeURIComponent(report.social_account_id)}`
-                : `/login?next=${encodeURIComponent(`/reports?social_account_id=${report.social_account_id}`)}`}
+                ? `/create-report?social_account_id=${encodeURIComponent(report.social_account_id)}`
+                : `/login?next=${encodeURIComponent(`/create-report?social_account_id=${report.social_account_id}`)}`}
               className="inline-flex shrink-0 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-900 hover:bg-indigo-100"
             >
               Add another report

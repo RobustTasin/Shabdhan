@@ -119,7 +119,7 @@ function formatPublishedDate(value: string | null | undefined) {
 }
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { theme: feedTheme, setTheme: setFeedTheme } = useAppearance();
   const [categories, setCategories] = useState<Category[]>([]);
   const [feeds, setFeeds] = useState<Record<string, CategoryFeed>>({});
@@ -434,7 +434,7 @@ export default function Home() {
               <SearchIcon />
             </button>
             {user && (
-              <Link href="/reports" aria-label="Create a report" className="inline-flex h-10 items-center justify-center rounded-full bg-[#183a2c] px-3.5 text-sm font-semibold text-white transition hover:bg-[#24543e] sm:px-4">
+              <Link href="/create-report" aria-label="Create a report" className="inline-flex h-10 items-center justify-center rounded-full bg-[#183a2c] px-3.5 text-sm font-semibold text-white transition hover:bg-[#24543e] sm:px-4">
                 <span className="sm:hidden">+</span><span className="hidden sm:inline">+ Create</span>
               </Link>
             )}
@@ -501,7 +501,7 @@ export default function Home() {
             <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Advanced search</Link>
             <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Browse categories</a>
             <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">আমার বাংলাদেশ</Link>
-            {user ? <><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Apply for membership</Link></>}
+            {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e8ebe5] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Apply for membership</Link></>}
           </nav>
         </section>}
       </header>
@@ -550,9 +550,9 @@ export default function Home() {
             <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Advanced search</Link>
             <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Browse categories</a>
             <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">আমার বাংলাদেশ</Link>
-            {user ? <><Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link><Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Apply for membership</Link></>}
+            {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e8ebe5] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Apply for membership</Link></>}
           </nav>
-          {user && <Link href="/reports" onClick={() => setMenuOpen(false)} className="mt-4 block rounded-2xl bg-[#183a2c] px-4 py-4 text-center text-sm font-semibold text-white hover:bg-[#24543e]">+ Create a report</Link>}
+          {user && <Link href="/create-report" onClick={() => setMenuOpen(false)} className="mt-4 block rounded-2xl bg-[#183a2c] px-4 py-4 text-center text-sm font-semibold text-white hover:bg-[#24543e]">+ Create a report</Link>}
         </div>
       </section>}
 

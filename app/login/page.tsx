@@ -28,7 +28,7 @@ export default function LoginPage() {
       const next = getSafeReturnPath(
         new URLSearchParams(window.location.search).get("next")
       );
-      router.replace(next ?? "/dashboard");
+      router.replace(next ?? "/");
     } catch (err) {
       setError(
         err instanceof Error

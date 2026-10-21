@@ -6,22 +6,26 @@ export async function submitMembershipApplication(input: { email: string; social
   return apiFetch<{ status: string; message: string; application_number: string }>("/membership-applications", { method: "POST", body: input });
 }
 
-export async function checkMembershipEligibility(email: string) {
-  return apiFetch<{ status: string; eligible: boolean }>(`/membership-applications/eligibility?email=${encodeURIComponent(email)}`);
+export async function checkMembershipEligibility(email: string, code: string) {
+  return apiFetch<{ status: string; eligible: boolean }>("/membership-applications/eligibility", { method: "POST", body: { email, code } });
 }
 
 export async function getMembershipApplications(status: MembershipApplicationStatus | "ALL" = "ALL") {
   return apiFetch<{ status: string; applications: MembershipApplication[] }>(`/membership-applications?status=${status}`, { token: getToken() ?? undefined });
 }
 
-async function updateMembershipApplication(id: string, action: "approve" | "decline") {
-  return apiFetch<{ status: string; message: string }>(`/membership-applications/${encodeURIComponent(id)}/${action}`, { method: "POST", token: getToken() ?? undefined });
+async function updateMembershipApplication(id: string, action: "approve" | "decline", code?: string) {
+  return apiFetch<{ status: string; message: string }>(`/membership-applications/${encodeURIComponent(id)}/${action}`, { method: "POST", body: code ? { code } : undefined, token: getToken() ?? undefined });
 }
 
-export const approveMembershipApplication = (id: string) => updateMembershipApplication(id, "approve");
+export const approveMembershipApplication = (id: string, code: string) => updateMembershipApplication(id, "approve", code);
 export const declineMembershipApplication = (id: string) => updateMembershipApplication(id, "decline");
 
-export async function completeMembership(input: { email: string; username: string; password: string }) {
+export async function issueMembershipApplicationCode(id: string, code: string) {
+  return apiFetch<{ status: string; message: string }>(`/membership-applications/${encodeURIComponent(id)}/code`, { method: "POST", body: { code }, token: getToken() ?? undefined });
+}
+
+export async function completeMembership(input: { email: string; code: string; username: string; password: string }) {
   return apiFetch<{ status: string; message: string; user: { id: string; username: string; email: string; role: "USER"; is_verified: boolean }; token: string }>("/auth/complete-membership", { method: "POST", body: input });
 }
 

@@ -7,7 +7,6 @@ import { useAuth } from "./AuthProvider";
 const navigation = [
   { name: "Public Feed", href: "/", icon: "◉" },
   { name: "Me", href: "/me", icon: "●" },
-  { name: "Dashboard", href: "/dashboard", icon: "⌂" },
   { name: "Reports", href: "/reports", icon: "▤" },
   { name: "Social Accounts", href: "/social-accounts", icon: "◎" },
   { name: "Evidence", href: "/evidence", icon: "◈" },
@@ -74,6 +73,11 @@ export default function SidebarNav({
             </Link>
           );
         })}
+
+        {(user?.role === "MODERATOR" || user?.role === "ADMIN") && <Link href="/dashboard" onClick={onNavigate} title={compact ? "Dashboard" : undefined} aria-label="Dashboard" className={`flex items-center rounded-lg transition ${compact ? "justify-center px-2 py-3" : "gap-3 px-3 py-2.5"} ${pathname === "/dashboard" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"}`}>
+          <span aria-hidden="true" className={`flex h-6 w-6 shrink-0 items-center justify-center text-base ${pathname === "/dashboard" ? "text-white" : "text-slate-500"}`}>⌂</span>
+          {!compact && <span className="truncate text-sm font-medium">Dashboard</span>}
+        </Link>}
 
         {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
           <>

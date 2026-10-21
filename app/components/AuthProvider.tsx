@@ -102,6 +102,11 @@ export function AuthProvider({
       return;
     }
 
+    if (user && pathname === "/dashboard" && user.role !== "MODERATOR" && user.role !== "ADMIN") {
+      router.replace("/me");
+      return;
+    }
+
     if (
       user &&
       (pathname === "/login" ||
@@ -111,7 +116,7 @@ export function AuthProvider({
       const next = getSafeReturnPath(
         new URLSearchParams(window.location.search).get("next")
       );
-      router.replace(next ?? "/dashboard");
+      router.replace(next ?? "/");
     }
   }, [user, loading, pathname, router]);
 

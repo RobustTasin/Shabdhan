@@ -5,6 +5,7 @@ import { useAuth } from "./AuthProvider";
 
 export default function PublicSiteHeader() {
   const { user } = useAuth();
+  const isModerator = user?.role === "MODERATOR" || user?.role === "ADMIN";
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -23,7 +24,8 @@ export default function PublicSiteHeader() {
           {user ? (
             <>
               <Link href="/me" className="rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-4">Me</Link>
-              <Link href="/dashboard" className="rounded-full bg-emerald-950 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-900 sm:px-4">Dashboard</Link>
+              <Link href="/create-report" className="rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-4">Create report</Link>
+              {isModerator && <Link href="/dashboard" className="rounded-full bg-emerald-950 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-900 sm:px-4">Dashboard</Link>}
             </>
           ) : (
             <>
