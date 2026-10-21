@@ -12,7 +12,7 @@ export default function PublicSiteHeader() {
       <div className="flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-10">
         <Link href="/" aria-label="Shabdhan home feed" className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-950 text-sm font-bold text-white">S</span>
-          <span className="text-lg font-semibold tracking-tight text-slate-900">shabdhan.</span>
+          <span className="text-lg font-semibold tracking-tight"><span className="text-[#006A4E]">sha</span><span className="text-[#F42A41]">bd</span><span className="text-[#006A4E]">han.</span></span>
         </Link>
         <nav aria-label="Main navigation" className="flex items-center gap-1 sm:gap-2">
           <Link href="/#public-feed" className="rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-4">

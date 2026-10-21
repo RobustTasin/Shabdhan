@@ -1256,7 +1256,6 @@ export default function ReportDetailsPage() {
           </p>
         ) : (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm text-slate-700">You can read this report without signing in. Sign in only if you want to corroborate or comment.</p>
             <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#corroborations`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in to participate</Link>
           </div>
         )}
@@ -1361,7 +1360,6 @@ export default function ReportDetailsPage() {
         </div>
         ) : (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm text-slate-700">Read public comments without an account. Sign in only to add a comment or reply.</p>
             <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#comments`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in to comment</Link>
           </div>
         )}
