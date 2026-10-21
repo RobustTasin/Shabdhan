@@ -74,6 +74,7 @@ export default function ApplyForMembershipPage() {
                 <p className="rounded-xl bg-slate-50 px-4 py-3 text-xs leading-5 text-slate-600">Your email and social link are used for membership review and are only shown to moderators. Applying does not create an account.</p>
                 <button type="submit" disabled={loading} className="w-full rounded-xl bg-emerald-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-60">{loading ? "Submitting…" : "Submit application"}</button>
               </form>
+              <p className="mt-6 text-center text-sm text-slate-500">Already applied? <Link href="/account/create" className="font-semibold text-emerald-950 hover:underline">Create account</Link></p>
               <p className="mt-6 text-center text-sm text-slate-500">Already a member? <Link href="/login" className="font-medium text-emerald-900 hover:underline">Log in</Link></p>
             </>
           )}
