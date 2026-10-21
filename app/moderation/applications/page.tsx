@@ -109,7 +109,7 @@ export default function MembershipApplicationsPage() {
       </div>
 
       {error && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</div>}
-      {notice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{notice}</div>}
+      {notice && <div role="status" className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-900">{notice}</div>}
 
       {loading ? (
         <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500">Refreshing applications…</div>
@@ -130,7 +130,7 @@ export default function MembershipApplicationsPage() {
                     <p className="font-mono text-sm font-semibold text-slate-700">{serial}</p>
                     <p className="mt-1 break-all text-base font-semibold text-slate-950">{application.email}</p>
                   </div>
-                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${application.status === "PENDING" ? "bg-amber-50 text-amber-900" : application.status === "APPROVED" ? "bg-emerald-50 text-emerald-900" : "bg-slate-100 text-slate-700"}`}>{application.status}</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${application.status === "PENDING" ? "bg-amber-50 text-amber-900" : application.status === "APPROVED" ? "bg-teal-50 text-teal-900" : "bg-slate-100 text-slate-700"}`}>{application.status}</span>
                 </div>
                 <dl className="mt-5 grid gap-4 sm:grid-cols-2">
                   <div>
@@ -143,23 +143,23 @@ export default function MembershipApplicationsPage() {
                   </div>
                   <div className="sm:col-span-2">
                     <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">Profile link</dt>
-                    <dd className="mt-1 break-all text-sm"><a href={application.social_url} target="_blank" rel="noopener noreferrer" className="font-medium text-emerald-900 underline underline-offset-2">{application.social_url}</a></dd>
+                    <dd className="mt-1 break-all text-sm"><a href={application.social_url} target="_blank" rel="noopener noreferrer" className="font-medium text-teal-900 underline underline-offset-2">{application.social_url}</a></dd>
                   </div>
                 </dl>
                 {application.status !== "PENDING" && <p className="mt-4 text-xs text-slate-500">Reviewed {formatDate(application.reviewed_at)}{application.reviewed_by_username ? ` by ${application.reviewed_by_username}` : ""}{application.account_created_at ? ` · Account created ${formatDate(application.account_created_at)}` : ""}</p>}
-                {application.status === "APPROVED" && !application.account_created_at && <div className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-950">
+                {application.status === "APPROVED" && !application.account_created_at && <div className="mt-4 rounded-xl bg-teal-50 p-4 text-sm text-teal-950">
                   {codes[application.id] ? <><p>Manually email this code before {application.code_expires_at ? formatDate(application.code_expires_at) : "it expires"}.</p><p className="mt-2 font-mono text-xl font-bold tracking-[0.3em]">{codes[application.id]}</p></> : application.code_expires_at ? <p>A code is set and expires {formatDate(application.code_expires_at)}. It is only displayed immediately after being set; issue a new code below if you need to email it again.</p> : <p>No approval code has been set. Set one before the applicant can create an account.</p>}
                 </div>}
                 <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
                   {application.status === "PENDING" ? (
                     <>
                       <label className="min-w-48 flex-1 text-sm font-medium text-slate-700">Six-character approval code<input aria-label={`Six-character approval code for ${application.email}`} value={codes[application.id] ?? ""} maxLength={6} onChange={(event) => setCodes((prev) => ({ ...prev, [application.id]: event.target.value.replace(/[^a-z0-9]/gi, "").slice(0, 6).toUpperCase() }))} placeholder="A1B2C3" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase tracking-widest" /></label>
-                      <button type="button" disabled={busy || !/^[A-Z0-9]{6}$/.test(codes[application.id] ?? "")} onClick={() => void runAction(application, "approve")} className="rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{busy ? "Working…" : "Accept"}</button>
+                      <button type="button" disabled={busy || !/^[A-Z0-9]{6}$/.test(codes[application.id] ?? "")} onClick={() => void runAction(application, "approve")} className="rounded-lg bg-teal-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50">{busy ? "Working…" : "Accept"}</button>
                       <button type="button" disabled={busy} onClick={() => void runAction(application, "decline")} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Decline</button>
                     </>
                   ) : application.status === "APPROVED" && !application.account_created_at ? <>
                     <label className="min-w-48 flex-1 text-sm font-medium text-slate-700">{application.code_expires_at ? "Replace approval code" : "Set approval code"}<input aria-label={`New six-character approval code for ${application.email}`} value={codes[application.id] ?? ""} maxLength={6} onChange={(event) => setCodes((prev) => ({ ...prev, [application.id]: event.target.value.replace(/[^a-z0-9]/gi, "").slice(0, 6).toUpperCase() }))} placeholder="A1B2C3" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase tracking-widest" /></label>
-                    <button type="button" disabled={busy || !/^[A-Z0-9]{6}$/.test(codes[application.id] ?? "")} onClick={() => void runAction(application, "issue-code")} className="self-end rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{busy ? "Working…" : "Set code"}</button>
+                    <button type="button" disabled={busy || !/^[A-Z0-9]{6}$/.test(codes[application.id] ?? "")} onClick={() => void runAction(application, "issue-code")} className="self-end rounded-lg bg-teal-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-800 disabled:opacity-50">{busy ? "Working…" : "Set code"}</button>
                   </> : null}
                 </div>
               </article>

@@ -80,7 +80,7 @@ function verificationBadgeClass(
 ) {
   switch (status) {
     case "VERIFIED":
-      return "bg-green-100 text-green-700";
+      return "bg-teal-100 text-teal-700";
     case "REJECTED":
       return "bg-red-100 text-red-700";
     default:
@@ -756,7 +756,7 @@ export default function ReportDetailsPage() {
             <h1 className="mt-1 text-2xl font-semibold text-slate-950">
               {report.title}
             </h1>
-            {shareMessage && <p role="status" className="mt-2 text-xs text-emerald-700">{shareMessage}</p>}
+            {shareMessage && <p role="status" className="mt-2 text-xs text-teal-700">{shareMessage}</p>}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -807,7 +807,7 @@ export default function ReportDetailsPage() {
               />
             </label>
             <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={() => void handleReportReview("VERIFIED")} disabled={reviewing || (report.verification_status === "VERIFIED" && report.status === "PUBLISHED")} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="button" onClick={() => void handleReportReview("VERIFIED")} disabled={reviewing || (report.verification_status === "VERIFIED" && report.status === "PUBLISHED")} className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50">
                 {reviewing ? "Saving..." : report.status === "RESOLVED" ? "Verify" : "Verify and publish"}
               </button>
               <button type="button" onClick={() => void handleUnpublishReport()} disabled={reviewing || report.status !== "PUBLISHED"} className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50">
@@ -829,7 +829,7 @@ export default function ReportDetailsPage() {
             </p>
           )}
           {reviewSuccess && (
-            <p role="status" className="mt-3 text-sm text-emerald-700">
+            <p role="status" className="mt-3 text-sm text-teal-700">
               {reviewSuccess}
             </p>
           )}
@@ -846,7 +846,7 @@ export default function ReportDetailsPage() {
             {report.reporter?.username && (
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Created by</p>
-                <Link href={`/users/${report.reporter.id}`} className="mt-1 inline-flex text-sm font-medium text-slate-900 hover:text-emerald-800 hover:underline">@{report.reporter.username}</Link>
+                <Link href={`/users/${report.reporter.id}`} className="mt-1 inline-flex text-sm font-medium text-slate-900 hover:text-teal-800 hover:underline">@{report.reporter.username}</Link>
               </div>
             )}
             <div>
@@ -1095,8 +1095,8 @@ export default function ReportDetailsPage() {
               )}
             </div>
             {evidenceLinkError && <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{evidenceLinkError}</p>}
-            {evidenceLinkSuccess && <p role="status" className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{evidenceLinkSuccess}</p>}
-            {archiveMessage && <p role={archiveMessageError ? "alert" : "status"} className={`mt-3 text-sm ${archiveMessageError ? "text-red-700" : "text-green-800"}`}>{archiveMessage}</p>}
+            {evidenceLinkSuccess && <p role="status" className="mt-3 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">{evidenceLinkSuccess}</p>}
+            {archiveMessage && <p role={archiveMessageError ? "alert" : "status"} className={`mt-3 text-sm ${archiveMessageError ? "text-red-700" : "text-teal-800"}`}>{archiveMessage}</p>}
             <p className="mt-3 text-xs leading-5 text-slate-500">Shabdhan can find and attach an existing Internet Archive snapshot. If none exists, save the public page with the Archive and check again. The snapshot is hosted by the Internet Archive, not copied onto Shabdhan, and capture is not guaranteed for every page.</p>
           </div>
 
@@ -1163,7 +1163,7 @@ export default function ReportDetailsPage() {
             )}
 
             {uploadSuccess && (
-              <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+              <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
                 {uploadSuccess}
               </div>
             )}
@@ -1261,7 +1261,7 @@ export default function ReportDetailsPage() {
                               type="button"
                               onClick={() => void handleUpdateEvidenceVerification(item, "VERIFIED")}
                               disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
-                              className="rounded-md border border-green-200 px-2.5 py-1 text-xs font-medium text-green-800 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-md border border-teal-200 px-2.5 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {reviewingEvidenceId === item.id ? "Saving…" : "Verify"}
                             </button>
@@ -1403,7 +1403,7 @@ export default function ReportDetailsPage() {
             )}
 
             {corroborationActionSuccess && (
-              <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+              <div className="mt-3 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
                 {corroborationActionSuccess}
               </div>
             )}
@@ -1456,11 +1456,11 @@ export default function ReportDetailsPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold text-slate-950">
-                          Corroborated by <Link href={`/users/${item.user.id}`} className="hover:text-emerald-800 hover:underline">@{item.user.username}</Link>
+                          Corroborated by <Link href={`/users/${item.user.id}`} className="hover:text-teal-800 hover:underline">@{item.user.username}</Link>
                         </p>
 
                         {item.user.is_verified && (
-                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                          <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[11px] font-medium text-teal-700">
                             Verified
                           </span>
                         )}
@@ -1576,7 +1576,7 @@ export default function ReportDetailsPage() {
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <p className="text-sm font-semibold text-slate-950">
-                              Comment by {comment.username?.trim() ? <Link href={`/users/${comment.user_id}`} className="hover:text-emerald-800 hover:underline">@{comment.username.trim()}</Link> : "User"}
+                              Comment by {comment.username?.trim() ? <Link href={`/users/${comment.user_id}`} className="hover:text-teal-800 hover:underline">@{comment.username.trim()}</Link> : "User"}
                             </p>
 
                             <p className="mt-1 text-xs text-slate-400">
@@ -1718,7 +1718,7 @@ export default function ReportDetailsPage() {
                               <div className="flex items-start justify-between gap-4">
                                 <div>
                                   <p className="text-sm font-semibold text-slate-950">
-                                    Reply by {reply.username?.trim() ? <Link href={`/users/${reply.user_id}`} className="hover:text-emerald-800 hover:underline">@{reply.username.trim()}</Link> : "User"}
+                                    Reply by {reply.username?.trim() ? <Link href={`/users/${reply.user_id}`} className="hover:text-teal-800 hover:underline">@{reply.username.trim()}</Link> : "User"}
                                   </p>
 
                                   <p className="mt-1 text-xs text-slate-400">

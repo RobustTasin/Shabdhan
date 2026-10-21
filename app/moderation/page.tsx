@@ -213,12 +213,12 @@ export default function ModerationPage() {
         </p>
       </div>
 
-      <Link href="/moderation/applications" className="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 transition hover:border-emerald-300 hover:bg-emerald-100 sm:flex-row sm:items-center sm:justify-between">
+      <Link href="/moderation/applications" className="flex flex-col gap-2 rounded-2xl border border-teal-200 bg-teal-50 p-5 transition hover:border-teal-300 hover:bg-teal-100 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="font-semibold text-emerald-950">Membership applications</h2>
-          <p className="mt-1 text-sm text-emerald-900/75">Review membership applications. Email each applicant with the decision within 48 hours.</p>
+          <h2 className="font-semibold text-teal-950">Membership applications</h2>
+          <p className="mt-1 text-sm text-teal-900/75">Review membership applications. Email each applicant with the decision within 48 hours.</p>
         </div>
-        <span className="text-sm font-semibold text-emerald-950">Open review queue →</span>
+        <span className="text-sm font-semibold text-teal-950">Open review queue →</span>
       </Link>
       <Link href="/moderation/pass-reset-applications" className="mt-3 flex flex-col gap-2 rounded-2xl border border-indigo-200 bg-indigo-50 p-5 transition hover:border-indigo-300 hover:bg-indigo-100 sm:flex-row sm:items-center sm:justify-between">
         <div><h2 className="font-semibold text-indigo-950">Pass-Res Applications</h2><p className="mt-1 text-sm text-indigo-900/75">Review password reset requests, issue a six-letter code, and email it manually.</p></div>
@@ -349,7 +349,7 @@ export default function ModerationPage() {
                       <span
                         className={
                           targetUser.is_active
-                            ? "rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700"
+                            ? "rounded-full bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700"
                             : "rounded-full bg-red-50 px-2.5 py-1 text-xs font-medium text-red-700"
                         }
                       >
@@ -363,7 +363,7 @@ export default function ModerationPage() {
                       <span
                         className={
                           targetUser.is_verified
-                            ? "text-emerald-700"
+                            ? "text-teal-700"
                             : "text-slate-400"
                         }
                       >

@@ -55,8 +55,8 @@ body {
 
 
 html[data-site-theme="dark"] body {
-  background: #101713 !important;
-  color: #e5eee7 !important;
+  background: #101818 !important;
+  color: #e2efed !important;
 }
 
 html[data-site-theme="dark"] header,
@@ -69,9 +69,9 @@ html[data-site-theme="dark"] select,
 html[data-site-theme="dark"] aside,
 html[data-site-theme="dark"] nav,
 html[data-site-theme="dark"] dialog {
-  background-color: #19231d !important;
-  border-color: #34443a !important;
-  color: #e5eee7 !important;
+  background-color: #192423 !important;
+  border-color: #344947 !important;
+  color: #e2efed !important;
 }
 
 html[data-site-theme="dark"] [class*="bg-white"],
@@ -79,20 +79,20 @@ html[data-site-theme="dark"] [class*="bg-slate-50"],
 html[data-site-theme="dark"] [class*="bg-slate-100"],
 html[data-site-theme="dark"] [class*="bg-[#f"],
 html[data-site-theme="dark"] [class*="bg-[#e"] {
-  background-color: #19231d !important;
+  background-color: #192423 !important;
 }
 
 html[data-site-theme="dark"] [class*="text-[#"],
 html[data-site-theme="dark"] [class*="text-slate-"],
 html[data-site-theme="dark"] [class*="text-gray-"],
 html[data-site-theme="dark"] [class*="text-rose-"],
-html[data-site-theme="dark"] [class*="text-emerald-"],
+html[data-site-theme="dark"] [class*="text-teal-"],
 html[data-site-theme="dark"] [class*="text-amber-"],
 html[data-site-theme="dark"] [class*="text-indigo-"] {
-  color: #d5e1d8 !important;
+  color: #d5e5e3 !important;
 }
 
 html[data-site-theme="dark"] [class*="border-[#"],
 html[data-site-theme="dark"] [class*="border-slate-"] {
-  border-color: #34443a !important;
+  border-color: #344947 !important;
 }

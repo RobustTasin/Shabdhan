@@ -31,7 +31,7 @@ function verificationBadgeClass(
 ) {
   switch (status) {
     case "VERIFIED":
-      return "bg-green-100 text-green-800";
+      return "bg-teal-100 text-teal-800";
     case "REJECTED":
       return "bg-red-100 text-red-800";
     default:

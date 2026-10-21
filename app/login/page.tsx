@@ -42,16 +42,16 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f3f5f0]">
+    <main className="min-h-screen bg-[#f2f6f5]">
       <PublicSiteHeader />
       <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
         <div className="w-full max-w-xl">
-        <div className="rounded-3xl border border-[#dfe4dc] bg-white p-6 shadow-[0_18px_50px_rgba(31,51,37,0.08)] sm:p-9">
+        <div className="rounded-3xl border border-[#dbe7e5] bg-white p-6 shadow-[0_18px_50px_rgba(31,51,37,0.08)] sm:p-9">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#52705a]">Welcome back</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#183b2c]">Sign in</h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#4e817d]">Welcome back</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#123d3b]">Sign in</h1>
 
-            <p className="mt-2 text-sm leading-6 text-[#617166]">
+            <p className="mt-2 text-sm leading-6 text-[#627573]">
               Sign in to your Shabdhan account.
             </p>
           </div>
@@ -69,7 +69,7 @@ export default function LoginPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-[#34483a]"
+                className="block text-sm font-medium text-[#344f4e]"
               >
                 Email
               </label>
@@ -84,7 +84,7 @@ export default function LoginPage() {
                 onChange={(event) =>
                   setEmail(event.target.value)
                 }
-                className="mt-2 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfcfa] px-4 py-3 text-sm text-[#203528] outline-none transition placeholder:text-[#89958b] focus:border-[#52705a] focus:ring-2 focus:ring-[#e4ebe2]"
+                className="mt-2 w-full rounded-xl border border-[#dbe7e5] bg-[#fbfdfd] px-4 py-3 text-sm text-[#1d3837] outline-none transition placeholder:text-[#899c99] focus:border-[#4e817d] focus:ring-2 focus:ring-[#dfedeb]"
                 placeholder="you@example.com"
               />
             </div>
@@ -93,14 +93,14 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium text-[#34483a]"
+                  className="block text-sm font-medium text-[#344f4e]"
                 >
                   Password
                 </label>
 
                 <Link
                   href="/forgot-password"
-                  className="text-xs font-semibold text-[#45634d] hover:text-[#183b2c] hover:underline"
+                  className="text-xs font-semibold text-[#326966] hover:text-[#123d3b] hover:underline"
                 >
                   Forgot password?
                 </Link>
@@ -116,7 +116,7 @@ export default function LoginPage() {
                 onChange={(event) =>
                   setPassword(event.target.value)
                 }
-                className="mt-2 w-full rounded-xl border border-[#dfe4dc] bg-[#fbfcfa] px-4 py-3 text-sm text-[#203528] outline-none transition placeholder:text-[#89958b] focus:border-[#52705a] focus:ring-2 focus:ring-[#e4ebe2]"
+                className="mt-2 w-full rounded-xl border border-[#dbe7e5] bg-[#fbfdfd] px-4 py-3 text-sm text-[#1d3837] outline-none transition placeholder:text-[#899c99] focus:border-[#4e817d] focus:ring-2 focus:ring-[#dfedeb]"
                 placeholder="Enter your password"
               />
             </div>
@@ -124,15 +124,15 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-[#183b2c] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#244c38] disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-[#123d3b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#225c57] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
 
-          <div className="mt-7 space-y-4 border-t border-[#e8ebe5] pt-6 text-center text-sm text-[#617166]">
-            <p>Already applied?{" "}<Link href="/account/create" className="font-semibold text-[#183b2c] hover:underline">Create account</Link></p>
-            <p>New to Shabdhan?{" "}<Link href="/apply" className="font-semibold text-[#183b2c] hover:underline">Apply for membership</Link></p>
+          <div className="mt-7 space-y-4 border-t border-[#e3eeec] pt-6 text-center text-sm text-[#627573]">
+            <p>Already applied?{" "}<Link href="/account/create" className="font-semibold text-[#123d3b] hover:underline">Create account</Link></p>
+            <p>New to Shabdhan?{" "}<Link href="/apply" className="font-semibold text-[#123d3b] hover:underline">Apply for membership</Link></p>
           </div>
         </div>
       </div>

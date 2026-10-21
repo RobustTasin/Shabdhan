@@ -88,25 +88,25 @@ export default function CreateReportPage() {
 
   return <ProfilePageLayout>
     <div className="mx-auto max-w-3xl">
-      <Link href="/me" className="text-sm font-medium text-emerald-900 hover:underline">← Back to Me</Link>
+      <Link href="/me" className="text-sm font-medium text-teal-900 hover:underline">← Back to Me</Link>
       <section className="mt-5 rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-800">Community report</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-teal-800">Community report</p>
         <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Create a report</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">Describe the incident clearly. Reports begin as drafts and are reviewed before they appear in the public feed.</p>
         {error && <p role="alert" className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</p>}
         <form onSubmit={submitReport} className="mt-7 space-y-5">
           <div>
             <label htmlFor="report-title" className="text-sm font-medium text-slate-700">Report title</label>
-            <input id="report-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="A concise title for the report" required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100" />
+            <input id="report-title" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="A concise title for the report" required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-100" />
           </div>
           <div>
             <label htmlFor="report-description" className="text-sm font-medium text-slate-700">Description</label>
-            <textarea id="report-description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What happened? Include relevant context and dates." rows={6} required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-100" />
+            <textarea id="report-description" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What happened? Include relevant context and dates." rows={6} required className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-teal-700 focus:ring-2 focus:ring-teal-100" />
           </div>
           <fieldset>
             <legend className="text-sm font-medium text-slate-700">Where did the incident happen?</legend>
             <div className="mt-2 grid grid-cols-2 gap-3">
-              {(["OFFLINE", "ONLINE"] as const).map((type) => <label key={type} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 text-sm ${incidentType === type ? "border-emerald-800 bg-emerald-50 font-medium" : "border-slate-200"}`}>
+              {(["OFFLINE", "ONLINE"] as const).map((type) => <label key={type} className={`flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 text-sm ${incidentType === type ? "border-teal-800 bg-teal-50 font-medium" : "border-slate-200"}`}>
                 <input type="radio" name="incident_type" value={type} checked={incidentType === type} onChange={() => { setIncidentType(type); if (type === "OFFLINE") setIncidentPlatform(""); }} required />
                 {type === "OFFLINE" ? "Offline" : "Online"}
               </label>)}
@@ -127,7 +127,7 @@ export default function CreateReportPage() {
           <div>
             <div className="flex items-center justify-between gap-3">
               <label htmlFor="social-account" className="text-sm font-medium text-slate-700">Related social account (optional)</label>
-              <button type="button" onClick={() => setShowAccountForm(true)} className="text-xs font-semibold text-emerald-900 underline">+ Add account</button>
+              <button type="button" onClick={() => setShowAccountForm(true)} className="text-xs font-semibold text-teal-900 underline">+ Add account</button>
             </div>
             <select id="social-account" value={socialAccountId} onChange={(event) => setSocialAccountId(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
               <option value="">No linked account</option>{socialAccounts.map((account) => <option key={account.id} value={account.id}>{account.platform} · @{account.username}</option>)}
@@ -135,7 +135,7 @@ export default function CreateReportPage() {
           </div>
           <div className="flex flex-col-reverse justify-end gap-3 border-t border-slate-100 pt-5 sm:flex-row">
             <Link href="/me" className="inline-flex justify-center rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</Link>
-            <button type="submit" disabled={submitting || !title.trim() || !description.trim() || !incidentType || (incidentType === "ONLINE" && !incidentPlatform)} className="rounded-xl bg-emerald-950 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50">{submitting ? "Creating…" : "Create report"}</button>
+            <button type="submit" disabled={submitting || !title.trim() || !description.trim() || !incidentType || (incidentType === "ONLINE" && !incidentPlatform)} className="rounded-xl bg-teal-950 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-50">{submitting ? "Creating…" : "Create report"}</button>
           </div>
         </form>
       </section>
