@@ -19,7 +19,7 @@ export default function ProfilePageLayout({ children }: { children: ReactNode })
         <div className="mx-auto flex h-[68px] w-full items-center gap-3 px-4 sm:px-6 lg:px-8">
           <Link href="/" aria-label="Shabdhan home" className="flex shrink-0 items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#123d3b] text-sm font-bold text-[#e1f3ef]">S</span>
-            <span className="text-lg font-semibold tracking-[-0.04em]">shabdhan<span className="text-[#5b918b]">.</span></span>
+            <span className="text-lg font-semibold tracking-[-0.04em]"><span className="text-[#006A4E]">sha</span><span className="text-[#F42A41]">bd</span><span className="text-[#006A4E]">han.</span></span>
           </Link>
           <nav aria-label="Main navigation" className="ml-auto flex items-center gap-2">
             <Link href="/#public-feed" className="inline-flex h-10 items-center justify-center rounded-full bg-[#e7f1ef] px-4 text-sm font-semibold text-[#245c58] transition hover:bg-[#dfecea]">Feed</Link>
@@ -47,7 +47,7 @@ export default function ProfilePageLayout({ children }: { children: ReactNode })
               </section>
               <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
               <Link href="/#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse Categories</Link>
-              <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">আমার বাংলাদেশ</Link>
+              <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl bg-[#F42A41] px-3 py-3 text-sm font-semibold text-[#101820] hover:bg-[#e9243b]">আমার বাংলাদেশ</Link>
               {user ? <>
                 {isModerator && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}
                 <Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Create a report</Link>
