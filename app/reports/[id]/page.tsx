@@ -800,7 +800,7 @@ export default function ReportDetailsPage() {
                 <Link href={`/users/${report.reporter.id}`} className="mt-1 inline-flex text-sm font-medium text-slate-900 hover:text-teal-800 hover:underline">@{report.reporter.username}</Link>
               </div>
             )}
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-5">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Category
