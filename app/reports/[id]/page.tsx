@@ -34,11 +34,6 @@ import {
   type ApiComment,
 } from "../../lib/comments-api";
 import {
-  calculateRiskScore,
-  getRiskScoreForReport,
-  type ApiRiskScore,
-} from "../../lib/risk-scores-api";
-import {
   createCorroboration,
   deleteCorroboration,
   getCorroborationsForReport,
@@ -134,10 +129,6 @@ export default function ReportDetailsPage() {
   const [comments, setComments] = useState<ApiComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
 
-  const [riskScore, setRiskScore] = useState<ApiRiskScore | null>(null);
-  const [riskScoreLoading, setRiskScoreLoading] = useState(true);
-  const [riskScoreError, setRiskScoreError] = useState("");
-  const [calculatingRiskScore, setCalculatingRiskScore] = useState(false);
   const [corroborations, setCorroborations] = useState<ApiCorroboration[]>([]);
   const [corroborationsLoading, setCorroborationsLoading] = useState(true);
   const [corroborationComment, setCorroborationComment] = useState("");
@@ -179,25 +170,6 @@ export default function ReportDetailsPage() {
           setComments(commentsResponse.comments);
           setCorroborations(corroborationsResponse.corroborations);
 
-          return getRiskScoreForReport(id)
-            .then((riskScoreResponse) => {
-              setRiskScore(riskScoreResponse.risk_score);
-            })
-            .catch((err) => {
-              const message =
-                err instanceof Error
-                  ? err.message
-                  : "Failed to load risk score";
-
-              if (message !== "Risk score not found") {
-                setRiskScoreError(message);
-              }
-
-              setRiskScore(null);
-            })
-            .finally(() => {
-              setRiskScoreLoading(false);
-            });
         }
       )
       .catch((err) => {
@@ -236,29 +208,6 @@ export default function ReportDetailsPage() {
       cancelled = true;
     };
   }, [report?.id, report?.social_account_id]);
-
-  async function handleCalculateRiskScore() {
-    if (!id) {
-      return;
-    }
-
-    setCalculatingRiskScore(true);
-    setRiskScoreError("");
-
-    try {
-      const response = await calculateRiskScore(id);
-      setRiskScore(response.risk_score);
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to calculate risk score";
-
-      setRiskScoreError(message);
-    } finally {
-      setCalculatingRiskScore(false);
-    }
-  }
 
   async function handleReportReview(
     verificationStatus: "VERIFIED" | "REJECTED"
@@ -917,8 +866,7 @@ export default function ReportDetailsPage() {
           </div>
         </section>
 
-        <aside className="space-y-4 lg:col-start-3 lg:row-start-1">
-        {report.social_account?.id && (
+        {report.social_account?.id && <aside className="space-y-4 lg:col-start-3 lg:row-start-1">
         <section className="rounded-xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-950">
             Reported account
@@ -969,40 +917,7 @@ export default function ReportDetailsPage() {
             )}
           </div>
         </section>
-        )}
-
-        <section aria-labelledby="risk-score-title" className="rounded-xl border border-slate-200 bg-white p-5">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 id="risk-score-title" className="text-base font-semibold text-slate-950">Risk score</h2>
-              <p className="mt-1 text-xs text-slate-500">A signal for review, not proof.</p>
-            </div>
-            {(user?.role === "MODERATOR" || user?.role === "ADMIN") && <button type="button" onClick={handleCalculateRiskScore} disabled={calculatingRiskScore} className="text-xs font-medium text-teal-800 underline disabled:opacity-50">{calculatingRiskScore ? "Calculating…" : riskScore ? "Recalculate" : "Calculate"}</button>}
-          </div>
-          {riskScoreLoading ? <p className="mt-4 text-sm text-slate-500">Loading…</p> : riskScore ? <>
-            <p className="mt-4 text-3xl font-bold text-slate-900">{Number(riskScore.score)}<span className="ml-1 text-sm font-medium text-slate-400">/ 100</span></p>
-            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-teal-700" style={{ width: `${Math.max(0, Math.min(100, Number(riskScore.score)))}%` }} /></div>
-            <p className="mt-3 line-clamp-3 text-xs leading-5 text-slate-600">{riskScore.explanation}</p>
-          </> : <p className="mt-4 text-sm text-slate-600">No score calculated yet.</p>}
-          {riskScoreError && <p role="alert" className="mt-3 text-xs text-red-600">{riskScoreError}</p>}
-        </section>
-
-        <section aria-labelledby="discussion-title" className="rounded-xl border border-slate-200 bg-white p-5">
-          <div className="flex items-center justify-between gap-2">
-            <h2 id="discussion-title" className="text-base font-semibold text-slate-950">Discussion</h2>
-            <span className="text-xs text-slate-500">{comments.length} comments · {corroborations.length} corroborations</span>
-          </div>
-          {commentsLoading ? <p className="mt-3 text-sm text-slate-500">Loading comments…</p> : comments.length ? <div className="mt-3 space-y-3">
-            {[...comments].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 2).map((comment) => <a key={comment.id} href="#comments" className="block rounded-lg bg-slate-50 p-3 hover:bg-slate-100"><p className="text-xs font-semibold text-slate-700">@{comment.username || "User"}</p><p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-600">{comment.content}</p></a>)}
-          </div> : <p className="mt-3 text-sm text-slate-500">No comments yet. Add context to the discussion.</p>}
-          <div className="mt-4 flex flex-wrap gap-2">
-            {user && user.id !== report.reporter?.id && !corroborations.some((item) => item.user_id === user.id) ? <button type="button" onClick={() => void handleCreateCorroboration()} disabled={submittingCorroboration} className="rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-800 disabled:opacity-50">{submittingCorroboration ? "Saving…" : "Corroborate"}</button> : user ? <a href="#corroborations" className="rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-800">View corroborations</a> : <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#corroborations`)}`} className="rounded-lg bg-teal-700 px-3 py-2 text-xs font-semibold text-white hover:bg-teal-800">Sign in to corroborate</Link>}
-            <a href="#comments" className="rounded-lg border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50">{user ? "Comment" : "Read comments"}</a>
-          </div>
-          {corroborationActionError && <p role="alert" className="mt-3 text-xs text-red-700">{corroborationActionError}</p>}
-          {corroborationActionSuccess && <p role="status" className="mt-3 text-xs text-teal-800">{corroborationActionSuccess}</p>}
-        </section>
-        </aside>
+        </aside>}
       </div>
 
       <section id="evidence" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
@@ -1434,14 +1349,9 @@ export default function ReportDetailsPage() {
 
 
       <section id="comments" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-950">
-            Comments
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Discuss this report, provide context, or respond to other users.
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-slate-950">Comments</h2>
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{comments.length}</span>
         </div>
 
         {user ? (
