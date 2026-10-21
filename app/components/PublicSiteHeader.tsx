@@ -9,7 +9,7 @@ export default function PublicSiteHeader() {
 
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div className="flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8 xl:px-10">
         <Link href="/" aria-label="Shabdhan home feed" className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-950 text-sm font-bold text-white">S</span>
           <span className="text-lg font-semibold tracking-tight text-slate-900">shabdhan.</span>
