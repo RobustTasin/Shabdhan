@@ -51,7 +51,6 @@ export default function ProfilePageLayout({ children }: { children: ReactNode })
               {user ? <>
                 {isModerator && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link>}
                 <Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Create a report</Link>
-                <Link href="/reports" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">My reports</Link>
                 <button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e8ebe5] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button>
               </> : <>
                 <Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link>
