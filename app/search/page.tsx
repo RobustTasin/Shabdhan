@@ -10,6 +10,8 @@ import {
   type ApiReport,
   type Category,
 } from "../lib/reports-api";
+import ReportLocationSelector from "../components/ReportLocationSelector";
+import type { ReportLocationValue } from "../../shared/report-location";
 
 const PAGE_SIZE = 12;
 
@@ -18,6 +20,9 @@ export default function SearchPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [location, setLocation] = useState<ReportLocationValue>({ scope: "", countryCode: "", division: "", district: "", subDistrict: "" });
+  const [fromMonth, setFromMonth] = useState("");
+  const [toMonth, setToMonth] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -46,7 +51,7 @@ export default function SearchPage() {
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [initialized, search, categoryId, page]);
+  }, [initialized, search, categoryId, page, location.countryCode, location.division, location.district, location.subDistrict, fromMonth, toMonth]);
 
   async function loadResults() {
     try {
@@ -56,6 +61,12 @@ export default function SearchPage() {
       const response = await searchReports({
         search: search.trim(),
         categoryId,
+        countryCode: location.countryCode || undefined,
+        division: location.division || undefined,
+        district: location.district || undefined,
+        subDistrict: location.subDistrict || undefined,
+        fromMonth: fromMonth || undefined,
+        toMonth: toMonth || undefined,
         page,
         limit: PAGE_SIZE,
       });
@@ -134,6 +145,13 @@ export default function SearchPage() {
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+          <div className="mt-5 border-t border-slate-100 pt-5">
+            <ReportLocationSelector value={location} onChange={(value)=>{setLocation(value);setPage(1);}} label="Filter by location" />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium text-slate-700">From month<input type="month" value={fromMonth} onChange={(e)=>{setFromMonth(e.target.value);setPage(1);}} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" /></label>
+              <label className="text-sm font-medium text-slate-700">To month<input type="month" value={toMonth} onChange={(e)=>{setToMonth(e.target.value);setPage(1);}} className="mt-2 w-full rounded-xl border border-slate-200 px-4 py-3 text-sm" /></label>
             </div>
           </div>
         </section>
@@ -218,6 +236,7 @@ export default function SearchPage() {
                       <p className="mt-3 line-clamp-2 text-sm text-slate-600">
                         {report.description}
                       </p>
+                      {report.location_country_name && <p className="mt-2 text-xs font-medium text-teal-800">{[report.location_sub_district, report.location_district, report.location_division, report.location_country_name].filter(Boolean).join(" · ")}</p>}
                     </div>
 
                     <span className="w-fit shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">

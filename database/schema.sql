@@ -176,6 +176,12 @@ CREATE TABLE reports (
 
     incident_type VARCHAR(10) NOT NULL DEFAULT 'ONLINE',
     incident_platform VARCHAR(100),
+    location_scope VARCHAR(12),
+    location_country_code CHAR(2),
+    location_country_name VARCHAR(100),
+    location_division VARCHAR(100),
+    location_district VARCHAR(100),
+    location_sub_district VARCHAR(120),
 
     status report_status NOT NULL DEFAULT 'DRAFT',
 
@@ -191,7 +197,12 @@ CREATE TABLE reports (
         CHECK (
             (incident_type = 'ONLINE' AND incident_platform IS NOT NULL AND incident_platform <> '')
             OR (incident_type = 'OFFLINE' AND incident_platform IS NULL)
-        )
+        ),
+    CONSTRAINT reports_location_scope_check CHECK (
+      (location_scope IS NULL AND location_country_code IS NULL AND location_country_name IS NULL AND location_division IS NULL AND location_district IS NULL AND location_sub_district IS NULL)
+      OR (location_scope = 'BANGLADESH' AND location_country_code = 'BD' AND location_country_name = 'Bangladesh' AND location_division IS NOT NULL AND location_district IS NOT NULL AND location_sub_district IS NOT NULL)
+      OR (location_scope = 'ABROAD' AND location_country_code IS NOT NULL AND location_country_code <> 'BD' AND location_country_name IS NOT NULL AND location_division IS NULL AND location_district IS NULL AND location_sub_district IS NULL)
+    )
 );
 
 
