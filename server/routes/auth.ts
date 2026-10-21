@@ -17,7 +17,7 @@ const router = Router();
 
 const membershipSchema = z.object({
   email: z.string().trim().email().max(255).transform((value) => value.toLowerCase()),
-  code: z.string().trim().regex(/^[A-Za-z]{6}$/).transform((value) => value.toUpperCase()),
+  code: z.string().trim().regex(/^[A-Za-z0-9]{6}$/).transform((value) => value.toUpperCase()),
   username: z.string().trim().min(3).max(50).regex(/^[A-Za-z0-9_]+$/),
   password: z.string().min(8).max(128),
 });

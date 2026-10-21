@@ -13,7 +13,7 @@ const applicationSchema = z.object({
   social_url: z.string().trim().url().max(2048).refine((value) => /^https?:\/\//i.test(value), "Use a valid http or https profile link"),
 });
 const idSchema = z.uuid();
-const codeSchema = z.string().trim().regex(/^[A-Za-z]{6}$/).transform((value) => value.toUpperCase());
+const codeSchema = z.string().trim().regex(/^[A-Za-z0-9]{6}$/).transform((value) => value.toUpperCase());
 
 router.post("/", async (req, res) => {
   const parsed = applicationSchema.safeParse(req.body);
@@ -38,7 +38,7 @@ router.post("/", async (req, res) => {
 
 router.post("/eligibility", async (req, res) => {
   const parsed = z.object({ email: z.string().trim().email().max(255).transform((value) => value.toLowerCase()), code: codeSchema }).safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ status: "error", message: parsed.error.issues[0]?.message ?? "Enter your approved email and six-letter code" });
+  if (!parsed.success) return res.status(400).json({ status: "error", message: parsed.error.issues[0]?.message ?? "Enter your approved email and six-character code" });
   const { email, code } = parsed.data;
   const client = await pool.connect();
   try {
@@ -106,7 +106,7 @@ async function reviewApplication(id: string, action: "APPROVED" | "DECLINED", co
     );
     await createAuditLog({ userId: req.user!.id, action: `MEMBERSHIP_APPLICATION_${action}`, entityType: "membership_application", entityId: id, newData: { application_number: app.application_number, email: app.email }, req, client });
     await client.query("COMMIT");
-    return res.json({ status: "ok", message: action === "APPROVED" ? "Application approved. Manually email the six-letter code to the applicant within 48 hours." : "Application declined. Manually email the applicant with the decision." });
+    return res.json({ status: "ok", message: action === "APPROVED" ? "Application approved. Manually email the six-character code to the applicant within 48 hours." : "Application declined. Manually email the applicant with the decision." });
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("Failed to review membership application:", error);
@@ -118,7 +118,7 @@ router.post("/:id/approve", ...reviewer, async (req: AuthenticatedRequest, res) 
   const id = idSchema.safeParse(req.params.id);
   const code = codeSchema.safeParse(req.body?.code);
   if (!id.success) return res.status(404).json({ status: "error", message: "Application not found" });
-  if (!code.success) return res.status(400).json({ status: "error", message: "Enter a six-letter code (A–Z) before approving" });
+  if (!code.success) return res.status(400).json({ status: "error", message: "Enter a six-character code using letters and numbers before approving" });
   return reviewApplication(id.data, "APPROVED", code.data, req, res);
 });
 router.post("/:id/decline", ...reviewer, async (req: AuthenticatedRequest, res) => {
@@ -131,7 +131,7 @@ router.post("/:id/code", ...reviewer, async (req: AuthenticatedRequest, res) => 
   const id = idSchema.safeParse(req.params.id);
   const code = codeSchema.safeParse(req.body?.code);
   if (!id.success) return res.status(404).json({ status: "error", message: "Application not found" });
-  if (!code.success) return res.status(400).json({ status: "error", message: "Enter a six-letter code (A–Z)" });
+  if (!code.success) return res.status(400).json({ status: "error", message: "Enter a six-character code using letters and numbers" });
   const client = await pool.connect();
   try {
     await client.query("BEGIN");

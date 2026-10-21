@@ -55,7 +55,7 @@ export default function MembershipApplicationsPage() {
 
   async function runAction(application: MembershipApplication, action: "approve" | "decline" | "issue-code") {
     const code = codes[application.id]?.toUpperCase() ?? "";
-    if (action !== "decline" && !/^[A-Z]{6}$/.test(code)) { setError("Enter a six-letter code before approving."); return; }
+    if (action !== "decline" && !/^[A-Z0-9]{6}$/.test(code)) { setError("Enter a six-character code using letters and numbers before approving."); return; }
     if (action === "decline" && !window.confirm(`Decline ${formatMembershipApplicationNumber(application.application_number)}?`)) return;
     setBusyId(application.id);
     setError("");
@@ -96,7 +96,7 @@ export default function MembershipApplicationsPage() {
         <div>
           <Link href="/moderation" className="text-sm font-medium text-slate-500 hover:text-slate-900">← Moderation</Link>
           <h1 className="mt-2 text-2xl font-semibold text-slate-950">Membership applications</h1>
-          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Review the social profile, enter a six-letter code when approving, then manually email the decision and code within 48 hours. Codes expire after 48 hours.</p>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">Review the social profile, enter a six-character code using letters and numbers when approving, then manually email the decision and code within 48 hours. Codes expire after 48 hours.</p>
         </div>
         <label className="text-sm font-medium text-slate-700">Show
           <select value={filter} onChange={(event) => setFilter(event.target.value as Filter)} className="ml-2 rounded-lg border border-slate-300 bg-white px-3 py-2">
@@ -153,13 +153,13 @@ export default function MembershipApplicationsPage() {
                 <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
                   {application.status === "PENDING" ? (
                     <>
-                      <label className="min-w-48 flex-1 text-sm font-medium text-slate-700">Six-letter approval code<input aria-label={`Six-letter approval code for ${application.email}`} value={codes[application.id] ?? ""} maxLength={6} onChange={(event) => setCodes((prev) => ({ ...prev, [application.id]: event.target.value.replace(/[^a-z]/gi, "").slice(0, 6).toUpperCase() }))} placeholder="ABCDEF" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase tracking-widest" /></label>
-                      <button type="button" disabled={busy || !/^[A-Z]{6}$/.test(codes[application.id] ?? "")} onClick={() => void runAction(application, "approve")} className="rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{busy ? "Working…" : "Accept"}</button>
+                      <label className="min-w-48 flex-1 text-sm font-medium text-slate-700">Six-character approval code<input aria-label={`Six-character approval code for ${application.email}`} value={codes[application.id] ?? ""} maxLength={6} onChange={(event) => setCodes((prev) => ({ ...prev, [application.id]: event.target.value.replace(/[^a-z0-9]/gi, "").slice(0, 6).toUpperCase() }))} placeholder="A1B2C3" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase tracking-widest" /></label>
+                      <button type="button" disabled={busy || !/^[A-Z0-9]{6}$/.test(codes[application.id] ?? "")} onClick={() => void runAction(application, "approve")} className="rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{busy ? "Working…" : "Accept"}</button>
                       <button type="button" disabled={busy} onClick={() => void runAction(application, "decline")} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Decline</button>
                     </>
                   ) : application.status === "APPROVED" && !application.account_created_at ? <>
-                    <label className="min-w-48 flex-1 text-sm font-medium text-slate-700">{application.code_expires_at ? "Replace approval code" : "Set approval code"}<input aria-label={`New six-letter approval code for ${application.email}`} value={codes[application.id] ?? ""} maxLength={6} onChange={(event) => setCodes((prev) => ({ ...prev, [application.id]: event.target.value.replace(/[^a-z]/gi, "").slice(0, 6).toUpperCase() }))} placeholder="ABCDEF" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase tracking-widest" /></label>
-                    <button type="button" disabled={busy || !/^[A-Z]{6}$/.test(codes[application.id] ?? "")} onClick={() => void runAction(application, "issue-code")} className="self-end rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{busy ? "Working…" : "Set code"}</button>
+                    <label className="min-w-48 flex-1 text-sm font-medium text-slate-700">{application.code_expires_at ? "Replace approval code" : "Set approval code"}<input aria-label={`New six-character approval code for ${application.email}`} value={codes[application.id] ?? ""} maxLength={6} onChange={(event) => setCodes((prev) => ({ ...prev, [application.id]: event.target.value.replace(/[^a-z0-9]/gi, "").slice(0, 6).toUpperCase() }))} placeholder="A1B2C3" className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 font-mono uppercase tracking-widest" /></label>
+                    <button type="button" disabled={busy || !/^[A-Z0-9]{6}$/.test(codes[application.id] ?? "")} onClick={() => void runAction(application, "issue-code")} className="self-end rounded-lg bg-emerald-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">{busy ? "Working…" : "Set code"}</button>
                   </> : null}
                 </div>
               </article>
