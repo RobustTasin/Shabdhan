@@ -17,6 +17,7 @@ export type Category = {
   name: string;
   description: string | null;
   is_active: boolean;
+  report_count?: number;
 };
 
 export type SocialAccount = {

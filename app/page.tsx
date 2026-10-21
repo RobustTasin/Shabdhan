@@ -503,7 +503,7 @@ export default function Home() {
               </div>}
             </section>
             <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
-            <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse categories</a>
+            <Link href="/categories" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse categories</Link>
             <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl bg-[#F42A41] px-3 py-3 text-sm font-semibold text-[#101820] hover:bg-[#e9243b]">আমার বাংলাদেশ</Link>
             {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e3eeec] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Apply for membership</Link></>}
           </nav>
@@ -552,7 +552,7 @@ export default function Home() {
               </div>}
             </section>
             <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
-            <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse categories</a>
+            <Link href="/categories" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse categories</Link>
             <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl bg-[#F42A41] px-3 py-3 text-sm font-semibold text-[#101820] hover:bg-[#e9243b]">আমার বাংলাদেশ</Link>
             {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e3eeec] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Apply for membership</Link></>}
           </nav>
@@ -597,7 +597,7 @@ export default function Home() {
             <section key={category.id} aria-label={`${category.name} reports`} className="mb-6 sm:mb-7">
               <div className="mb-2 flex items-center justify-between gap-3 px-1 py-1">
                 <div className="min-w-0">
-                  <h2 className="truncate text-lg font-semibold tracking-[-0.02em] text-[#243b39]"><Link href={`/search?category_id=${encodeURIComponent(category.id)}`} className="rounded-sm hover:text-[#4e817d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4e817d]">{category.name}<span className="sr-only"> — view all reports in this category</span></Link></h2>
+                  <h2 className="truncate text-lg font-semibold tracking-[-0.02em] text-[#243b39]"><Link href={`/categories/${encodeURIComponent(category.id)}`} className="rounded-sm hover:text-[#4e817d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4e817d]">{category.name}<span className="sr-only"> — view all reports in this category</span></Link></h2>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="mr-1 text-xs tabular-nums text-[#758b87]">{shownCount ? `${index + 1}${shownCount > 1 ? `–${index + shownCount}` : ""}` : 0} / {count}</span>
