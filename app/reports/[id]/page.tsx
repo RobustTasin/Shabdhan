@@ -107,6 +107,7 @@ export default function ReportDetailsPage() {
   const [moderationReason, setModerationReason] = useState("");
 
   const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [selectedEvidenceImage, setSelectedEvidenceImage] = useState<string | null>(null);
   const [evidenceLoading, setEvidenceLoading] = useState(true);
   const [evidenceError, setEvidenceError] = useState("");
   const [evidenceActionError, setEvidenceActionError] = useState("");
@@ -750,7 +751,7 @@ export default function ReportDetailsPage() {
               <p className="text-sm text-slate-500">
                 Report ID: {formatPublicReportId(report.public_report_category_code, report.public_report_number)}
               </p>
-              <button type="button" onClick={() => void handleCopyReportId()} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Copy ID</button>
+              <button type="button" onClick={() => void handleCopyReportId()} className="text-xs font-semibold text-teal-800 underline underline-offset-2">Copy ID</button>
             </div>
 
             <h1 className="mt-1 text-2xl font-semibold text-slate-950">
@@ -1129,7 +1130,7 @@ export default function ReportDetailsPage() {
         ) : !user ? (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-sm text-slate-700">Only the report creator can add evidence. If you created this report, sign in to continue.</p>
-            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#evidence`)}`} className="mt-3 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">Sign in as report creator</Link>
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#evidence`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in as report creator</Link>
           </div>
         ) : !canAddEvidence ? (
           <p className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">Only the report creator can add evidence.</p>
@@ -1238,7 +1239,14 @@ export default function ReportDetailsPage() {
                     </div>
                   </div>
 
-                  {item.file_url && (
+                  {item.evidence_type === "IMAGE" && item.file_url && (
+                    <button type="button" onClick={() => setSelectedEvidenceImage(item.file_url)} aria-label={`View full-size evidence image: ${item.file_name || "uploaded image"}`} className="mt-4 block max-w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+                      <img src={item.file_url} alt={item.description || item.file_name || "Report evidence"} loading="lazy" className="max-h-[32rem] max-w-full object-contain" />
+                      <span className="block px-3 py-2 text-xs font-medium text-teal-800">Click to view full size</span>
+                    </button>
+                  )}
+
+                  {item.file_url && item.evidence_type !== "IMAGE" && (
                     <a
                       href={item.file_url}
                       target="_blank"
@@ -1268,21 +1276,11 @@ export default function ReportDetailsPage() {
         </div>
       </section>
 
+      <div className="grid items-start gap-6 md:grid-cols-2">
       <section id="corroborations" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-950">
-              Corroborations
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              {corroborations.length}{" "}
-              {corroborations.length === 1
-                ? "user has"
-                : "users have"}{" "}
-              corroborated this report.
-            </p>
-          </div>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-slate-950">Corroborations</h2>
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{corroborations.length}</span>
         </div>
 
         {report.social_account_id && (
@@ -1373,7 +1371,7 @@ export default function ReportDetailsPage() {
         ) : (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-sm text-slate-700">You can read this report without signing in. Sign in only if you want to corroborate or comment.</p>
-            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#corroborations`)}`} className="mt-3 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">Sign in to participate</Link>
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#corroborations`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in to participate</Link>
           </div>
         )}
 
@@ -1382,17 +1380,7 @@ export default function ReportDetailsPage() {
             <p className="text-sm text-slate-500">
               Loading corroborations...
             </p>
-          ) : corroborations.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center">
-              <p className="text-sm font-medium text-slate-700">
-                No one has corroborated this report yet.
-              </p>
-
-              <p className="mt-1 text-xs text-slate-500">
-                Be the first to add independent support.
-              </p>
-            </div>
-          ) : (
+          ) : corroborations.length > 0 ? (
             <div className="space-y-3">
               {corroborations.map((item) => (
                 <div
@@ -1440,7 +1428,7 @@ export default function ReportDetailsPage() {
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
       </section>
 
@@ -1493,7 +1481,7 @@ export default function ReportDetailsPage() {
         ) : (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-sm text-slate-700">Read public comments without an account. Sign in only to add a comment or reply.</p>
-            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#comments`)}`} className="mt-3 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">Sign in to comment</Link>
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#comments`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in to comment</Link>
           </div>
         )}
 
@@ -1757,6 +1745,8 @@ export default function ReportDetailsPage() {
           )}
         </div>
       </section>
+      </div>
+      {selectedEvidenceImage && <div role="presentation" className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 p-4 sm:p-8" onClick={() => setSelectedEvidenceImage(null)}><section role="dialog" aria-modal="true" aria-label="Full-size evidence image" className="relative flex h-full w-full items-center justify-center"><button type="button" autoFocus aria-label="Close full-size image" onClick={() => setSelectedEvidenceImage(null)} className="absolute right-0 top-0 z-10 rounded-full bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800">Close</button><img src={selectedEvidenceImage} alt="Full-size report evidence" onClick={(event) => event.stopPropagation()} className="max-h-full max-w-full object-contain" /></section></div>}
       </div>
     </>
   );
