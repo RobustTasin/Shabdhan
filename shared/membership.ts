@@ -27,6 +27,7 @@ export type MembershipApplication = {
   created_at: string;
   reviewed_at: string | null;
   reviewed_by_username: string | null;
+  code_expires_at: string | null;
   account_created_at: string | null;
 };
 
