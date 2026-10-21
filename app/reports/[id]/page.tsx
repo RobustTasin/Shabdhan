@@ -34,11 +34,6 @@ import {
   type ApiComment,
 } from "../../lib/comments-api";
 import {
-  calculateRiskScore,
-  getRiskScoreForReport,
-  type ApiRiskScore,
-} from "../../lib/risk-scores-api";
-import {
   createCorroboration,
   deleteCorroboration,
   getCorroborationsForReport,
@@ -80,7 +75,7 @@ function verificationBadgeClass(
 ) {
   switch (status) {
     case "VERIFIED":
-      return "bg-green-100 text-green-700";
+      return "bg-teal-100 text-teal-700";
     case "REJECTED":
       return "bg-red-100 text-red-700";
     default:
@@ -96,6 +91,7 @@ export default function ReportDetailsPage() {
   const canReviewEvidence = user?.role === "MODERATOR" || user?.role === "ADMIN";
 
   const [report, setReport] = useState<ApiReport | null>(null);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [editingReport, setEditingReport] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -107,6 +103,7 @@ export default function ReportDetailsPage() {
   const [moderationReason, setModerationReason] = useState("");
 
   const [evidence, setEvidence] = useState<Evidence[]>([]);
+  const [selectedEvidenceImage, setSelectedEvidenceImage] = useState<string | null>(null);
   const [evidenceLoading, setEvidenceLoading] = useState(true);
   const [evidenceError, setEvidenceError] = useState("");
   const [evidenceActionError, setEvidenceActionError] = useState("");
@@ -133,10 +130,6 @@ export default function ReportDetailsPage() {
   const [comments, setComments] = useState<ApiComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
 
-  const [riskScore, setRiskScore] = useState<ApiRiskScore | null>(null);
-  const [riskScoreLoading, setRiskScoreLoading] = useState(true);
-  const [riskScoreError, setRiskScoreError] = useState("");
-  const [calculatingRiskScore, setCalculatingRiskScore] = useState(false);
   const [corroborations, setCorroborations] = useState<ApiCorroboration[]>([]);
   const [corroborationsLoading, setCorroborationsLoading] = useState(true);
   const [corroborationComment, setCorroborationComment] = useState("");
@@ -178,25 +171,6 @@ export default function ReportDetailsPage() {
           setComments(commentsResponse.comments);
           setCorroborations(corroborationsResponse.corroborations);
 
-          return getRiskScoreForReport(id)
-            .then((riskScoreResponse) => {
-              setRiskScore(riskScoreResponse.risk_score);
-            })
-            .catch((err) => {
-              const message =
-                err instanceof Error
-                  ? err.message
-                  : "Failed to load risk score";
-
-              if (message !== "Risk score not found") {
-                setRiskScoreError(message);
-              }
-
-              setRiskScore(null);
-            })
-            .finally(() => {
-              setRiskScoreLoading(false);
-            });
         }
       )
       .catch((err) => {
@@ -235,29 +209,6 @@ export default function ReportDetailsPage() {
       cancelled = true;
     };
   }, [report?.id, report?.social_account_id]);
-
-  async function handleCalculateRiskScore() {
-    if (!id) {
-      return;
-    }
-
-    setCalculatingRiskScore(true);
-    setRiskScoreError("");
-
-    try {
-      const response = await calculateRiskScore(id);
-      setRiskScore(response.risk_score);
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Failed to calculate risk score";
-
-      setRiskScoreError(message);
-    } finally {
-      setCalculatingRiskScore(false);
-    }
-  }
 
   async function handleReportReview(
     verificationStatus: "VERIFIED" | "REJECTED"
@@ -750,13 +701,13 @@ export default function ReportDetailsPage() {
               <p className="text-sm text-slate-500">
                 Report ID: {formatPublicReportId(report.public_report_category_code, report.public_report_number)}
               </p>
-              <button type="button" onClick={() => void handleCopyReportId()} className="text-xs font-semibold text-blue-800 underline underline-offset-2">Copy ID</button>
+              <button type="button" onClick={() => void handleCopyReportId()} className="text-xs font-semibold text-teal-800 underline underline-offset-2">Copy ID</button>
             </div>
 
             <h1 className="mt-1 text-2xl font-semibold text-slate-950">
               {report.title}
             </h1>
-            {shareMessage && <p role="status" className="mt-2 text-xs text-emerald-700">{shareMessage}</p>}
+            {shareMessage && <p role="status" className="mt-2 text-xs text-teal-700">{shareMessage}</p>}
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -807,7 +758,7 @@ export default function ReportDetailsPage() {
               />
             </label>
             <div className="flex flex-wrap gap-3">
-              <button type="button" onClick={() => void handleReportReview("VERIFIED")} disabled={reviewing || (report.verification_status === "VERIFIED" && report.status === "PUBLISHED")} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50">
+              <button type="button" onClick={() => void handleReportReview("VERIFIED")} disabled={reviewing || (report.verification_status === "VERIFIED" && report.status === "PUBLISHED")} className="rounded-lg bg-teal-700 px-4 py-2 text-sm font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:opacity-50">
                 {reviewing ? "Saving..." : report.status === "RESOLVED" ? "Verify" : "Verify and publish"}
               </button>
               <button type="button" onClick={() => void handleUnpublishReport()} disabled={reviewing || report.status !== "PUBLISHED"} className="rounded-lg border border-amber-300 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50">
@@ -829,15 +780,15 @@ export default function ReportDetailsPage() {
             </p>
           )}
           {reviewSuccess && (
-            <p role="status" className="mt-3 text-sm text-emerald-700">
+            <p role="status" className="mt-3 text-sm text-teal-700">
               {reviewSuccess}
             </p>
           )}
         </section>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <section className="rounded-xl border border-slate-200 bg-white p-6 lg:col-span-2">
+      <div className="grid items-start gap-6 md:grid-cols-3">
+        <section className={`rounded-xl border border-slate-200 bg-white p-6 ${report.social_account?.id ? "md:col-span-2" : "md:col-span-3"}`}>
           <h2 className="text-lg font-semibold text-slate-950">
             Report details
           </h2>
@@ -846,20 +797,10 @@ export default function ReportDetailsPage() {
             {report.reporter?.username && (
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Created by</p>
-                <Link href={`/users/${report.reporter.id}`} className="mt-1 inline-flex text-sm font-medium text-slate-900 hover:text-emerald-800 hover:underline">@{report.reporter.username}</Link>
+                <Link href={`/users/${report.reporter.id}`} className="mt-1 inline-flex text-sm font-medium text-slate-900 hover:text-teal-800 hover:underline">@{report.reporter.username}</Link>
               </div>
             )}
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                Description
-              </p>
-
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                {report.description}
-              </p>
-            </div>
-
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-5">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
                   Category
@@ -867,25 +808,6 @@ export default function ReportDetailsPage() {
 
                 <p className="mt-1 text-sm text-slate-900">
                   {report.category?.name ?? "Uncategorized"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Incident location
-                </p>
-                <p className="mt-1 text-sm text-slate-900">
-                  {report.incident_type === "OFFLINE" ? "Offline" : `Online · ${report.incident_platform}`}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Verification
-                </p>
-
-                <p className="mt-1 text-sm text-slate-900">
-                  {report.verification_status}
                 </p>
               </div>
 
@@ -901,25 +823,18 @@ export default function ReportDetailsPage() {
                 </p>
               </div>
 
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Last updated
-                </p>
-
-                <p className="mt-1 text-sm text-slate-900">
-                  {new Date(
-                    report.updated_at
-                  ).toLocaleString()}
-                </p>
-              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Last updated</p>
+              <p className="mt-1 text-sm text-slate-900">{new Date(report.updated_at).toLocaleString()}</p>
             </div>
           </div>
         </section>
 
-        {report.social_account?.id && (
+        {report.social_account?.id && <aside className="space-y-4 md:col-start-3 md:row-start-1">
         <section className="rounded-xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-950">
-            Reported account
+            Reported Entity
           </h2>
 
           <div className="mt-5 space-y-4">
@@ -967,94 +882,13 @@ export default function ReportDetailsPage() {
             )}
           </div>
         </section>
-        )}
+        </aside>}
       </div>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-950">
-              Risk Score
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Higher scores indicate stronger supporting signals for this report.
-            </p>
-          </div>
-
-          {(user?.role === "MODERATOR" || user?.role === "ADMIN") && (
-            <button
-              type="button"
-              onClick={handleCalculateRiskScore}
-              disabled={calculatingRiskScore}
-              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {calculatingRiskScore
-                ? "Calculating..."
-                : riskScore
-                  ? "Recalculate Risk Score"
-                  : "Calculate Risk Score"}
-            </button>
-          )}
-        </div>
-
-        {riskScoreLoading ? (
-          <div className="mt-6 text-sm text-slate-500">
-            Loading risk score...
-          </div>
-        ) : riskScore ? (
-          <div className="mt-6">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <div className="text-4xl font-bold text-slate-900">
-                  {Number(riskScore.score)}
-                  <span className="ml-1 text-lg font-medium text-slate-400">
-                    / 100
-                  </span>
-                </div>
-
-                <p className="mt-1 text-sm text-slate-500">
-                  Calculated{" "}
-                  {new Date(riskScore.calculated_at).toLocaleString()}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full bg-slate-900 transition-all"
-                style={{
-                  width: `${Math.max(
-                    0,
-                    Math.min(100, Number(riskScore.score))
-                  )}%`,
-                }}
-              />
-            </div>
-
-            <div className="mt-5 rounded-xl bg-slate-50 p-4">
-              <p className="text-sm font-medium text-slate-700">
-                Score explanation
-              </p>
-
-              <p className="mt-1 text-sm leading-6 text-slate-600">
-                {riskScore.explanation}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-6 rounded-xl bg-slate-50 p-4">
-            <p className="text-sm text-slate-600">
-              No risk score has been calculated for this report yet.
-            </p>
-          </div>
-        )}
-
-        {riskScoreError && (
-          <p className="mt-4 text-sm text-red-600">
-            {riskScoreError}
-          </p>
-        )}
+      <section aria-labelledby="report-description-title" className="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 id="report-description-title" className="text-base font-semibold text-slate-950">Description</h2>
+        <p className={`mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700 ${descriptionExpanded ? "" : "line-clamp-3"}`}>{report.description}</p>
+        {report.description.length > 220 && <button type="button" aria-expanded={descriptionExpanded} onClick={() => setDescriptionExpanded((expanded) => !expanded)} className="mt-2 text-sm font-semibold text-teal-800 underline underline-offset-2">{descriptionExpanded ? "Show less" : "Read full description"}</button>}
       </section>
 
       <section id="evidence" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
@@ -1095,8 +929,8 @@ export default function ReportDetailsPage() {
               )}
             </div>
             {evidenceLinkError && <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{evidenceLinkError}</p>}
-            {evidenceLinkSuccess && <p role="status" className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">{evidenceLinkSuccess}</p>}
-            {archiveMessage && <p role={archiveMessageError ? "alert" : "status"} className={`mt-3 text-sm ${archiveMessageError ? "text-red-700" : "text-green-800"}`}>{archiveMessage}</p>}
+            {evidenceLinkSuccess && <p role="status" className="mt-3 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">{evidenceLinkSuccess}</p>}
+            {archiveMessage && <p role={archiveMessageError ? "alert" : "status"} className={`mt-3 text-sm ${archiveMessageError ? "text-red-700" : "text-teal-800"}`}>{archiveMessage}</p>}
             <p className="mt-3 text-xs leading-5 text-slate-500">Shabdhan can find and attach an existing Internet Archive snapshot. If none exists, save the public page with the Archive and check again. The snapshot is hosted by the Internet Archive, not copied onto Shabdhan, and capture is not guaranteed for every page.</p>
           </div>
 
@@ -1163,7 +997,7 @@ export default function ReportDetailsPage() {
             )}
 
             {uploadSuccess && (
-              <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+              <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
                 {uploadSuccess}
               </div>
             )}
@@ -1182,7 +1016,7 @@ export default function ReportDetailsPage() {
         ) : !user ? (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-sm text-slate-700">Only the report creator can add evidence. If you created this report, sign in to continue.</p>
-            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#evidence`)}`} className="mt-3 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">Sign in as report creator</Link>
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#evidence`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in as report creator</Link>
           </div>
         ) : !canAddEvidence ? (
           <p className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">Only the report creator can add evidence.</p>
@@ -1261,7 +1095,7 @@ export default function ReportDetailsPage() {
                               type="button"
                               onClick={() => void handleUpdateEvidenceVerification(item, "VERIFIED")}
                               disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
-                              className="rounded-md border border-green-200 px-2.5 py-1 text-xs font-medium text-green-800 hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              className="rounded-md border border-teal-200 px-2.5 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {reviewingEvidenceId === item.id ? "Saving…" : "Verify"}
                             </button>
@@ -1291,7 +1125,14 @@ export default function ReportDetailsPage() {
                     </div>
                   </div>
 
-                  {item.file_url && (
+                  {item.evidence_type === "IMAGE" && item.file_url && (
+                    <button type="button" onClick={() => setSelectedEvidenceImage(item.file_url)} aria-label={`View full-size evidence image: ${item.file_name || "uploaded image"}`} className="mt-4 block max-w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+                      <img src={item.file_url} alt={item.description || item.file_name || "Report evidence"} loading="lazy" className="max-h-[32rem] max-w-full object-contain" />
+                      <span className="block px-3 py-2 text-xs font-medium text-teal-800">Click to view full size</span>
+                    </button>
+                  )}
+
+                  {item.file_url && item.evidence_type !== "IMAGE" && (
                     <a
                       href={item.file_url}
                       target="_blank"
@@ -1321,21 +1162,11 @@ export default function ReportDetailsPage() {
         </div>
       </section>
 
+      <div className="grid items-start gap-6 md:grid-cols-2">
       <section id="corroborations" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-950">
-              Corroborations
-            </h2>
-
-            <p className="mt-1 text-sm text-slate-500">
-              {corroborations.length}{" "}
-              {corroborations.length === 1
-                ? "user has"
-                : "users have"}{" "}
-              corroborated this report.
-            </p>
-          </div>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-slate-950">Corroborations</h2>
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{corroborations.length}</span>
         </div>
 
         {report.social_account_id && (
@@ -1403,7 +1234,7 @@ export default function ReportDetailsPage() {
             )}
 
             {corroborationActionSuccess && (
-              <div className="mt-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+              <div className="mt-3 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
                 {corroborationActionSuccess}
               </div>
             )}
@@ -1426,7 +1257,7 @@ export default function ReportDetailsPage() {
         ) : (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-sm text-slate-700">You can read this report without signing in. Sign in only if you want to corroborate or comment.</p>
-            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#corroborations`)}`} className="mt-3 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">Sign in to participate</Link>
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#corroborations`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in to participate</Link>
           </div>
         )}
 
@@ -1435,17 +1266,7 @@ export default function ReportDetailsPage() {
             <p className="text-sm text-slate-500">
               Loading corroborations...
             </p>
-          ) : corroborations.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center">
-              <p className="text-sm font-medium text-slate-700">
-                No one has corroborated this report yet.
-              </p>
-
-              <p className="mt-1 text-xs text-slate-500">
-                Be the first to add independent support.
-              </p>
-            </div>
-          ) : (
+          ) : corroborations.length > 0 ? (
             <div className="space-y-3">
               {corroborations.map((item) => (
                 <div
@@ -1456,11 +1277,11 @@ export default function ReportDetailsPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="text-sm font-semibold text-slate-950">
-                          Corroborated by <Link href={`/users/${item.user.id}`} className="hover:text-emerald-800 hover:underline">@{item.user.username}</Link>
+                          Corroborated by <Link href={`/users/${item.user.id}`} className="hover:text-teal-800 hover:underline">@{item.user.username}</Link>
                         </p>
 
                         {item.user.is_verified && (
-                          <span className="rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                          <span className="rounded-full bg-teal-100 px-2 py-0.5 text-[11px] font-medium text-teal-700">
                             Verified
                           </span>
                         )}
@@ -1493,20 +1314,15 @@ export default function ReportDetailsPage() {
                 </div>
               ))}
             </div>
-          )}
+          ) : null}
         </div>
       </section>
 
 
       <section id="comments" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-950">
-            Comments
-          </h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Discuss this report, provide context, or respond to other users.
-          </p>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-lg font-semibold text-slate-950">Comments</h2>
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{comments.length}</span>
         </div>
 
         {user ? (
@@ -1546,7 +1362,7 @@ export default function ReportDetailsPage() {
         ) : (
           <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-sm text-slate-700">Read public comments without an account. Sign in only to add a comment or reply.</p>
-            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#comments`)}`} className="mt-3 inline-flex rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800">Sign in to comment</Link>
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#comments`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in to comment</Link>
           </div>
         )}
 
@@ -1576,7 +1392,7 @@ export default function ReportDetailsPage() {
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <p className="text-sm font-semibold text-slate-950">
-                              Comment by {comment.username?.trim() ? <Link href={`/users/${comment.user_id}`} className="hover:text-emerald-800 hover:underline">@{comment.username.trim()}</Link> : "User"}
+                              Comment by {comment.username?.trim() ? <Link href={`/users/${comment.user_id}`} className="hover:text-teal-800 hover:underline">@{comment.username.trim()}</Link> : "User"}
                             </p>
 
                             <p className="mt-1 text-xs text-slate-400">
@@ -1718,7 +1534,7 @@ export default function ReportDetailsPage() {
                               <div className="flex items-start justify-between gap-4">
                                 <div>
                                   <p className="text-sm font-semibold text-slate-950">
-                                    Reply by {reply.username?.trim() ? <Link href={`/users/${reply.user_id}`} className="hover:text-emerald-800 hover:underline">@{reply.username.trim()}</Link> : "User"}
+                                    Reply by {reply.username?.trim() ? <Link href={`/users/${reply.user_id}`} className="hover:text-teal-800 hover:underline">@{reply.username.trim()}</Link> : "User"}
                                   </p>
 
                                   <p className="mt-1 text-xs text-slate-400">
@@ -1810,6 +1626,8 @@ export default function ReportDetailsPage() {
           )}
         </div>
       </section>
+      </div>
+      {selectedEvidenceImage && <div role="presentation" className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 p-4 sm:p-8" onClick={() => setSelectedEvidenceImage(null)}><section role="dialog" aria-modal="true" aria-label="Full-size evidence image" className="relative flex h-full w-full items-center justify-center"><button type="button" autoFocus aria-label="Close full-size image" onClick={() => setSelectedEvidenceImage(null)} className="absolute right-0 top-0 z-10 rounded-full bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800">Close</button><img src={selectedEvidenceImage} alt="Full-size report evidence" onClick={(event) => event.stopPropagation()} className="max-h-full max-w-full object-contain" /></section></div>}
       </div>
     </>
   );

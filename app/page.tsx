@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./components/AuthProvider";
 import { useAppearance } from "./components/AppearanceProvider";
+import FeedNotifications from "./components/FeedNotifications";
+import ReportPreviewDialog from "./components/ReportPreviewDialog";
 import { formatPublicReportId } from "../shared/report-id";
 import {
   getCategories,
@@ -137,6 +139,7 @@ export default function Home() {
   const [searchError, setSearchError] = useState("");
   const searchPanelRef = useRef<HTMLFormElement>(null);
   const [selectedDemo, setSelectedDemo] = useState<DemoReport | null>(null);
+  const [selectedReport, setSelectedReport] = useState<ApiReport | null>(null);
   const [pendingVote, setPendingVote] = useState<string | null>(null);
   const [voteErrors, setVoteErrors] = useState<Record<string, string>>({});
   const [shareFeedback, setShareFeedback] = useState<Record<string, string>>({});
@@ -420,139 +423,140 @@ export default function Home() {
   const categorySections = demoMode ? sampleCategories : visibleCategories;
 
   return (
-    <main data-feed-theme={feedTheme} className="feed-root flex min-h-screen flex-col bg-[#f5f6f2] text-[#1e2924]">
-      <header className="relative sticky top-0 z-[70] border-b border-[#e5e8e1] bg-[#fbfcf9]/95 backdrop-blur-xl">
+    <main data-feed-theme={feedTheme} className="feed-root flex min-h-screen flex-col bg-[#f2f6f5] text-[#1e2c2b]">
+      <header className="relative sticky top-0 z-[70] border-b border-[#e0eae8] bg-[#fbfdfd]/95 backdrop-blur-xl">
         <div className="mx-auto flex h-[68px] w-full items-center gap-3 px-4 sm:px-6 lg:px-8 xl:px-10">
           <Link href="/" aria-label="Shabdhan feed" className="flex shrink-0 items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#183a2c] text-sm font-bold text-[#eaf1d7]">S</span>
-            <span className="text-lg font-semibold tracking-[-0.04em]">shabdhan<span className="text-[#65846e]">.</span></span>
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#123d3b] text-sm font-bold text-[#e1f3ef]">S</span>
+            <span className="text-lg font-semibold tracking-[-0.04em]">shabdhan<span className="text-[#5b918b]">.</span></span>
           </Link>
 
           <nav aria-label="Main navigation" className="ml-auto flex items-center gap-1.5">
-            <a href="#public-feed" className="hidden rounded-full bg-[#edf1e9] px-3.5 py-2 text-sm font-semibold text-[#244a34] sm:inline-flex">Feed</a>
-            <button type="button" aria-label={searchOpen ? "Close search" : "Open search"} aria-expanded={searchOpen} onClick={() => setSearchOpen(searchOpen ? false : true)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
+            <a href="#public-feed" className="hidden rounded-full bg-[#e7f1ef] px-3.5 py-2 text-sm font-semibold text-[#245c58] sm:inline-flex">Feed</a>
+            <button type="button" aria-label={searchOpen ? "Close search" : "Open search"} aria-expanded={searchOpen} onClick={() => setSearchOpen(searchOpen ? false : true)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#455e5c] transition hover:bg-[#e7f1ef]">
               <SearchIcon />
             </button>
             {user && (
-              <Link href="/create-report" aria-label="Create a report" className="inline-flex h-10 items-center justify-center rounded-full bg-[#183a2c] px-3.5 text-sm font-semibold text-white transition hover:bg-[#24543e] sm:px-4">
+              <Link href="/create-report" aria-label="Create a report" className="inline-flex h-10 items-center justify-center rounded-full bg-[#123d3b] px-3.5 text-sm font-semibold text-white transition hover:bg-[#1e615b] sm:px-4">
                 <span className="sm:hidden">+</span><span className="hidden sm:inline">+ Create</span>
               </Link>
             )}
-            <Link href={user ? "/me" : "/login?next=%2Fme"} aria-label="Me" title="Me" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
+            {user && <FeedNotifications />}
+            <Link href={user ? "/me" : "/login?next=%2Fme"} aria-label="Me" title="Me" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#455e5c] transition hover:bg-[#e7f1ef]">
               <MeIcon />
             </Link>
-            <button type="button" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] transition hover:bg-[#edf1e9]">
+            <button type="button" aria-label={menuOpen ? "Close menu" : "Open menu"} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#455e5c] transition hover:bg-[#e7f1ef]">
               <MenuIcon open={menuOpen} />
             </button>
           </nav>
         </div>
-        {searchOpen && <form ref={searchPanelRef} action="/search" method="get" role="search" className="absolute left-1/2 top-[calc(100%+0.5rem)] z-[75] w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-[#e1e6dd] bg-white p-3 shadow-[0_18px_50px_rgba(20,36,26,.16)]">
+        {searchOpen && <form ref={searchPanelRef} action="/search" method="get" role="search" className="absolute left-1/2 top-[calc(100%+0.5rem)] z-[75] w-[min(42rem,calc(100vw-2rem))] -translate-x-1/2 rounded-2xl border border-[#dde9e7] bg-white p-3 shadow-[0_18px_50px_rgba(20,36,26,.16)]">
           <div className="flex items-center gap-3">
             <label htmlFor="feed-search-query" className="sr-only">Search reports</label>
-            <input id="feed-search-query" name="q" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search Reports, People or Entities" autoFocus className="min-w-0 flex-1 rounded-xl border border-[#e5e8e1] bg-[#fbfcf9] px-4 py-3 text-sm text-[#20362a] outline-none placeholder:text-[#899289] focus:border-[#78927e]" />
-            <button type="submit" aria-label="See all search results" disabled={!searchQuery.trim()} className="rounded-xl bg-[#183a2c] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#24543e] disabled:cursor-not-allowed disabled:opacity-50">Search</button>
-            <button type="button" aria-label="Close search" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#48594e] transition hover:bg-[#edf1e9]"><MenuIcon open /></button>
+            <input id="feed-search-query" name="q" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search Reports, People or Entities" autoFocus className="min-w-0 flex-1 rounded-xl border border-[#e0eae8] bg-[#fbfdfd] px-4 py-3 text-sm text-[#1d3837] outline-none placeholder:text-[#899c99] focus:border-[#62918b]" />
+            <button type="submit" aria-label="See all search results" disabled={!searchQuery.trim()} className="rounded-xl bg-[#123d3b] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#1e615b] disabled:cursor-not-allowed disabled:opacity-50">Search</button>
+            <button type="button" aria-label="Close search" onClick={() => { setSearchOpen(false); setSearchQuery(""); }} className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-[#455e5c] transition hover:bg-[#e7f1ef]"><MenuIcon open /></button>
           </div>
-          {searchQuery.trim().length < 2 ? null : searchLoading ? <p role="status" className="px-3 pb-1 pt-3 text-sm text-[#788279]">Searching reports…</p> : searchError ? <p role="alert" className="px-3 pb-1 pt-3 text-sm text-rose-700">{searchError}</p> : searchMatches.length === 0 ? <p className="px-3 pb-1 pt-3 text-sm text-[#788279]">No matching reports found.</p> : <div className="mt-2 max-h-[min(60vh,24rem)] overflow-y-auto border-t border-[#edf0eb] pt-2">
-            {searchMatches.map((report) => <Link key={report.id} href={`/reports/${report.id}`} onClick={() => setSearchOpen(false)} className="block rounded-xl px-3 py-3 transition hover:bg-[#f4f6f2]"><span className="block truncate text-sm font-semibold text-[#20362a]">{report.title}</span><span className="mt-1 flex flex-wrap gap-x-2 text-xs text-[#788279]"><span>{report.category?.name ?? "Uncategorized"}</span><span aria-hidden="true">·</span><span>{report.social_account?.id ? `${report.social_account.platform} · @${report.social_account.username}` : report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform}`}</span></span></Link>)}
-            <Link href={`/search?q=${encodeURIComponent(searchQuery.trim())}`} onClick={() => setSearchOpen(false)} className="mt-1 block rounded-xl px-3 py-3 text-sm font-semibold text-[#244a34] hover:bg-[#edf1e9]">See all results for “{searchQuery.trim()}”</Link>
+          {searchQuery.trim().length < 2 ? null : searchLoading ? <p role="status" className="px-3 pb-1 pt-3 text-sm text-[#788279]">Searching reports…</p> : searchError ? <p role="alert" className="px-3 pb-1 pt-3 text-sm text-rose-700">{searchError}</p> : searchMatches.length === 0 ? <p className="px-3 pb-1 pt-3 text-sm text-[#788279]">No matching reports found.</p> : <div className="mt-2 max-h-[min(60vh,24rem)] overflow-y-auto border-t border-[#e8f2f0] pt-2">
+            {searchMatches.map((report) => <Link key={report.id} href={`/reports/${report.id}`} onClick={() => setSearchOpen(false)} className="block rounded-xl px-3 py-3 transition hover:bg-[#f1f6f5]"><span className="block truncate text-sm font-semibold text-[#1d3837]">{report.title}</span><span className="mt-1 flex flex-wrap gap-x-2 text-xs text-[#788279]"><span>{report.category?.name ?? "Uncategorized"}</span><span aria-hidden="true">·</span><span>{report.social_account?.id ? `${report.social_account.platform} · @${report.social_account.username}` : report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform}`}</span></span></Link>)}
+            <Link href={`/search?q=${encodeURIComponent(searchQuery.trim())}`} onClick={() => setSearchOpen(false)} className="mt-1 block rounded-xl px-3 py-3 text-sm font-semibold text-[#245c58] hover:bg-[#e7f1ef]">See all results for “{searchQuery.trim()}”</Link>
           </div>}
         </form>}
         {menuOpen && <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="fixed inset-0 z-[60] hidden bg-transparent md:block" />}
-        {menuOpen && <section aria-label="Navigation menu" className="absolute right-3 top-[calc(100%+0.5rem)] z-[70] hidden max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-[#e5e8e1] bg-[#fbfcf9] p-4 shadow-[0_18px_50px_rgba(20,36,26,.18)] md:block">
-          <div className="flex items-center justify-between border-b border-[#e8ebe5] px-2 pb-3">
-            <h2 className="text-base font-semibold text-[#20362a]">Menu</h2>
-            <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#48594e] hover:bg-[#edf1e9]"><MenuIcon open /></button>
+        {menuOpen && <section aria-label="Navigation menu" className="absolute right-3 top-[calc(100%+0.5rem)] z-[70] hidden max-h-[calc(100dvh-5rem)] w-[min(22rem,calc(100vw-1.5rem))] overflow-y-auto rounded-2xl border border-[#e0eae8] bg-[#fbfdfd] p-4 shadow-[0_18px_50px_rgba(20,36,26,.18)] md:block">
+          <div className="flex items-center justify-between border-b border-[#e3eeec] px-2 pb-3">
+            <h2 className="text-base font-semibold text-[#1d3837]">Menu</h2>
+            <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#455e5c] hover:bg-[#e7f1ef]"><MenuIcon open /></button>
           </div>
           <nav aria-label="Menu links" className="mt-2 flex flex-col gap-1">
-            <Link href={user ? "/me" : "/login?next=%2Fme"} onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link>
+            <Link href={user ? "/me" : "/login?next=%2Fme"} onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Me</Link>
             <section aria-label="Appearance settings" className="rounded-xl px-3 py-1">
-              <button type="button" aria-expanded={appearanceOpen} onClick={() => setAppearanceOpen((open) => !open)} className="flex w-full items-center justify-between rounded-xl py-1.5 text-left text-sm font-semibold text-[#20362a] hover:bg-[#f0f2ed]">
+              <button type="button" aria-expanded={appearanceOpen} onClick={() => setAppearanceOpen((open) => !open)} className="flex w-full items-center justify-between rounded-xl py-1.5 text-left text-sm font-semibold text-[#1d3837] hover:bg-[#edf4f2]">
                 Appearance <span aria-hidden="true" className={`transition-transform ${appearanceOpen ? "rotate-180" : ""}`}>⌄</span>
               </button>
               {appearanceOpen && <div className="space-y-3 px-1 pb-2 pt-2">
-                <label className="block text-xs font-medium text-[#59665d]">Theme
-                  <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <label className="block text-xs font-medium text-[#586c69]">Theme
+                  <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dbe7e5] bg-white px-3 py-2 text-sm text-[#1d3837]">
                     <option value="light">Light</option>
                     <option value="dark">Dark</option>
                   </select>
                 </label>
-                <label className="block text-xs font-medium text-[#59665d]">Card size
-                  <select value={feedCardSize} onChange={(event) => setFeedCardSize(event.target.value as "large" | "medium" | "small")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <label className="block text-xs font-medium text-[#586c69]">Card size
+                  <select value={feedCardSize} onChange={(event) => setFeedCardSize(event.target.value as "large" | "medium" | "small")} className="mt-1 block w-full rounded-lg border border-[#dbe7e5] bg-white px-3 py-2 text-sm text-[#1d3837]">
                     <option value="large">Large</option>
                     <option value="medium">Medium</option>
                     <option value="small">Small</option>
                   </select>
                 </label>
-                <label className="block text-xs font-medium text-[#59665d]">Categories side by side
-                  <select value={feedCategoryColumns} onChange={(event) => setFeedCategoryColumns(event.target.value as "one" | "two")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <label className="block text-xs font-medium text-[#586c69]">Categories side by side
+                  <select value={feedCategoryColumns} onChange={(event) => setFeedCategoryColumns(event.target.value as "one" | "two")} className="mt-1 block w-full rounded-lg border border-[#dbe7e5] bg-white px-3 py-2 text-sm text-[#1d3837]">
                     <option value="one">One category</option>
                     <option value="two">Two categories</option>
                   </select>
                 </label>
-                <label className="block text-xs font-medium text-[#59665d]">Move by
-                  <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <label className="block text-xs font-medium text-[#586c69]">Move by
+                  <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dbe7e5] bg-white px-3 py-2 text-sm text-[#1d3837]">
                     <option value="one">One card</option>
                     <option value="all">Whole row</option>
                   </select>
                 </label>
               </div>}
             </section>
-            <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Advanced search</Link>
-            <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Browse categories</a>
-            <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">আমার বাংলাদেশ</Link>
-            {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e8ebe5] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Apply for membership</Link></>}
+            <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
+            <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse categories</a>
+            <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">আমার বাংলাদেশ</Link>
+            {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e3eeec] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Apply for membership</Link></>}
           </nav>
         </section>}
       </header>
 
-      {menuOpen && <section role="dialog" aria-modal="true" aria-label="Menu" className="fixed inset-0 z-[80] flex flex-col bg-[#f5f6f2] md:hidden">
-        <header className="flex h-[68px] shrink-0 items-center justify-between border-b border-[#e5e8e1] bg-[#fbfcf9] px-4">
-          <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#183a2c] text-sm font-bold text-[#eaf1d7]">S</span><h1 className="text-lg font-semibold text-[#20362a]">Menu</h1></div>
-          <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#48594e] hover:bg-[#edf1e9]"><MenuIcon open /></button>
+      {menuOpen && <section role="dialog" aria-modal="true" aria-label="Menu" className="fixed inset-0 z-[80] flex flex-col bg-[#f2f6f5] md:hidden">
+        <header className="flex h-[68px] shrink-0 items-center justify-between border-b border-[#e0eae8] bg-[#fbfdfd] px-4">
+          <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#123d3b] text-sm font-bold text-[#e1f3ef]">S</span><h1 className="text-lg font-semibold text-[#1d3837]">Menu</h1></div>
+          <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#455e5c] hover:bg-[#e7f1ef]"><MenuIcon open /></button>
         </header>
         <div className="flex-1 overflow-y-auto p-4">
-          {user && <div className="mb-2 px-3 py-2"><p className="text-sm font-semibold text-[#20362a]">{user.username}</p><p className="mt-1 text-xs text-[#788279]">Signed in to Shabdhan</p></div>}
+          {user && <div className="mb-2 px-3 py-2"><p className="text-sm font-semibold text-[#1d3837]">{user.username}</p><p className="mt-1 text-xs text-[#788279]">Signed in to Shabdhan</p></div>}
           <nav aria-label="Menu links" className="flex flex-col gap-0.5">
-            <Link href={user ? "/me" : "/login?next=%2Fme"} onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Me</Link>
+            <Link href={user ? "/me" : "/login?next=%2Fme"} onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Me</Link>
             <section aria-label="Appearance settings" className="rounded-xl px-3 py-1">
-              <button type="button" aria-expanded={appearanceOpen} onClick={() => setAppearanceOpen((open) => !open)} className="flex w-full items-center justify-between rounded-xl py-2 text-left text-sm font-semibold text-[#20362a] hover:bg-[#f0f2ed]">
+              <button type="button" aria-expanded={appearanceOpen} onClick={() => setAppearanceOpen((open) => !open)} className="flex w-full items-center justify-between rounded-xl py-2 text-left text-sm font-semibold text-[#1d3837] hover:bg-[#edf4f2]">
                 Appearance <span aria-hidden="true" className={`transition-transform ${appearanceOpen ? "rotate-180" : ""}`}>⌄</span>
               </button>
               {appearanceOpen && <div className="space-y-4 px-3 pb-2 pt-2">
-                <label className="block text-xs font-medium text-[#59665d]">Theme
-                  <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <label className="block text-xs font-medium text-[#586c69]">Theme
+                  <select value={feedTheme} onChange={(event) => setFeedTheme(event.target.value as "light" | "dark")} className="mt-1 block w-full rounded-lg border border-[#dbe7e5] bg-white px-3 py-2 text-sm text-[#1d3837]">
                     <option value="light">Light</option>
                     <option value="dark">Dark</option>
                   </select>
                 </label>
-                <label className="block text-xs font-medium text-[#59665d]">Card size
-                  <select value={feedCardSize} onChange={(event) => setFeedCardSize(event.target.value as "large" | "medium" | "small")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <label className="block text-xs font-medium text-[#586c69]">Card size
+                  <select value={feedCardSize} onChange={(event) => setFeedCardSize(event.target.value as "large" | "medium" | "small")} className="mt-1 block w-full rounded-lg border border-[#dbe7e5] bg-white px-3 py-2 text-sm text-[#1d3837]">
                     <option value="large">Large</option>
                     <option value="medium">Medium</option>
                     <option value="small">Small</option>
                   </select>
                 </label>
-                <label className="block text-xs font-medium text-[#59665d]">Categories side by side
-                  <select value={feedCategoryColumns} onChange={(event) => setFeedCategoryColumns(event.target.value as "one" | "two")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <label className="block text-xs font-medium text-[#586c69]">Categories side by side
+                  <select value={feedCategoryColumns} onChange={(event) => setFeedCategoryColumns(event.target.value as "one" | "two")} className="mt-1 block w-full rounded-lg border border-[#dbe7e5] bg-white px-3 py-2 text-sm text-[#1d3837]">
                     <option value="one">One category</option>
                     <option value="two">Two categories</option>
                   </select>
                 </label>
-                <label className="block text-xs font-medium text-[#59665d]">Move by
-                  <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dfe4dc] bg-white px-3 py-2 text-sm text-[#20362a]">
+                <label className="block text-xs font-medium text-[#586c69]">Move by
+                  <select value={feedAdvanceMode} onChange={(event) => setFeedAdvanceMode(event.target.value as "one" | "all")} className="mt-1 block w-full rounded-lg border border-[#dbe7e5] bg-white px-3 py-2 text-sm text-[#1d3837]">
                     <option value="one">One card</option>
                     <option value="all">Whole row</option>
                   </select>
                 </label>
               </div>}
             </section>
-            <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Advanced search</Link>
-            <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Browse categories</a>
-            <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">আমার বাংলাদেশ</Link>
-            {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e8ebe5] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#f0f2ed]">Apply for membership</Link></>}
+            <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
+            <a href="#public-feed" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse categories</a>
+            <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">আমার বাংলাদেশ</Link>
+            {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e3eeec] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Apply for membership</Link></>}
           </nav>
-          {user && <Link href="/create-report" onClick={() => setMenuOpen(false)} className="mt-4 block rounded-2xl bg-[#183a2c] px-4 py-4 text-center text-sm font-semibold text-white hover:bg-[#24543e]">+ Create a report</Link>}
+          {user && <Link href="/create-report" onClick={() => setMenuOpen(false)} className="mt-4 block rounded-2xl bg-[#123d3b] px-4 py-4 text-center text-sm font-semibold text-white hover:bg-[#1e615b]">+ Create a report</Link>}
         </div>
       </section>}
 
@@ -566,16 +570,16 @@ export default function Home() {
 
         {loading && (
           <div className="space-y-5" aria-label="Loading feed">
-            {[0, 1, 2].map((item) => <div key={item} className="h-64 animate-pulse rounded-3xl border border-[#e3e7df] bg-white" />)}
+            {[0, 1, 2].map((item) => <div key={item} className="h-64 animate-pulse rounded-3xl border border-[#dfeae8] bg-white" />)}
           </div>
         )}
 
         {!loading && !error && visibleCategories.length === 0 && !demoMode && (
-          <div className="rounded-3xl border border-[#e0e5dc] bg-white p-7 text-center sm:p-10">
-            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#edf2e8] text-xl text-[#355b40]">S</span>
-            <h2 className="mt-4 text-xl font-semibold tracking-tight text-[#20362a]">No public reports yet</h2>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#707b72]">Reports appear in the feed after moderators review and publish them. Check back soon or search the public index.</p>
-            <Link href="/search" className="mt-5 inline-flex rounded-full bg-[#183a2c] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#24543e]">Search reports</Link>
+          <div className="rounded-3xl border border-[#dce8e6] bg-white p-7 text-center sm:p-10">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-[#e7f2f0] text-xl text-[#2f6962]">S</span>
+            <h2 className="mt-4 text-xl font-semibold tracking-tight text-[#1d3837]">No public reports yet</h2>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[#70827f]">Reports appear in the feed after moderators review and publish them. Check back soon or search the public index.</p>
+            <Link href="/search" className="mt-5 inline-flex rounded-full bg-[#123d3b] px-5 py-2.5 text-sm font-semibold text-white hover:bg-[#1e615b]">Search reports</Link>
           </div>
         )}
 
@@ -591,37 +595,36 @@ export default function Home() {
 
           return (
             <section key={category.id} aria-label={`${category.name} reports`} className="mb-6 sm:mb-7">
-              <div className="mb-4 flex items-center justify-between gap-3 rounded-[1.65rem] border border-[#e2e6de] bg-white px-5 py-4 shadow-[0_8px_26px_rgba(31,54,37,.035)] sm:px-6">
+              <div className="mb-2 flex items-center justify-between gap-3 px-1 py-1">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7a8a7d]">Recent in</p>
-                  <h2 className="mt-0.5 truncate text-lg font-semibold tracking-[-0.02em] text-[#23382a]"><Link href={`/search?category_id=${encodeURIComponent(category.id)}`} className="rounded-sm hover:text-[#52705a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#52705a]">{category.name}<span className="sr-only"> — view all reports in this category</span></Link></h2>
+                  <h2 className="truncate text-lg font-semibold tracking-[-0.02em] text-[#243b39]"><Link href={`/search?category_id=${encodeURIComponent(category.id)}`} className="rounded-sm hover:text-[#4e817d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4e817d]">{category.name}<span className="sr-only"> — view all reports in this category</span></Link></h2>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="mr-1 text-xs tabular-nums text-[#778178]">{shownCount ? `${index + 1}${shownCount > 1 ? `–${index + shownCount}` : ""}` : 0} / {count}</span>
-                  <button type="button" aria-label={`Previous ${category.name} reports`} onClick={() => moveReport(category.id, -1, count)} disabled={index === 0} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] transition hover:bg-[#f1f4ef] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="left" /></button>
-                  <button type="button" aria-label={`Next ${category.name} reports`} onClick={() => moveReport(category.id, 1, count)} disabled={index + cardsPerPage >= count} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] transition hover:bg-[#f1f4ef] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="right" /></button>
+                  <span className="mr-1 text-xs tabular-nums text-[#758b87]">{shownCount ? `${index + 1}${shownCount > 1 ? `–${index + shownCount}` : ""}` : 0} / {count}</span>
+                  <button type="button" aria-label={`Previous ${category.name} reports`} onClick={() => moveReport(category.id, -1, count)} disabled={index === 0} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dbe7e5] text-[#3e5c59] transition hover:bg-[#eef5f3] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="left" /></button>
+                  <button type="button" aria-label={`Next ${category.name} reports`} onClick={() => moveReport(category.id, 1, count)} disabled={index + cardsPerPage >= count} className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#dbe7e5] text-[#3e5c59] transition hover:bg-[#eef5f3] disabled:cursor-not-allowed disabled:opacity-35"><Chevron direction="right" /></button>
                 </div>
               </div>
 
               {demoMode ? (
                 <div className={`feed-report-grid feed-columns-${Math.max(1, shownCount)}`}>
-                {shownDemoReports.map((demoReport) => <article key={demoReport.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
+                {shownDemoReports.map((demoReport) => <article key={demoReport.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#e8f2f0] bg-white p-3 sm:p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="rounded-full bg-[#f4eddb] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-[#705a28]">Demo only · fictional</span>
-                    <span className="text-xs text-[#879087]">Not a verified report</span>
+                    <span className="text-xs text-[#879a97]">Not a verified report</span>
                   </div>
-                  <p className="mt-3 text-xs font-medium text-[#516356]">{demoReport.subject}</p>
-                  <h3 className="mt-1.5 text-base font-semibold leading-6 tracking-[-0.02em] text-[#20362a]"><button type="button" onClick={() => setSelectedDemo(demoReport)} className="text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{demoReport.title}<span className="sr-only"> — open sample details</span></button></h3>
-                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#657267]">{demoReport.description}</p>
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-3">
-                    <span className="text-[11px] text-[#899289]">Sample ID: {demoReport.id}</span>
+                  <p className="mt-3 text-xs font-medium text-[#506764]">{demoReport.subject}</p>
+                  <h3 className="mt-1.5 text-base font-semibold leading-6 tracking-[-0.02em] text-[#1d3837]"><button type="button" onClick={() => setSelectedDemo(demoReport)} className="text-left after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4e817d]">{demoReport.title}<span className="sr-only"> — open sample details</span></button></h3>
+                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#667c79]">{demoReport.description}</p>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#e8f2f0] pt-3">
+                    <span className="text-[11px] text-[#899c99]">Sample ID: {demoReport.id}</span>
                   </div>
-                  <div className="relative z-10 mt-auto flex flex-wrap items-center gap-2 border-t border-[#edf0e9] pt-4" aria-label="Sample actions">
-                    <button type="button" disabled aria-label="Upvote sample, 0 votes" className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-[#e3e7e1] px-2.5 text-xs font-semibold text-[#879087]" title="Voting is disabled for fictional samples"><FeedActionIcon name="upvote" /><span className="tabular-nums">0</span></button>
-                    <button type="button" disabled aria-label="Downvote sample, 0 votes" className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-[#e3e7e1] px-2.5 text-xs font-semibold text-[#879087]" title="Voting is disabled for fictional samples"><FeedActionIcon name="downvote" /><span className="tabular-nums">0</span></button>
-                    <button type="button" disabled aria-label="Comment on sample" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e3e7e1] text-[#879087]" title="Comments are disabled for fictional samples"><FeedActionIcon name="comment" /></button>
-                    <button type="button" disabled aria-label="Corroborate sample" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e3e7e1] text-[#879087]" title="Corroboration is disabled for fictional samples"><FeedActionIcon name="corroborate" /></button>
-                    <button type="button" aria-label="Share sample feed" title={copiedDemoId === demoReport.id ? "Feed link copied" : "Share sample feed"} onClick={() => void handleShareDemo(demoReport)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="share" /></button>
+                  <div className="relative z-10 mt-auto flex flex-wrap items-center gap-2 border-t border-[#e8f2f0] pt-4" aria-label="Sample actions">
+                    <button type="button" disabled aria-label="Upvote sample, 0 votes" className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-[#e0eae8] px-2.5 text-xs font-semibold text-[#879a97]" title="Voting is disabled for fictional samples"><FeedActionIcon name="upvote" /><span className="tabular-nums">0</span></button>
+                    <button type="button" disabled aria-label="Downvote sample, 0 votes" className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-[#e0eae8] px-2.5 text-xs font-semibold text-[#879a97]" title="Voting is disabled for fictional samples"><FeedActionIcon name="downvote" /><span className="tabular-nums">0</span></button>
+                    <button type="button" disabled aria-label="Comment on sample" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e0eae8] text-[#879a97]" title="Comments are disabled for fictional samples"><FeedActionIcon name="comment" /></button>
+                    <button type="button" disabled aria-label="Corroborate sample" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#e0eae8] text-[#879a97]" title="Corroboration is disabled for fictional samples"><FeedActionIcon name="corroborate" /></button>
+                    <button type="button" aria-label="Share sample feed" title={copiedDemoId === demoReport.id ? "Feed link copied" : "Share sample feed"} onClick={() => void handleShareDemo(demoReport)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dbe7e5] text-[#3e5c59] hover:bg-[#eef5f3]"><FeedActionIcon name="share" /></button>
                   </div>
                 </article>)}
                 </div>
@@ -633,35 +636,35 @@ export default function Home() {
                     report.public_report_category_code,
                     report.public_report_number
                   ).split("-").at(-1) ?? "";
-                  return <article key={report.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#edf0ea] bg-white p-3 sm:p-4">
-                  {report.preview_image_url && <img src={report.preview_image_url} alt={`Evidence image for ${report.title}`} loading="lazy" decoding="async" className="mb-3 aspect-[4/3] w-full rounded-xl bg-[#edf1e9] object-cover" />}
+                  return <article key={report.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#e8f2f0] bg-white p-3 sm:p-4">
+                  {report.preview_image_url && <img src={report.preview_image_url} alt={`Evidence image for ${report.title}`} loading="lazy" decoding="async" className="mb-3 aspect-[4/3] w-full rounded-xl bg-[#e7f1ef] object-cover" />}
                   <div className="flex min-w-0 items-center justify-between gap-2">
-                    <h3 className="min-w-0 flex-1 line-clamp-1 text-base font-semibold leading-5 tracking-[-0.02em] text-[#20362a]"><Link href={`/reports/${report.id}`} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#52705a]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>
-                    <span aria-label={`Report number ${publicReportHex}`} className="shrink-0 rounded-full bg-[#f4f6f2] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-[#647267]">{publicReportHex}</span>
+                    <h3 className="min-w-0 flex-1 line-clamp-1 text-base font-semibold leading-5 tracking-[-0.02em] text-[#1d3837]"><Link href={`/reports/${report.id}`} onClick={(event) => { if (window.matchMedia("(min-width: 768px)").matches) { event.preventDefault(); setSelectedReport(report); } }} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4e817d]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>
+                    <span aria-label={`Report number ${publicReportHex}`} className="shrink-0 rounded-full bg-[#f1f6f5] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-[#667c79]">{publicReportHex}</span>
                   </div>
                   <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
-                    <p className="min-w-0 truncate text-xs font-medium text-[#516356]">{accountName ? `${report.social_account?.display_name ? `${accountName} · ` : ""}@${report.social_account?.username}` : report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform}`}</p>
-                    <time dateTime={report.published_at ?? undefined} className="shrink-0 text-[10px] text-[#899289]">{formatPublishedDate(report.published_at)}</time>
+                    <p className="min-w-0 truncate text-xs font-medium text-[#506764]">{accountName ? `${report.social_account?.display_name ? `${accountName} · ` : ""}@${report.social_account?.username}` : report.incident_type === "OFFLINE" ? "Offline incident" : `Online · ${report.incident_platform}`}</p>
+                    <time dateTime={report.published_at ?? undefined} className="shrink-0 text-[10px] text-[#899c99]">{formatPublishedDate(report.published_at)}</time>
                   </div>
-                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#657267]">{report.description}</p>
-                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#edf0e9] pt-3">
-                    {Boolean(report.verified_evidence_count) && <Link href={`/reports/${report.id}#evidence`} className="relative z-10 rounded-full bg-[#edf4ec] px-2.5 py-1 text-[10px] font-semibold text-[#42634a] hover:bg-[#e2eee1]">{report.verified_evidence_count} {report.verified_evidence_count === 1 ? "source" : "sources"}</Link>}
+                  <p className="mt-2 line-clamp-2 text-xs leading-5 text-[#667c79]">{report.description}</p>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#e8f2f0] pt-3">
+                    {Boolean(report.verified_evidence_count) && <Link href={`/reports/${report.id}#evidence`} className="relative z-10 rounded-full bg-[#e8f4f2] px-2.5 py-1 text-[10px] font-semibold text-[#3d6b65] hover:bg-[#dff0ed]">{report.verified_evidence_count} {report.verified_evidence_count === 1 ? "source" : "sources"}</Link>}
                   </div>
-                  <div className="relative z-10 mt-auto flex flex-wrap items-center gap-1.5 border-t border-[#edf0e9] pt-2" aria-label="Report actions">
+                  <div className="relative z-10 mt-auto flex flex-wrap items-center gap-1.5 border-t border-[#e8f2f0] pt-2" aria-label="Report actions">
                     {user ? (
                       <>
-                        <button type="button" aria-label="Upvote report" title="Upvote" aria-pressed={report.current_user_vote === 1} disabled={pendingVote === report.id} onClick={() => void handleVote(report, 1)} className={`inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition disabled:opacity-50 ${report.current_user_vote === 1 ? "border-[#9bb99d] bg-[#e8f2e9] text-[#24543e]" : "border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"}`}><FeedActionIcon name="upvote" /><span className="tabular-nums">{report.upvote_count ?? 0}</span></button>
-                        <button type="button" aria-label="Downvote report" title="Downvote" aria-pressed={report.current_user_vote === -1} disabled={pendingVote === report.id} onClick={() => void handleVote(report, -1)} className={`inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition disabled:opacity-50 ${report.current_user_vote === -1 ? "border-rose-200 bg-rose-50 text-rose-700" : "border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"}`}><FeedActionIcon name="downvote" /><span className="tabular-nums">{report.downvote_count ?? 0}</span></button>
+                        <button type="button" aria-label="Upvote report" title="Upvote" aria-pressed={report.current_user_vote === 1} disabled={pendingVote === report.id} onClick={() => void handleVote(report, 1)} className={`inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition disabled:opacity-50 ${report.current_user_vote === 1 ? "border-[#9dc4bf] bg-[#e1f1ef] text-[#1e615b]" : "border-[#dbe7e5] text-[#3e5c59] hover:bg-[#eef5f3]"}`}><FeedActionIcon name="upvote" /><span className="tabular-nums">{report.upvote_count ?? 0}</span></button>
+                        <button type="button" aria-label="Downvote report" title="Downvote" aria-pressed={report.current_user_vote === -1} disabled={pendingVote === report.id} onClick={() => void handleVote(report, -1)} className={`inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border px-2.5 text-xs font-semibold transition disabled:opacity-50 ${report.current_user_vote === -1 ? "border-rose-200 bg-rose-50 text-rose-700" : "border-[#dbe7e5] text-[#3e5c59] hover:bg-[#eef5f3]"}`}><FeedActionIcon name="downvote" /><span className="tabular-nums">{report.downvote_count ?? 0}</span></button>
                       </>
                     ) : (
                       <>
-                        <Link href={`/login?next=${encodeURIComponent("/")}`} aria-label="Sign in to upvote report" title="Upvote" className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-[#dfe4dc] px-2.5 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="upvote" /><span className="tabular-nums">{report.upvote_count ?? 0}</span></Link>
-                        <Link href={`/login?next=${encodeURIComponent("/")}`} aria-label="Sign in to downvote report" title="Downvote" className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-[#dfe4dc] px-2.5 text-xs font-semibold text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="downvote" /><span className="tabular-nums">{report.downvote_count ?? 0}</span></Link>
+                        <Link href={`/login?next=${encodeURIComponent("/")}`} aria-label="Sign in to upvote report" title="Upvote" className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-[#dbe7e5] px-2.5 text-xs font-semibold text-[#3e5c59] hover:bg-[#eef5f3]"><FeedActionIcon name="upvote" /><span className="tabular-nums">{report.upvote_count ?? 0}</span></Link>
+                        <Link href={`/login?next=${encodeURIComponent("/")}`} aria-label="Sign in to downvote report" title="Downvote" className="inline-flex h-10 min-w-10 items-center justify-center gap-1.5 rounded-full border border-[#dbe7e5] px-2.5 text-xs font-semibold text-[#3e5c59] hover:bg-[#eef5f3]"><FeedActionIcon name="downvote" /><span className="tabular-nums">{report.downvote_count ?? 0}</span></Link>
                       </>
                     )}
-                    <Link href={`/reports/${report.id}#comments`} aria-label="Comment on report" title="Comment" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="comment" /></Link>
-                    <Link href={`/reports/${report.id}#corroborations`} aria-label="Corroborate report" title="Corroborate" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="corroborate" /></Link>
-                    <button type="button" aria-label="Share report" title={shareFeedback[report.id] || "Share"} onClick={() => void handleShare(report)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dfe4dc] text-[#405747] hover:bg-[#f1f4ef]"><FeedActionIcon name="share" /></button>
+                    <Link href={`/reports/${report.id}#comments`} aria-label="Comment on report" title="Comment" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dbe7e5] text-[#3e5c59] hover:bg-[#eef5f3]"><FeedActionIcon name="comment" /></Link>
+                    <Link href={`/reports/${report.id}#corroborations`} aria-label="Corroborate report" title="Corroborate" className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dbe7e5] text-[#3e5c59] hover:bg-[#eef5f3]"><FeedActionIcon name="corroborate" /></Link>
+                    <button type="button" aria-label="Share report" title={shareFeedback[report.id] || "Share"} onClick={() => void handleShare(report)} className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#dbe7e5] text-[#3e5c59] hover:bg-[#eef5f3]"><FeedActionIcon name="share" /></button>
                     <span className="sr-only" aria-live="polite">{shareFeedback[report.id] || ""}</span>
                   </div>
                   {voteErrors[report.id] && <p role="alert" className="mt-2 text-xs text-rose-700">{voteErrors[report.id]}</p>}
@@ -669,33 +672,35 @@ export default function Home() {
                 })}
                 </div>
               ) : null}
-              {!demoMode && feed.total > feed.reports.length && <p className="px-1 pt-3 text-xs text-[#818b82]">Showing the {feed.reports.length} newest reports in this category.</p>}
+              {!demoMode && feed.total > feed.reports.length && <p className="px-1 pt-3 text-xs text-[#81918d]">Showing the {feed.reports.length} newest reports in this category.</p>}
             </section>
           );
         })}</div>}
       </section>
 
       {selectedDemo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#15241b]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedDemo(null); }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#162423]/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedDemo(null); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="demo-title" className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.14em] text-[#816b38]">Fictional sample · not a real report</p>
-                <h2 id="demo-title" className="mt-2 text-2xl font-semibold tracking-tight text-[#20362a]">{selectedDemo.title}</h2>
+                <h2 id="demo-title" className="mt-2 text-2xl font-semibold tracking-tight text-[#1d3837]">{selectedDemo.title}</h2>
               </div>
-              <button type="button" aria-label="Close sample details" onClick={() => setSelectedDemo(null)} className="rounded-full px-3 py-1 text-xl text-[#5f6c62] hover:bg-[#f1f3ef]">×</button>
+              <button type="button" aria-label="Close sample details" onClick={() => setSelectedDemo(null)} className="rounded-full px-3 py-1 text-xl text-[#5e716f] hover:bg-[#eef5f3]">×</button>
             </div>
-            <p className="mt-5 text-sm font-medium text-[#516356]">Subject: {selectedDemo.subject}</p>
-            <p className="mt-3 text-sm leading-6 text-[#657267]">{selectedDemo.description}</p>
+            <p className="mt-5 text-sm font-medium text-[#506764]">Subject: {selectedDemo.subject}</p>
+            <p className="mt-3 text-sm leading-6 text-[#667c79]">{selectedDemo.description}</p>
             <div className="mt-5 rounded-2xl border border-[#eadfbe] bg-[#faf6ea] p-4 text-xs leading-5 text-[#66582f]">Sample ID: {selectedDemo.id}. This content is only for previewing the feed. It is not stored as a Shabdhan report, does not refer to a real person or organization, and has no verification status.</div>
-            <button type="button" onClick={() => setSelectedDemo(null)} className="mt-6 w-full rounded-full bg-[#183a2c] px-5 py-3 text-sm font-semibold text-white hover:bg-[#24543e]">Close sample</button>
+            <button type="button" onClick={() => setSelectedDemo(null)} className="mt-6 w-full rounded-full bg-[#123d3b] px-5 py-3 text-sm font-semibold text-white hover:bg-[#1e615b]">Close sample</button>
           </section>
         </div>
       )}
 
-      <footer className="border-t border-[#e5e8e1] bg-white">
+      {selectedReport && <ReportPreviewDialog report={selectedReport} onClose={() => setSelectedReport(null)} />}
+
+      <footer className="border-t border-[#e0eae8] bg-white">
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-2 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:max-w-none lg:px-8 xl:px-10">
-          <Link href="/" className="font-semibold text-[#38523e]">shabdhan.</Link>
+          <Link href="/" className="font-semibold text-[#365b58]">shabdhan.</Link>
           <p>Explore openly. Read carefully. Participate responsibly.</p>
         </div>
       </footer>

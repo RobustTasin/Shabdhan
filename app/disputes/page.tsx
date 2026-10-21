@@ -17,7 +17,7 @@ function disputeStatusLabel(result: ApiDispute["result"]): string {
 
 function disputeStatusClass(result: ApiDispute["result"]): string {
   if (result === "UPHELD") {
-    return "bg-emerald-100 text-emerald-800";
+    return "bg-teal-100 text-teal-800";
   }
 
   if (result === "REJECTED") {

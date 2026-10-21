@@ -90,15 +90,15 @@ export default function MePage() {
       <section aria-label="Profile details" className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-4">
-            <div aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-2xl font-bold text-emerald-950 ring-1 ring-inset ring-emerald-100">{initial}</div>
+            <div aria-hidden="true" className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-2xl font-bold text-teal-950 ring-1 ring-inset ring-teal-100">{initial}</div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-emerald-800">Profile</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-800">Profile</p>
               <h2 className="mt-1 truncate text-xl font-semibold text-slate-950">@{user.username}</h2>
               <p className="mt-1 truncate text-sm text-slate-500">{user.email}</p>
-              <Link href={`/users/${user.id}`} className="mt-1 inline-flex text-xs font-medium text-emerald-900 hover:underline">View public profile</Link>
+              <Link href={`/users/${user.id}`} className="mt-1 inline-flex text-xs font-medium text-teal-900 hover:underline">View public profile</Link>
             </div>
           </div>
-          <Link href="/create-report" className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-900">+ Create report</Link>
+          <Link href="/create-report" className="inline-flex w-fit items-center justify-center gap-2 rounded-xl bg-teal-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-900">+ Create report</Link>
         </div>
         <dl aria-label="Profile activity statistics" className="mt-6 grid grid-cols-2 gap-3 border-t border-slate-100 pt-5 sm:grid-cols-5">
           {([
@@ -120,7 +120,7 @@ export default function MePage() {
           <div>
             <h2 id="my-reports-heading" className="text-2xl font-semibold tracking-tight text-slate-950">Reports &amp; Status</h2>
           </div>
-          {!reportsLoading && <span className="w-fit rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-900">{reports.length} {reports.length === 1 ? "report" : "reports"}</span>}
+          {!reportsLoading && <span className="w-fit rounded-full border border-teal-100 bg-teal-50 px-3 py-1.5 text-xs font-semibold text-teal-900">{reports.length} {reports.length === 1 ? "report" : "reports"}</span>}
         </div>
 
         {error ? (
@@ -129,10 +129,10 @@ export default function MePage() {
           <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center text-sm text-slate-500">Loading your reports…</div>
         ) : reports.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center sm:px-8">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-xl font-bold text-emerald-900">S</div>
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-xl font-bold text-teal-900">S</div>
             <h3 className="mt-4 text-sm font-semibold text-slate-900">No reports yet</h3>
             <p className="mt-1 text-sm text-slate-500">When you create a report, it will appear here.</p>
-            <Link href="/create-report" className="mt-5 inline-flex rounded-xl bg-emerald-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-900">Create your first report</Link>
+            <Link href="/create-report" className="mt-5 inline-flex rounded-xl bg-teal-950 px-4 py-2.5 text-sm font-semibold text-white hover:bg-teal-900">Create your first report</Link>
           </div>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm divide-y divide-slate-100">

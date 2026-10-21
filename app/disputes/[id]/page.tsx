@@ -18,7 +18,7 @@ function disputeStatusLabel(result: ApiDispute["result"]): string {
 
 function disputeStatusClass(result: ApiDispute["result"]): string {
   if (result === "UPHELD") {
-    return "bg-emerald-100 text-emerald-800";
+    return "bg-teal-100 text-teal-800";
   }
 
   if (result === "REJECTED") {
@@ -250,7 +250,7 @@ export default function DisputeDetailsPage() {
                   type="button"
                   onClick={() => void handleReview("UPHELD")}
                   disabled={reviewing}
-                  className="w-full rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="w-full rounded-lg bg-teal-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {reviewing ? "Reviewing..." : "Uphold dispute"}
                 </button>

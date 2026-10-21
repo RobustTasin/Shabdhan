@@ -5,6 +5,7 @@ import { FormEvent, useState } from "react";
 import { useAuth } from "../components/AuthProvider";
 import { useRouter } from "next/navigation";
 import { getSafeReturnPath } from "../lib/navigation";
+import PublicSiteHeader from "../components/PublicSiteHeader";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -41,46 +42,34 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Link
-            href="/"
-            className="text-2xl font-bold tracking-tight text-slate-950"
-          >
-            Shabdhan
-          </Link>
-
-          <p className="mt-2 text-sm text-slate-500">
-            Trust & verification
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+    <main className="min-h-screen bg-[#f2f6f5]">
+      <PublicSiteHeader />
+      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl items-center justify-center px-4 py-10 sm:px-6 lg:px-8">
+        <div className="w-full max-w-xl">
+        <div className="rounded-3xl border border-[#dbe7e5] bg-white p-6 shadow-[0_18px_50px_rgba(31,51,37,0.08)] sm:p-9">
           <div>
-            <h1 className="text-xl font-semibold text-slate-950">
-              Sign in
-            </h1>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#4e817d]">Welcome back</p>
+            <h1 className="mt-2 text-3xl font-semibold tracking-tight text-[#123d3b]">Sign in</h1>
 
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-2 text-sm leading-6 text-[#627573]">
               Sign in to your Shabdhan account.
             </p>
           </div>
 
           {error && (
-            <div className="mt-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <div className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
               {error}
             </div>
           )}
 
           <form
             onSubmit={handleSubmit}
-            className="mt-6 space-y-5"
+            className="mt-7 space-y-5"
           >
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-slate-700"
+                className="block text-sm font-medium text-[#344f4e]"
               >
                 Email
               </label>
@@ -95,7 +84,7 @@ export default function LoginPage() {
                 onChange={(event) =>
                   setEmail(event.target.value)
                 }
-                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                className="mt-2 w-full rounded-xl border border-[#dbe7e5] bg-[#fbfdfd] px-4 py-3 text-sm text-[#1d3837] outline-none transition placeholder:text-[#899c99] focus:border-[#4e817d] focus:ring-2 focus:ring-[#dfedeb]"
                 placeholder="you@example.com"
               />
             </div>
@@ -104,14 +93,14 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <label
                   htmlFor="password"
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-sm font-medium text-[#344f4e]"
                 >
                   Password
                 </label>
 
                 <Link
                   href="/forgot-password"
-                  className="text-xs font-medium text-slate-600 hover:text-slate-900 hover:underline"
+                  className="text-xs font-semibold text-[#326966] hover:text-[#123d3b] hover:underline"
                 >
                   Forgot password?
                 </Link>
@@ -127,7 +116,7 @@ export default function LoginPage() {
                 onChange={(event) =>
                   setPassword(event.target.value)
                 }
-                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                className="mt-2 w-full rounded-xl border border-[#dbe7e5] bg-[#fbfdfd] px-4 py-3 text-sm text-[#1d3837] outline-none transition placeholder:text-[#899c99] focus:border-[#4e817d] focus:ring-2 focus:ring-[#dfedeb]"
                 placeholder="Enter your password"
               />
             </div>
@@ -135,23 +124,19 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="w-full rounded-xl bg-[#123d3b] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#225c57] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? "Signing in..." : "Sign in"}
             </button>
           </form>
 
-          <div className="mt-6 border-t border-slate-100 pt-6 text-center text-sm text-slate-500">
-            Don't have an account?{" "}
-            <Link
-              href="/apply"
-              className="font-medium text-slate-900 hover:underline"
-            >
-              Apply for membership
-            </Link>
+          <div className="mt-7 space-y-4 border-t border-[#e3eeec] pt-6 text-center text-sm text-[#627573]">
+            <p>Already applied?{" "}<Link href="/account/create" className="font-semibold text-[#123d3b] hover:underline">Create account</Link></p>
+            <p>New to Shabdhan?{" "}<Link href="/apply" className="font-semibold text-[#123d3b] hover:underline">Apply for membership</Link></p>
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </main>
   );
 }

@@ -221,7 +221,7 @@ export default function SocialAccountsPage() {
       {success && (
         <div
           role="status"
-          className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+          className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-700"
         >
           {success}
         </div>
