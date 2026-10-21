@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./components/AuthProvider";
 import { useAppearance } from "./components/AppearanceProvider";
 import FeedNotifications from "./components/FeedNotifications";
+import ReportPreviewDialog from "./components/ReportPreviewDialog";
 import { formatPublicReportId } from "../shared/report-id";
 import {
   getCategories,
@@ -138,6 +139,7 @@ export default function Home() {
   const [searchError, setSearchError] = useState("");
   const searchPanelRef = useRef<HTMLFormElement>(null);
   const [selectedDemo, setSelectedDemo] = useState<DemoReport | null>(null);
+  const [selectedReport, setSelectedReport] = useState<ApiReport | null>(null);
   const [pendingVote, setPendingVote] = useState<string | null>(null);
   const [voteErrors, setVoteErrors] = useState<Record<string, string>>({});
   const [shareFeedback, setShareFeedback] = useState<Record<string, string>>({});
@@ -638,7 +640,7 @@ export default function Home() {
                   return <article key={report.id} className="relative flex min-w-0 flex-col rounded-2xl border border-[#e8f2f0] bg-white p-3 sm:p-4">
                   {report.preview_image_url && <img src={report.preview_image_url} alt={`Evidence image for ${report.title}`} loading="lazy" decoding="async" className="mb-3 aspect-[4/3] w-full rounded-xl bg-[#e7f1ef] object-cover" />}
                   <div className="flex min-w-0 items-center justify-between gap-2">
-                    <h3 className="min-w-0 flex-1 line-clamp-1 text-base font-semibold leading-5 tracking-[-0.02em] text-[#1d3837]"><Link href={`/reports/${report.id}`} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4e817d]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>
+                    <h3 className="min-w-0 flex-1 line-clamp-1 text-base font-semibold leading-5 tracking-[-0.02em] text-[#1d3837]"><Link href={`/reports/${report.id}`} onClick={(event) => { if (window.matchMedia("(min-width: 768px)").matches) { event.preventDefault(); setSelectedReport(report); } }} className="after:absolute after:inset-0 after:content-[''] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#4e817d]">{report.title}<span className="sr-only"> — open report details</span></Link></h3>
                     <span aria-label={`Report number ${publicReportHex}`} className="shrink-0 rounded-full bg-[#f1f6f5] px-2.5 py-1 font-mono text-[10px] font-semibold tracking-wide text-[#667c79]">{publicReportHex}</span>
                   </div>
                   <div className="mt-1 flex min-w-0 items-center justify-between gap-2">
@@ -694,6 +696,8 @@ export default function Home() {
           </section>
         </div>
       )}
+
+      {selectedReport && <ReportPreviewDialog report={selectedReport} onClose={() => setSelectedReport(null)} />}
 
       <footer className="border-t border-[#e0eae8] bg-white">
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-2 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:max-w-none lg:px-8 xl:px-10">
