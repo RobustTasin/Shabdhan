@@ -91,6 +91,7 @@ export default function ReportDetailsPage() {
   const canReviewEvidence = user?.role === "MODERATOR" || user?.role === "ADMIN";
 
   const [report, setReport] = useState<ApiReport | null>(null);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [editingReport, setEditingReport] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -786,8 +787,8 @@ export default function ReportDetailsPage() {
         </section>
       )}
 
-      <div className="grid items-start gap-6 lg:grid-cols-3">
-        <section className="rounded-xl border border-slate-200 bg-white p-6 lg:col-span-2">
+      <div className="grid items-start gap-6 md:grid-cols-3">
+        <section className={`rounded-xl border border-slate-200 bg-white p-6 ${report.social_account?.id ? "md:col-span-2" : "md:col-span-3"}`}>
           <h2 className="text-lg font-semibold text-slate-950">
             Report details
           </h2>
@@ -799,16 +800,6 @@ export default function ReportDetailsPage() {
                 <Link href={`/users/${report.reporter.id}`} className="mt-1 inline-flex text-sm font-medium text-slate-900 hover:text-teal-800 hover:underline">@{report.reporter.username}</Link>
               </div>
             )}
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                Description
-              </p>
-
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                {report.description}
-              </p>
-            </div>
-
             <div className="grid gap-5 sm:grid-cols-2">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -817,25 +808,6 @@ export default function ReportDetailsPage() {
 
                 <p className="mt-1 text-sm text-slate-900">
                   {report.category?.name ?? "Uncategorized"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Incident location
-                </p>
-                <p className="mt-1 text-sm text-slate-900">
-                  {report.incident_type === "OFFLINE" ? "Offline" : `Online · ${report.incident_platform}`}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Verification
-                </p>
-
-                <p className="mt-1 text-sm text-slate-900">
-                  {report.verification_status}
                 </p>
               </div>
 
@@ -851,25 +823,18 @@ export default function ReportDetailsPage() {
                 </p>
               </div>
 
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                  Last updated
-                </p>
-
-                <p className="mt-1 text-sm text-slate-900">
-                  {new Date(
-                    report.updated_at
-                  ).toLocaleString()}
-                </p>
-              </div>
+            </div>
+            <div>
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Last updated</p>
+              <p className="mt-1 text-sm text-slate-900">{new Date(report.updated_at).toLocaleString()}</p>
             </div>
           </div>
         </section>
 
-        {report.social_account?.id && <aside className="space-y-4 lg:col-start-3 lg:row-start-1">
+        {report.social_account?.id && <aside className="space-y-4 md:col-start-3 md:row-start-1">
         <section className="rounded-xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-950">
-            Reported account
+            Reported Entity
           </h2>
 
           <div className="mt-5 space-y-4">
@@ -919,6 +884,12 @@ export default function ReportDetailsPage() {
         </section>
         </aside>}
       </div>
+
+      <section aria-labelledby="report-description-title" className="rounded-xl border border-slate-200 bg-white p-5">
+        <h2 id="report-description-title" className="text-base font-semibold text-slate-950">Description</h2>
+        <p className={`mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700 ${descriptionExpanded ? "" : "line-clamp-3"}`}>{report.description}</p>
+        {report.description.length > 220 && <button type="button" aria-expanded={descriptionExpanded} onClick={() => setDescriptionExpanded((expanded) => !expanded)} className="mt-2 text-sm font-semibold text-teal-800 underline underline-offset-2">{descriptionExpanded ? "Show less" : "Read full description"}</button>}
+      </section>
 
       <section id="evidence" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
         <div>
