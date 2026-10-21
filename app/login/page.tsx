@@ -131,8 +131,8 @@ export default function LoginPage() {
           </form>
 
           <div className="mt-7 space-y-4 border-t border-[#e3eeec] pt-6 text-center text-sm text-[#627573]">
-            <p>Already applied?{" "}<Link href="/account/create" className="font-semibold text-[#123d3b] hover:underline">Create account</Link></p>
-            <p>New to Shabdhan?{" "}<Link href="/apply" className="font-semibold text-[#123d3b] hover:underline">Apply for membership</Link></p>
+            <p>Already applied?{" "}<Link href="/account/create" className="font-semibold text-[#123d3b] visited:text-[#123d3b] hover:text-[#123d3b] hover:underline">Create account</Link></p>
+            <p>New to Shabdhan?{" "}<Link href="/apply" className="font-semibold text-[#123d3b] visited:text-[#123d3b] hover:text-[#123d3b] hover:underline">Apply for membership</Link></p>
           </div>
         </div>
       </div>
