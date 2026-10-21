@@ -7,6 +7,8 @@ import { ONLINE_INCIDENT_PLATFORMS, type IncidentType } from "../../shared/incid
 import ProfilePageLayout from "../components/ProfilePageLayout";
 import { useAuth } from "../components/AuthProvider";
 import { createReport, createSocialAccount, getCategories, getSocialAccounts, type Category, type SocialAccount } from "../lib/reports-api";
+import ReportLocationSelector from "../components/ReportLocationSelector";
+import { hasCompleteLocation, type ReportLocationValue } from "../../shared/report-location";
 
 export default function CreateReportPage() {
   const router = useRouter();
@@ -17,6 +19,7 @@ export default function CreateReportPage() {
   const [socialAccountId, setSocialAccountId] = useState("");
   const [incidentType, setIncidentType] = useState<IncidentType | "">("");
   const [incidentPlatform, setIncidentPlatform] = useState("");
+  const [location, setLocation] = useState<ReportLocationValue>({ scope: "", countryCode: "", division: "", district: "", subDistrict: "" });
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
@@ -55,6 +58,7 @@ export default function CreateReportPage() {
         category_id: categoryId || null,
         incident_type: incidentType,
         incident_platform: incidentType === "ONLINE" ? incidentPlatform : null,
+        location: hasCompleteLocation(location) ? location : undefined,
         title: title.trim(),
         description: description.trim(),
       });
@@ -118,6 +122,7 @@ export default function CreateReportPage() {
               <option value="">Select a platform</option>{ONLINE_INCIDENT_PLATFORMS.map((item) => <option key={item} value={item}>{item}</option>)}
             </select>
           </div>}
+          {incidentType && <div className="rounded-2xl bg-slate-50 p-4"><ReportLocationSelector value={location} onChange={setLocation} required={incidentType === "OFFLINE"} label={incidentType === "OFFLINE" ? "Incident location" : "Reported entity location (optional)"} /></div>}
           <div>
             <label htmlFor="report-category" className="text-sm font-medium text-slate-700">Category</label>
             <select id="report-category" value={categoryId} onChange={(event) => setCategoryId(event.target.value)} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm">
@@ -135,7 +140,7 @@ export default function CreateReportPage() {
           </div>
           <div className="flex flex-col-reverse justify-end gap-3 border-t border-slate-100 pt-5 sm:flex-row">
             <Link href="/me" className="inline-flex justify-center rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">Cancel</Link>
-            <button type="submit" disabled={submitting || !title.trim() || !description.trim() || !incidentType || (incidentType === "ONLINE" && !incidentPlatform)} className="rounded-xl bg-teal-950 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-50">{submitting ? "Creating…" : "Create report"}</button>
+            <button type="submit" disabled={submitting || !title.trim() || !description.trim() || !incidentType || (incidentType === "ONLINE" && !incidentPlatform) || (incidentType === "OFFLINE" && !hasCompleteLocation(location))} className="rounded-xl bg-teal-950 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-900 disabled:cursor-not-allowed disabled:opacity-50">{submitting ? "Creating…" : "Create report"}</button>
           </div>
         </form>
       </section>
