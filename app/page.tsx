@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./components/AuthProvider";
 import { useAppearance } from "./components/AppearanceProvider";
+import FeedNotifications from "./components/FeedNotifications";
 import { formatPublicReportId } from "../shared/report-id";
 import {
   getCategories,
@@ -438,6 +439,7 @@ export default function Home() {
                 <span className="sm:hidden">+</span><span className="hidden sm:inline">+ Create</span>
               </Link>
             )}
+            {user && <FeedNotifications />}
             <Link href={user ? "/me" : "/login?next=%2Fme"} aria-label="Me" title="Me" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#455e5c] transition hover:bg-[#e7f1ef]">
               <MeIcon />
             </Link>
