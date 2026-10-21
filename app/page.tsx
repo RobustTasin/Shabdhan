@@ -595,10 +595,9 @@ export default function Home() {
 
           return (
             <section key={category.id} aria-label={`${category.name} reports`} className="mb-6 sm:mb-7">
-              <div className="mb-4 flex items-center justify-between gap-3 rounded-[1.65rem] border border-[#dee9e7] bg-white px-5 py-4 shadow-[0_8px_26px_rgba(31,54,37,.035)] sm:px-6">
+              <div className="mb-2 flex items-center justify-between gap-3 px-1 py-1">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#7b918e]">Recent in</p>
-                  <h2 className="mt-0.5 truncate text-lg font-semibold tracking-[-0.02em] text-[#243b39]"><Link href={`/search?category_id=${encodeURIComponent(category.id)}`} className="rounded-sm hover:text-[#4e817d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4e817d]">{category.name}<span className="sr-only"> — view all reports in this category</span></Link></h2>
+                  <h2 className="truncate text-lg font-semibold tracking-[-0.02em] text-[#243b39]"><Link href={`/search?category_id=${encodeURIComponent(category.id)}`} className="rounded-sm hover:text-[#4e817d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4e817d]">{category.name}<span className="sr-only"> — view all reports in this category</span></Link></h2>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <span className="mr-1 text-xs tabular-nums text-[#758b87]">{shownCount ? `${index + 1}${shownCount > 1 ? `–${index + shownCount}` : ""}` : 0} / {count}</span>
