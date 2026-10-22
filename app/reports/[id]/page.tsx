@@ -822,8 +822,9 @@ export default function ReportDetailsPage() {
         </section>
       )}
 
-      <div className="grid items-start gap-6 md:grid-cols-3">
-        <section className={`rounded-xl border border-slate-200 bg-white p-6 ${report.social_account?.id ? "md:col-span-2" : "md:col-span-3"}`}>
+      <div className="report-detail-layout">
+      <div className="report-detail-overview space-y-6">
+        <section className="rounded-xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-950">
             Report details
           </h2>
@@ -871,7 +872,7 @@ export default function ReportDetailsPage() {
           </div>
         </section>
 
-        {report.social_account?.id && <aside className="space-y-4 md:col-start-3 md:row-start-1">
+        {report.social_account?.id && <aside className="space-y-4">
         <section className="rounded-xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-950">
             Reported Entity
@@ -925,20 +926,20 @@ export default function ReportDetailsPage() {
         </aside>}
       </div>
 
-      <section aria-labelledby="report-description-title" className="rounded-xl border border-slate-200 bg-white p-6">
+      <section aria-labelledby="report-description-title" className="report-detail-description rounded-xl border border-slate-200 bg-white p-6">
         <h2 id="report-description-title" className="text-base font-semibold text-slate-950">Description</h2>
         <p className={`mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700 ${descriptionExpanded ? "" : "line-clamp-3"}`}>{report.description}</p>
         {report.description.length > 220 && <button type="button" aria-expanded={descriptionExpanded} onClick={() => setDescriptionExpanded((expanded) => !expanded)} className="mt-2 text-sm font-semibold text-teal-800 underline underline-offset-2">{descriptionExpanded ? "Show less" : "Read full description"}</button>}
       </section>
 
-      <section id="evidence" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
+      <section id="evidence" className="report-detail-evidence scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Evidence and source links</h2>
         </div>
 
         {canAddEvidence ? (
-        <div className="mt-5 space-y-6">
-          <div className="space-y-3">
+        <div className="report-evidence-forms mt-5 space-y-6">
+          <div className="report-evidence-link-form space-y-3">
             <h3 className="text-sm font-semibold text-slate-950">Add a cloud folder or web link</h3>
             <p className="mt-1 text-xs leading-5 text-slate-600">
               Paste a Google Drive, OneDrive, Proton Drive, or public webpage link. Set cloud files to “Anyone with the link can view.” Shabdhan stores the link and does not change the provider’s sharing permissions.
@@ -970,7 +971,7 @@ export default function ReportDetailsPage() {
             <p className="mt-3 text-xs leading-5 text-slate-500">Shabdhan can find and attach an existing Internet Archive snapshot. If none exists, save the public page with the Archive and check again. The snapshot is hosted by the Internet Archive, not copied onto Shabdhan, and capture is not guaranteed for every page.</p>
           </div>
 
-          <div className="space-y-3">
+          <div className="report-evidence-upload-form space-y-3">
           <h3 className="text-sm font-semibold text-slate-950">
             Or upload a file to Shabdhan
           </h3>
@@ -1059,7 +1060,7 @@ export default function ReportDetailsPage() {
           <p className="mt-5 text-sm text-slate-700">Only the report creator can add evidence.</p>
         ) : null}
 
-        <div className="mt-6">
+        <div className="report-evidence-list mt-6">
           {evidenceActionError && (
             <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               {evidenceActionError}
@@ -1191,8 +1192,8 @@ export default function ReportDetailsPage() {
         </div>
       </section>
 
-      <div className="grid items-start gap-6 md:grid-cols-2">
-      <section id="corroborations" className="scroll-mt-24 py-5">
+      <div className="report-detail-interactions">
+      <section id="corroborations" className="report-detail-corroborations scroll-mt-24 py-5">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-950">Corroborations</h2>
           <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{corroborations.length}</span>
@@ -1344,7 +1345,7 @@ export default function ReportDetailsPage() {
       </section>
 
 
-      <section id="comments" className="scroll-mt-24 py-5">
+      <section id="comments" className="report-detail-comments scroll-mt-24 py-5">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-950">Comments</h2>
           <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{comments.length}</span>
@@ -1650,6 +1651,7 @@ export default function ReportDetailsPage() {
           )}
         </div>
       </section>
+      </div>
       </div>
       {selectedEvidenceImage && <div role="presentation" className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 p-4 sm:p-8" onClick={() => setSelectedEvidenceImage(null)}><section role="dialog" aria-modal="true" aria-label="Full-size evidence image" className="relative flex h-full w-full items-center justify-center"><button type="button" autoFocus aria-label="Close full-size image" onClick={() => setSelectedEvidenceImage(null)} className="absolute right-0 top-0 z-10 rounded-full bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800">Close</button><img src={selectedEvidenceImage} alt="Full-size report evidence" onClick={(event) => event.stopPropagation()} className="max-h-full max-w-full object-contain" /></section></div>}
       </div>
