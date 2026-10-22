@@ -925,19 +925,15 @@ export default function ReportDetailsPage() {
         </aside>}
       </div>
 
-      <section aria-labelledby="report-description-title" className="py-2">
+      <section aria-labelledby="report-description-title" className="rounded-xl border border-slate-200 bg-white p-6">
         <h2 id="report-description-title" className="text-base font-semibold text-slate-950">Description</h2>
         <p className={`mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700 ${descriptionExpanded ? "" : "line-clamp-3"}`}>{report.description}</p>
         {report.description.length > 220 && <button type="button" aria-expanded={descriptionExpanded} onClick={() => setDescriptionExpanded((expanded) => !expanded)} className="mt-2 text-sm font-semibold text-teal-800 underline underline-offset-2">{descriptionExpanded ? "Show less" : "Read full description"}</button>}
       </section>
 
-      <section id="evidence" className="scroll-mt-24 py-5">
+      <section id="evidence" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Evidence and source links</h2>
-
-          <p className="mt-1 text-sm text-slate-500">
-            Open the sources and supporting material shared with this report.
-          </p>
         </div>
 
         {canAddEvidence ? (
@@ -1110,11 +1106,6 @@ export default function ReportDetailsPage() {
                         </p>
                       )}
 
-                      {item.uploader && (
-                        <p className="mt-2 text-xs text-slate-400">
-                          Uploaded by {item.uploader.username}
-                        </p>
-                      )}
                     </div>
 
                     <div className="flex flex-col items-start gap-2">
@@ -1243,7 +1234,7 @@ export default function ReportDetailsPage() {
         )}
 
         {user && user.id !== report.reporter?.id ? (
-          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+          <div className="mt-6">
             <h3 className="text-sm font-semibold text-slate-950">
               Corroborate this report
             </h3>
