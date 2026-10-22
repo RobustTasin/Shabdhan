@@ -1,7 +1,7 @@
 import { apiFetch } from "./api";
 import { getToken } from "./auth";
 import { type IncidentType } from "../../shared/incident-platforms";
-import { type ReportLocationValue, locationCountryName, OTHER_LOCALITY_VALUE } from "../../shared/report-location";
+import { type ReportLocationValue, locationCountryName } from "../../shared/report-location";
 
 export type ReportStatus =
   | "DRAFT"
@@ -44,6 +44,7 @@ export type ApiReport = {
   location_division?: string | null;
   location_district?: string | null;
   location_sub_district?: string | null;
+  location_city_corporation?: string | null;
   location_area?: string | null;
   title: string;
   description: string;
@@ -171,6 +172,7 @@ export async function searchReports(params: {
   division?: string;
   district?: string;
   subDistrict?: string;
+  cityCorporation?: string;
   area?: string;
   fromMonth?: string;
   toMonth?: string;
@@ -187,6 +189,7 @@ export async function searchReports(params: {
   if (params.division) query.set("division", params.division);
   if (params.district) query.set("district", params.district);
   if (params.subDistrict) query.set("sub_district", params.subDistrict);
+  if (params.cityCorporation) query.set("city_corporation", params.cityCorporation);
   if (params.area) query.set("area", params.area);
   if (params.fromMonth) query.set("from_month", params.fromMonth);
   if (params.toMonth) query.set("to_month", params.toMonth);
@@ -252,8 +255,9 @@ export async function createReport(input: {
       location_country_name: input.location.scope ? locationCountryName(input.location) : null,
       location_division: input.location.scope === "BANGLADESH" ? input.location.division : null,
       location_district: input.location.scope === "BANGLADESH" ? input.location.district : null,
-      location_sub_district: input.location.scope === "BANGLADESH" ? input.location.subDistrict : null,
-      location_area: input.location.scope === "BANGLADESH" && input.location.subDistrict === OTHER_LOCALITY_VALUE ? input.location.area.trim() : null,
+      location_sub_district: input.location.scope === "BANGLADESH" ? input.location.subDistrict || null : null,
+      location_city_corporation: input.location.scope === "BANGLADESH" ? input.location.cityCorporation || null : null,
+      location_area: input.location.scope === "BANGLADESH" && input.location.cityCorporation ? input.location.area.trim() || null : null,
     } : {}) }),
   });
 }
