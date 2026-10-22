@@ -193,9 +193,9 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
 .report-detail-corroborations { grid-area: corroborations; }
 .report-detail-comments { grid-area: comments; }
 
-@media (min-width: 1000px) and (min-aspect-ratio: 16/10) {
+@media (min-width: 1000px) {
   .report-detail-layout {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     grid-template-areas:
       "evidence overview"
       "description overview";
