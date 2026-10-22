@@ -6,17 +6,17 @@ import { AppearanceProvider } from "./components/AppearanceProvider";
 
 export const metadata: Metadata = {
   title: {
-    default: "Shabdhan — Community reports, with context",
+    default: "Shabdhan — Warn others",
     template: "%s | Shabdhan",
   },
   description:
-    "Explore public community reports, understand their review status, and contribute responsibly. Browsing is open to everyone.",
+    "Warn others by sharing public community reports and their context. Browsing is open to everyone.",
   openGraph: {
     type: "website",
     siteName: "Shabdhan",
-    title: "Shabdhan — Community reports, with context",
+    title: "Shabdhan — Warn others",
     description:
-      "Explore public community reports, understand their review status, and contribute responsibly.",
+      "Warn others by sharing public community reports and their context.",
   },
 };
 

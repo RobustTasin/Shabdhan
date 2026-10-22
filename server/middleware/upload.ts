@@ -5,8 +5,6 @@ const allowedMimeTypes = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
-  "video/mp4",
-  "video/webm",
   "application/pdf",
 ]);
 
@@ -49,20 +47,6 @@ export function hasMatchingFileSignature(
         buffer.toString("ascii", 0, 5) === "%PDF-"
       );
 
-    case "video/mp4":
-      return (
-        buffer.length >= 12 &&
-        buffer.toString("ascii", 4, 8) === "ftyp"
-      );
-
-    case "video/webm":
-      return (
-        buffer.length >= 4 &&
-        buffer.subarray(0, 4).equals(
-          Buffer.from([0x1a, 0x45, 0xdf, 0xa3])
-        )
-      );
-
     default:
       return false;
   }
@@ -70,14 +54,12 @@ export function hasMatchingFileSignature(
 
 const MB = 1024 * 1024;
 
-// Largest file multer will accept at all
-const MAX_UPLOAD_BYTES = 25 * MB;
+// Each direct file is limited independently; there is deliberately no
+// evidence-count limit because files are uploaded one at a time.
+const MAX_UPLOAD_BYTES = 12 * MB;
 
-// Per-type limits. Images and PDFs match Cloudinary's free-plan cap of
-// 10 MB; videos may be larger but are held in memory while uploading, so
-// they stay at 25 MB.
-export function maxBytesForMime(mimetype: string): number {
-  return mimetype.startsWith("video/") ? 25 * MB : 10 * MB;
+export function maxBytesForMime(_mimetype: string): number {
+  return MAX_UPLOAD_BYTES;
 }
 
 export function formatLimit(bytes: number): string {
@@ -97,7 +79,7 @@ export const uploadEvidence = multer({
     if (!allowedMimeTypes.has(file.mimetype)) {
       return cb(
         new Error(
-          "Unsupported file type. Allowed types: JPG, JPEG, PNG, WEBP, MP4, WEBM, PDF"
+          "Unsupported file type. Allowed types: JPG, PNG, WEBP, PDF"
         )
       );
     }

@@ -19,7 +19,7 @@ export default function CreateReportPage() {
   const [socialAccountId, setSocialAccountId] = useState("");
   const [incidentType, setIncidentType] = useState<IncidentType | "">("");
   const [incidentPlatform, setIncidentPlatform] = useState("");
-  const [location, setLocation] = useState<ReportLocationValue>({ scope: "", countryCode: "", division: "", district: "", subDistrict: "" });
+  const [location, setLocation] = useState<ReportLocationValue>({ scope: "", countryCode: "", division: "", district: "", subDistrict: "", cityCorporation: "", area: "" });
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
@@ -35,12 +35,13 @@ export default function CreateReportPage() {
   useEffect(() => {
     if (authLoading || !user) return;
     let cancelled = false;
-    void Promise.all([getCategories(), getSocialAccounts()]).then(([categoryResponse, accountResponse]) => {
+    void Promise.all([getCategories(), getSocialAccounts({ reportedOnly: true })]).then(([categoryResponse, accountResponse]) => {
       if (cancelled) return;
       setCategories(categoryResponse.categories);
       setSocialAccounts(accountResponse.social_accounts);
       setCategoryId(categoryResponse.categories[0]?.id ?? "");
-      setSocialAccountId(new URLSearchParams(window.location.search).get("social_account_id") ?? accountResponse.social_accounts[0]?.id ?? "");
+      const requestedAccountId = new URLSearchParams(window.location.search).get("social_account_id");
+      setSocialAccountId(accountResponse.social_accounts.find((account) => account.id === requestedAccountId)?.id ?? accountResponse.social_accounts[0]?.id ?? "");
     }).catch((cause) => {
       if (!cancelled) setError(cause instanceof Error ? cause.message : "Could not load report options.");
     }).finally(() => { if (!cancelled) setLoading(false); });

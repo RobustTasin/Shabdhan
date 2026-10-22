@@ -12,7 +12,7 @@ import { withTransaction } from "../utils/transaction";
 import { cloudinary } from "../config/cloudinary";
 import { categoryCodeFromName, parsePublicReportId } from "../../shared/report-id";
 import { ONLINE_INCIDENT_PLATFORMS, type IncidentType } from "../../shared/incident-platforms";
-import { bangladeshSubDistricts, reportCountries } from "../../shared/report-location";
+import { bangladeshCityCorporations, bangladeshDistricts, bangladeshSubDistricts, reportCountries } from "../../shared/report-location";
 
 const router = Router();
 
@@ -23,7 +23,8 @@ router.post(
   async (req: AuthenticatedRequest, res) => {
     try {
       const { social_account_id, category_id, incident_type, incident_platform, title, description,
-        location_scope, location_country_code, location_division, location_district, location_sub_district } = req.body;
+        location_scope, location_country_code, location_division, location_district,
+        location_sub_district, location_city_corporation, location_area } = req.body;
 
       if (!title || !description || (incident_type !== "ONLINE" && incident_type !== "OFFLINE")) {
         return res.status(400).json({
@@ -44,7 +45,7 @@ router.post(
 
       const incidentType = incident_type as IncidentType;
       const incidentPlatform = incidentType === "ONLINE" ? incident_platform as string : null;
-      const hasAnyLocation = [location_scope, location_country_code, location_division, location_district, location_sub_district].some(Boolean);
+      const hasAnyLocation = [location_scope, location_country_code, location_division, location_district, location_sub_district, location_city_corporation, location_area].some(Boolean);
       if (incidentType === "OFFLINE" && !hasAnyLocation) {
         return res.status(400).json({ status: "error", message: "Choose the incident location." });
       }
@@ -53,17 +54,31 @@ router.post(
       let division: string | null = null;
       let district: string | null = null;
       let subDistrict: string | null = null;
+      let cityCorporation: string | null = null;
+      let area: string | null = null;
       if (hasAnyLocation) {
-        if (location_scope === "BANGLADESH" && location_country_code === "BD" &&
-            typeof location_division === "string" && typeof location_district === "string" && typeof location_sub_district === "string" &&
-            bangladeshSubDistricts(location_division, location_district).includes(location_sub_district)) {
+        const validBangladeshDistrict = location_scope === "BANGLADESH" && location_country_code === "BD" &&
+          typeof location_division === "string" && typeof location_district === "string" &&
+          bangladeshDistricts(location_division).includes(location_district);
+        const validSubDistrict = validBangladeshDistrict && typeof location_sub_district === "string" &&
+          bangladeshSubDistricts(location_division, location_district).includes(location_sub_district) &&
+          !location_city_corporation && !location_area;
+        const validCityCorporation = validBangladeshDistrict && !location_sub_district &&
+          typeof location_city_corporation === "string" &&
+          bangladeshCityCorporations(location_division, location_district).includes(location_city_corporation) &&
+          (!location_area || (typeof location_area === "string" && location_area.trim().length <= 120));
+        const districtOnly = validBangladeshDistrict && !location_sub_district && !location_city_corporation && !location_area;
+        if (validSubDistrict || validCityCorporation || districtOnly) {
           countryCode = "BD"; countryName = "Bangladesh";
-          division = location_division; district = location_district; subDistrict = location_sub_district;
+          division = location_division; district = location_district;
+          subDistrict = validSubDistrict ? location_sub_district : null;
+          cityCorporation = validCityCorporation ? location_city_corporation : null;
+          area = validCityCorporation && typeof location_area === "string" ? location_area.trim() || null : null;
         } else if (location_scope === "ABROAD" && typeof location_country_code === "string" && location_country_code !== "BD") {
           const country = reportCountries.find((item) => item.code === location_country_code);
           if (country) { countryCode = country.code; countryName = country.name; }
         }
-        if (!countryCode) return res.status(400).json({ status: "error", message: "Select a valid location. Bangladesh requires a division, district, and sub-district; abroad requires a country." });
+        if (!countryCode) return res.status(400).json({ status: "error", message: "Select a valid location. Choose a Bangladesh district, then optionally a sub-district or city corporation; abroad requires a country." });
       }
 
       // Validate the social account when the reporter chooses to link one.
@@ -102,12 +117,12 @@ router.post(
       // reporter_id comes from the authenticated user
       const result = await pool.query(
         `INSERT INTO reports
-         (reporter_id, social_account_id, category_id, public_report_category_code, incident_type, incident_platform, location_scope, location_country_code, location_country_name, location_division, location_district, location_sub_district, title, description)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+         (reporter_id, social_account_id, category_id, public_report_category_code, incident_type, incident_platform, location_scope, location_country_code, location_country_name, location_division, location_district, location_sub_district, location_city_corporation, location_area, title, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
          RETURNING id, public_report_number, public_report_category_code,
                    reporter_id, social_account_id, category_id,
                    incident_type, incident_platform, location_scope, location_country_code, location_country_name,
-                   location_division, location_district, location_sub_district, title, description, status,
+                   location_division, location_district, location_sub_district, location_city_corporation, location_area, title, description, status,
                    verification_status, published_at,
                    created_at, updated_at`,
         [
@@ -123,6 +138,8 @@ router.post(
           division,
           district,
           subDistrict,
+          cityCorporation,
+          area,
           title,
           description,
         ]
@@ -282,11 +299,11 @@ router.get("/public-status", async (_req, res) => {
 router.get("/public-statistics", async (req, res) => {
   const groupColumns: Record<string, string> = {
     category: "COALESCE(c.name, 'Uncategorized')",
-    location: "CASE WHEN r.location_scope = 'BANGLADESH' THEN CONCAT_WS(', ', r.location_sub_district, r.location_district, r.location_division, r.location_country_name) ELSE COALESCE(r.location_country_name, 'Location not supplied') END",
+    location: "CASE WHEN r.location_scope = 'BANGLADESH' THEN CONCAT_WS(', ', r.location_area, COALESCE(r.location_city_corporation, r.location_sub_district), r.location_district, r.location_division, r.location_country_name) ELSE COALESCE(r.location_country_name, 'Location not supplied') END",
     country: "COALESCE(r.location_country_name, 'Location not supplied')",
     division: "COALESCE(r.location_division, 'Not applicable')",
     district: "COALESCE(r.location_district, 'Not applicable')",
-    sub_district: "COALESCE(r.location_sub_district, 'Not applicable')",
+    sub_district: "COALESCE(r.location_city_corporation, r.location_sub_district, 'Not applicable')",
     month: "TO_CHAR(DATE_TRUNC('month', r.created_at), 'YYYY-MM')",
     incident_type: "r.incident_type",
   };
@@ -332,6 +349,8 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
     const division = String(req.query.division || "").trim();
     const district = String(req.query.district || "").trim();
     const subDistrict = String(req.query.sub_district || "").trim();
+    const cityCorporation = String(req.query.city_corporation || "").trim();
+    const area = String(req.query.area || "").trim();
     const fromMonth = String(req.query.from_month || "").trim();
     const toMonth = String(req.query.to_month || "").trim();
 
@@ -398,6 +417,8 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
     if (division) { values.push(division); conditions.push(`r.location_division = $${values.length}`); }
     if (district) { values.push(district); conditions.push(`r.location_district = $${values.length}`); }
     if (subDistrict) { values.push(subDistrict); conditions.push(`r.location_sub_district = $${values.length}`); }
+    if (cityCorporation) { values.push(cityCorporation); conditions.push(`r.location_city_corporation = $${values.length}`); }
+    if (area) { values.push(area); conditions.push(`r.location_area ILIKE $${values.length}`); }
     for (const [month, op] of [[fromMonth, ">="], [toMonth, "<="]] as const) {
       if (month) {
         if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return res.status(400).json({ status: "error", message: "Months must use YYYY-MM format." });
@@ -436,6 +457,8 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
          r.location_division,
          r.location_district,
          r.location_sub_district,
+         r.location_city_corporation,
+         r.location_area,
          r.title,
          r.description,
          r.status,
@@ -667,7 +690,7 @@ router.get(
          r.incident_type,
          r.incident_platform,
          r.location_scope, r.location_country_code, r.location_country_name,
-         r.location_division, r.location_district, r.location_sub_district,
+         r.location_division, r.location_district, r.location_sub_district, r.location_city_corporation, r.location_area,
            r.title,
            r.description,
            r.status,

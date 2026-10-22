@@ -6,8 +6,12 @@ export async function submitMembershipApplication(input: { email: string; social
   return apiFetch<{ status: string; message: string; application_number: string }>("/membership-applications", { method: "POST", body: input });
 }
 
-export async function checkMembershipEligibility(email: string, code: string) {
-  return apiFetch<{ status: string; eligible: boolean }>("/membership-applications/eligibility", { method: "POST", body: { email, code } });
+export async function checkMembershipEligibility(email: string) {
+  return apiFetch<{ status: string; eligible: boolean }>("/membership-applications/eligibility", { method: "POST", body: { email } });
+}
+
+export async function verifyMembershipCode(email: string, code: string) {
+  return apiFetch<{ status: string; eligible: boolean }>("/membership-applications/eligibility/code", { method: "POST", body: { email, code } });
 }
 
 export async function getMembershipApplications(status: MembershipApplicationStatus | "ALL" = "ALL") {

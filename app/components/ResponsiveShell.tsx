@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SidebarNav from "./SidebarNav";
 import NotificationLink from "./NotificationLink";
 import { useAuth } from "./AuthProvider";
+import BrandWordmark from "./BrandWordmark";
 
 export default function ResponsiveShell({
   children,
@@ -19,6 +20,18 @@ export default function ResponsiveShell({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [compactExpanded, setCompactExpanded] = useState(false);
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setMobileMenuOpen(false); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [mobileMenuOpen]);
+
   const isAuthPage =
     pathname === "/login" ||
     pathname === "/register" ||
@@ -27,9 +40,10 @@ export default function ResponsiveShell({
 
   const isPublicReportPage = /^\/reports\/[^/]+$/.test(pathname);
   const isProfilePage = pathname === "/me" || /^\/users\/[^/]+$/.test(pathname);
+  const isPublicExplorePage = pathname === "/categories" || pathname.startsWith("/categories/") || pathname === "/my-bangladesh";
 
   // Public pages use their own layouts instead of the authenticated dashboard shell.
-  if (pathname === "/" || pathname === "/search" || pathname === "/create-report" || pathname === "/notifications" || isPublicReportPage || isProfilePage || isAuthPage || isPublicMembershipPage) {
+  if (pathname === "/" || pathname === "/search" || pathname === "/create-report" || pathname === "/notifications" || isPublicReportPage || isProfilePage || isPublicExplorePage || isAuthPage || isPublicMembershipPage) {
     return <>{children}</>;
   }
 
@@ -39,12 +53,10 @@ export default function ResponsiveShell({
       <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white xl:flex xl:flex-col">
         <div className="flex h-16 items-center border-b border-slate-200 px-6">
           <Link href={homeHref}>
-            <div className="text-xl font-bold tracking-tight">
-              Shabdhan
-            </div>
+            <BrandWordmark className="text-xl font-bold tracking-tight" />
 
             <div className="text-xs text-slate-500">
-              Trust & verification
+              Warn others
             </div>
           </Link>
         </div>
@@ -80,12 +92,10 @@ export default function ResponsiveShell({
           {compactExpanded ? (
             <>
               <Link href={homeHref} className="min-w-0">
-                <div className="truncate text-xl font-bold tracking-tight">
-                  Shabdhan
-                </div>
+                <BrandWordmark className="truncate text-xl font-bold tracking-tight" />
 
                 <div className="text-xs text-slate-500">
-                  Trust & verification
+                  Warn others
                 </div>
               </Link>
 
@@ -140,7 +150,11 @@ export default function ResponsiveShell({
 
       {/* Mobile slide-out navigation */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[min(82vw,320px)] flex-col border-r border-slate-200 bg-white shadow-xl transition-transform duration-200 md:hidden ${
+        role="dialog"
+        aria-modal={mobileMenuOpen}
+        aria-label="Dashboard navigation"
+        aria-hidden={!mobileMenuOpen}
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-full flex-col border-r border-slate-200 bg-white shadow-xl transition-transform duration-200 md:hidden ${
           mobileMenuOpen
             ? "translate-x-0"
             : "-translate-x-full"
@@ -151,12 +165,10 @@ export default function ResponsiveShell({
             href={homeHref}
             onClick={() => setMobileMenuOpen(false)}
           >
-            <div className="text-xl font-bold tracking-tight">
-              Shabdhan
-            </div>
+            <BrandWordmark className="text-xl font-bold tracking-tight" />
 
             <div className="text-xs text-slate-500">
-              Trust & verification
+              Warn others
             </div>
           </Link>
 
@@ -182,6 +194,7 @@ export default function ResponsiveShell({
               type="button"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Open navigation"
+              aria-expanded={mobileMenuOpen}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-lg text-slate-700 hover:bg-slate-50 md:hidden"
             >
               <span aria-hidden="true" className="text-2xl leading-none">
@@ -193,7 +206,7 @@ export default function ResponsiveShell({
               href={homeHref}
               className="truncate text-lg font-bold tracking-tight md:hidden"
             >
-              Shabdhan
+              <BrandWordmark />
             </Link>
           </div>
 

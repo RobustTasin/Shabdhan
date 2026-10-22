@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import BrandWordmark from "../components/BrandWordmark";
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 import { completeManualPasswordReset, requestPasswordReset } from "../lib/membership-api";
@@ -35,7 +36,7 @@ export default function ForgotPasswordPage() {
   }
 
   return <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10"><section className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-    <div className="text-center"><Link href="/" className="text-2xl font-bold tracking-tight text-slate-950">Shabdhan</Link><p className="mt-2 text-sm text-slate-500">Reset your password</p></div>
+    <div className="text-center"><Link href="/" className="text-2xl font-bold tracking-tight"><BrandWordmark /></Link><p className="mt-2 text-sm text-slate-500">Reset your password</p></div>
     <h1 className="mt-7 text-xl font-semibold text-slate-950">Forgot password?</h1>
     <p className="mt-2 text-sm leading-6 text-slate-600">A moderator reviews reset requests and manually emails a six-letter code to the account email.</p>
     {error && <div role="alert" className="mt-5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</div>}

@@ -20,7 +20,7 @@ export default function SearchPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [location, setLocation] = useState<ReportLocationValue>({ scope: "", countryCode: "", division: "", district: "", subDistrict: "" });
+  const [location, setLocation] = useState<ReportLocationValue>({ scope: "", countryCode: "", division: "", district: "", subDistrict: "", cityCorporation: "", area: "" });
   const [fromMonth, setFromMonth] = useState("");
   const [toMonth, setToMonth] = useState("");
   const [page, setPage] = useState(1);
@@ -51,7 +51,7 @@ export default function SearchPage() {
     }, 300);
 
     return () => window.clearTimeout(timer);
-  }, [initialized, search, categoryId, page, location.countryCode, location.division, location.district, location.subDistrict, fromMonth, toMonth]);
+  }, [initialized, search, categoryId, page, location.countryCode, location.division, location.district, location.subDistrict, location.area, fromMonth, toMonth]);
 
   async function loadResults() {
     try {
@@ -65,6 +65,8 @@ export default function SearchPage() {
         division: location.division || undefined,
         district: location.district || undefined,
         subDistrict: location.subDistrict || undefined,
+        cityCorporation: location.cityCorporation || undefined,
+        area: location.area.trim() || undefined,
         fromMonth: fromMonth || undefined,
         toMonth: toMonth || undefined,
         page,
@@ -236,7 +238,7 @@ export default function SearchPage() {
                       <p className="mt-3 line-clamp-2 text-sm text-slate-600">
                         {report.description}
                       </p>
-                      {report.location_country_name && <p className="mt-2 text-xs font-medium text-teal-800">{[report.location_sub_district, report.location_district, report.location_division, report.location_country_name].filter(Boolean).join(" · ")}</p>}
+                      {report.location_country_name && <p className="mt-2 text-xs font-medium text-teal-800">{[report.location_area, report.location_city_corporation, report.location_sub_district, report.location_district, report.location_division, report.location_country_name].filter(Boolean).join(" · ")}</p>}
                     </div>
 
                     <span className="w-fit shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">

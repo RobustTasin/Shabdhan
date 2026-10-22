@@ -309,8 +309,6 @@ router.post(
         "image/jpeg": "IMAGE",
         "image/png": "IMAGE",
         "image/webp": "IMAGE",
-        "video/mp4": "VIDEO",
-        "video/webm": "VIDEO",
         "application/pdf": "DOCUMENT",
       };
 
@@ -329,13 +327,25 @@ router.post(
       if (req.file.size > maxBytes) {
         return res.status(400).json({
           status: "error",
-          message: `${
-            evidenceType === "VIDEO"
-              ? "Videos"
-              : evidenceType === "IMAGE"
-                ? "Images"
-                : "PDFs"
-          } can be at most ${formatLimit(maxBytes)}`,
+          message: `${evidenceType === "IMAGE" ? "Images" : "PDFs"} can be at most ${formatLimit(maxBytes)}`,
+        });
+      }
+
+      const uploadedBytes = await pool.query(
+        `SELECT COALESCE(SUM(file_size_bytes), 0)::bigint AS used_bytes
+         FROM evidence
+         WHERE report_id = $1
+           AND evidence_type IN ('IMAGE'::evidence_type, 'DOCUMENT'::evidence_type)
+           AND file_url IS NOT NULL`,
+        [report_id]
+      );
+      const usedBytes = Number(uploadedBytes.rows[0]?.used_bytes ?? 0);
+      const remainingBytes = Math.max(0, maxBytes - usedBytes);
+
+      if (req.file.size > remainingBytes) {
+        return res.status(400).json({
+          status: "error",
+          message: `All files uploaded directly to Shabdhan may total 12 MB per report. ${formatLimit(remainingBytes)} remaining.`,
         });
       }
 
@@ -347,9 +357,7 @@ router.post(
       const resourceType =
         req.file.mimetype === "application/pdf"
           ? "raw"
-          : evidenceType === "VIDEO"
-            ? "video"
-            : "image";
+          : "image";
 
       // Captured here because TypeScript loses the earlier req.file check
       // inside the callback below
@@ -406,10 +414,11 @@ router.post(
            file_name,
            file_url,
            file_hash,
+           file_size_bytes,
            cloudinary_public_id,
            description
          )
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
          RETURNING
            id,
            report_id,
@@ -418,6 +427,7 @@ router.post(
            file_name,
            file_url,
            file_hash,
+           file_size_bytes,
            cloudinary_public_id,
            description,
            verification_status,
@@ -430,6 +440,7 @@ router.post(
           req.file.originalname,
           uploadResult.secure_url,
           fileHash,
+          req.file.size,
           cloudinaryPublicId,
           description || null,
         ]
@@ -738,6 +749,7 @@ router.get(
            e.file_name,
            e.file_url,
            e.file_hash,
+           e.file_size_bytes,
            e.description,
            e.verification_status,
            e.created_at,

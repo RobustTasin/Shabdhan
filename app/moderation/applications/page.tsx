@@ -68,15 +68,21 @@ export default function MembershipApplicationsPage() {
           : await declineMembershipApplication(application.id);
       if (action !== "decline") setCodes((prev) => ({ ...prev, [application.id]: code }));
       setNotice(response.message);
-      await loadApplications(filter);
-    } catch (actionError) {
-      setError(actionError instanceof Error ? actionError.message : "Unable to update application");
-      if (action === "approve") {
-        setFilter("APPROVED");
-        await loadApplications("APPROVED");
+      if (action === "approve" || action === "decline") {
+        const nextStatus: MembershipApplicationStatus = action === "approve" ? "APPROVED" : "DECLINED";
+        setApplications((current) => current
+          .map((item) => item.id === application.id
+            ? { ...item, status: nextStatus, reviewed_at: new Date().toISOString() }
+            : item)
+          .filter((item) => item.status === nextStatus));
+        if (filter === nextStatus) await loadApplications(nextStatus);
+        else setFilter(nextStatus);
       } else {
         await loadApplications(filter);
       }
+    } catch (actionError) {
+      setError(actionError instanceof Error ? actionError.message : "Unable to update application");
+      await loadApplications(filter);
     } finally {
       setBusyId(null);
     }
@@ -128,6 +134,7 @@ export default function MembershipApplicationsPage() {
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <p className="font-mono text-sm font-semibold text-slate-700">{serial}</p>
+                    <p className="mt-1 text-xs font-medium uppercase tracking-wide text-slate-500">Applicant email</p>
                     <p className="mt-1 break-all text-base font-semibold text-slate-950">{application.email}</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${application.status === "PENDING" ? "bg-amber-50 text-amber-900" : application.status === "APPROVED" ? "bg-teal-50 text-teal-900" : "bg-slate-100 text-slate-700"}`}>{application.status}</span>
@@ -148,7 +155,7 @@ export default function MembershipApplicationsPage() {
                 </dl>
                 {application.status !== "PENDING" && <p className="mt-4 text-xs text-slate-500">Reviewed {formatDate(application.reviewed_at)}{application.reviewed_by_username ? ` by ${application.reviewed_by_username}` : ""}{application.account_created_at ? ` · Account created ${formatDate(application.account_created_at)}` : ""}</p>}
                 {application.status === "APPROVED" && !application.account_created_at && <div className="mt-4 rounded-xl bg-teal-50 p-4 text-sm text-teal-950">
-                  {codes[application.id] ? <><p>Manually email this code before {application.code_expires_at ? formatDate(application.code_expires_at) : "it expires"}.</p><p className="mt-2 font-mono text-xl font-bold tracking-[0.3em]">{codes[application.id]}</p></> : application.code_expires_at ? <p>A code is set and expires {formatDate(application.code_expires_at)}. It is only displayed immediately after being set; issue a new code below if you need to email it again.</p> : <p>No approval code has been set. Set one before the applicant can create an account.</p>}
+                  {(codes[application.id] || application.approval_code) ? <><p>Manually email this code before {application.code_expires_at ? formatDate(application.code_expires_at) : "it expires"}.</p><p className="mt-2 font-mono text-xl font-bold tracking-[0.3em]">{codes[application.id] ?? application.approval_code}</p></> : application.code_expires_at ? <p>The approval code cannot be recovered for this older application. Set a new code below to email it to the applicant.</p> : <p>No approval code has been set. Set one before the applicant can create an account.</p>}
                 </div>}
                 <div className="mt-5 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
                   {application.status === "PENDING" ? (

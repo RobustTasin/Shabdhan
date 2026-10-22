@@ -81,6 +81,7 @@ CREATE TABLE membership_applications (
     reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
     reviewed_at TIMESTAMPTZ,
     code_hash CHAR(64),
+    code_encrypted TEXT,
     code_expires_at TIMESTAMPTZ,
     attempts SMALLINT NOT NULL DEFAULT 0,
     account_created_at TIMESTAMPTZ,
@@ -182,6 +183,8 @@ CREATE TABLE reports (
     location_division VARCHAR(100),
     location_district VARCHAR(100),
     location_sub_district VARCHAR(120),
+    location_city_corporation VARCHAR(100),
+    location_area VARCHAR(120),
 
     status report_status NOT NULL DEFAULT 'DRAFT',
 
@@ -199,9 +202,9 @@ CREATE TABLE reports (
             OR (incident_type = 'OFFLINE' AND incident_platform IS NULL)
         ),
     CONSTRAINT reports_location_scope_check CHECK (
-      (location_scope IS NULL AND location_country_code IS NULL AND location_country_name IS NULL AND location_division IS NULL AND location_district IS NULL AND location_sub_district IS NULL)
-      OR (location_scope = 'BANGLADESH' AND location_country_code = 'BD' AND location_country_name = 'Bangladesh' AND location_division IS NOT NULL AND location_district IS NOT NULL AND location_sub_district IS NOT NULL)
-      OR (location_scope = 'ABROAD' AND location_country_code IS NOT NULL AND location_country_code <> 'BD' AND location_country_name IS NOT NULL AND location_division IS NULL AND location_district IS NULL AND location_sub_district IS NULL)
+      (location_scope IS NULL AND location_country_code IS NULL AND location_country_name IS NULL AND location_division IS NULL AND location_district IS NULL AND location_sub_district IS NULL AND location_city_corporation IS NULL AND location_area IS NULL)
+      OR (location_scope = 'BANGLADESH' AND location_country_code = 'BD' AND location_country_name = 'Bangladesh' AND location_division IS NOT NULL AND location_district IS NOT NULL AND ((location_sub_district IS NOT NULL AND location_city_corporation IS NULL AND location_area IS NULL) OR (location_sub_district IS NULL AND location_city_corporation IS NOT NULL) OR (location_sub_district IS NULL AND location_city_corporation IS NULL AND location_area IS NULL)))
+      OR (location_scope = 'ABROAD' AND location_country_code IS NOT NULL AND location_country_code <> 'BD' AND location_country_name IS NOT NULL AND location_division IS NULL AND location_district IS NULL AND location_sub_district IS NULL AND location_city_corporation IS NULL AND location_area IS NULL)
     )
 );
 
@@ -220,6 +223,14 @@ CREATE INDEX idx_reports_verification_status
 
 CREATE UNIQUE INDEX idx_reports_public_report_number
     ON reports(public_report_number);
+
+CREATE INDEX idx_reports_location_area
+    ON reports(location_area)
+    WHERE location_area IS NOT NULL;
+
+CREATE INDEX idx_reports_location_city_corporation
+    ON reports(location_city_corporation)
+    WHERE location_city_corporation IS NOT NULL;
 
 -- One persistent upvote or downvote per signed-in user and report.
 CREATE TABLE report_votes (
@@ -253,6 +264,7 @@ CREATE TABLE evidence (
     file_name VARCHAR(255),
     file_url TEXT,
     file_hash VARCHAR(64),
+    file_size_bytes BIGINT,
 
     description TEXT,
 

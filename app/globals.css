@@ -106,6 +106,12 @@ html[data-site-theme="dark"] [class*="text-indigo-"] {
   color: #d5e5e3 !important;
 }
 
+html[data-site-theme="dark"] [role="alert"] {
+  background-color: #2b0b12 !important;
+  border-color: #7f1d1d !important;
+  color: #fecdd3 !important;
+}
+
 html[data-site-theme="dark"] [class*="text-teal-800"],
 html[data-site-theme="dark"] [class*="text-teal-900"],
 html[data-site-theme="dark"] [class*="text-teal-950"] {
@@ -136,4 +142,139 @@ html[data-site-theme="dark"] [class*="hover:bg-[#225c57]"]:hover {
 html[data-site-theme="dark"] [class*="border-[#"],
 html[data-site-theme="dark"] [class*="border-slate-"] {
   border-color: #344947 !important;
+}
+
+html[data-site-theme="dark"] .site-wordmark-green {
+  color: #006a4e !important;
+}
+
+html[data-site-theme="dark"] .site-wordmark-red {
+  color: #f42a41 !important;
+}
+
+html[data-site-theme="dark"] .site-bangladesh-link {
+  color: #ff5365 !important;
+}
+
+html[data-site-theme="dark"] .site-bangladesh-link:hover {
+  background-color: #182522 !important;
+}
+
+.report-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "details"
+    "entity"
+    "description"
+    "evidence"
+    "corroborations"
+    "comments";
+  align-items: start;
+  gap: 1.5rem;
+}
+
+.report-detail-overview {
+  grid-area: overview;
+  display: contents;
+}
+.report-detail-meta { grid-area: details; }
+.report-detail-entity { grid-area: entity; }
+.report-detail-description { grid-area: description; }
+.report-detail-evidence {
+  grid-area: evidence;
+  display: flex;
+  flex-direction: column;
+}
+.report-detail-interactions {
+  display: contents;
+}
+.report-detail-corroborations { grid-area: corroborations; }
+.report-detail-comments { grid-area: comments; }
+
+@media (min-width: 1000px) {
+  .report-detail-overview {
+    display: grid;
+    grid-area: overview;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "details"
+      "entity"
+      "interactions";
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .report-detail-interactions {
+    display: grid;
+    grid-area: interactions;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "corroborations"
+      "comments";
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .report-detail-layout {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    grid-template-areas:
+      "evidence overview"
+      "description overview";
+  }
+
+  .report-evidence-forms { display: contents; }
+  .report-detail-evidence { gap: 1.5rem; }
+  .report-evidence-list { order: 1; margin-top: 0; }
+  .report-evidence-upload-form { order: 2; }
+  .report-evidence-link-form { order: 3; }
+}
+
+@media (min-width: 1000px) and (min-aspect-ratio: 4/3) {
+  .report-detail-layout {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 3fr);
+  }
+}
+
+@media (min-width: 1000px) and (min-aspect-ratio: 1/1) and (max-aspect-ratio: 4/3) {
+  .report-detail-layout {
+    grid-template-areas:
+      "description overview"
+      "evidence overview";
+  }
+}
+
+@media (min-width: 1000px) and (min-aspect-ratio: 5/3) {
+  .report-detail-layout {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
+  }
+}
+
+@media (min-width: 1000px) and (min-aspect-ratio: 16/9) {
+  .report-detail-layout {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "evidence description overview"
+      "evidence description overview";
+  }
+}
+
+@media (min-width: 1000px) and (min-aspect-ratio: 16/9) {
+  .report-detail-overview {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "details entity"
+      "interactions interactions";
+    align-items: start;
+    gap: 1.5rem;
+  }
+  .report-detail-meta { grid-area: details; }
+  .report-detail-entity { grid-area: entity; }
+  .report-detail-interactions {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "corroborations"
+      "comments";
+  }
 }

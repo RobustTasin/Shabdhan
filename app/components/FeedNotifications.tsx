@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "./AuthProvider";
 import { getNotifications, getUnreadNotificationCount, markNotificationAsRead, type ApiNotification } from "../lib/notifications-api";
 
@@ -85,12 +86,12 @@ export default function FeedNotifications() {
       <BellIcon />{unreadCount > 0 && <span aria-hidden="true" className="absolute right-0 top-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[#c13e4e] px-1 text-[10px] font-bold leading-none text-white">{unreadCount > 99 ? "99+" : unreadCount}</span>}
     </button>
 
-    {open && <section role="dialog" aria-label="Notifications" className="fixed inset-0 z-[90] flex flex-col bg-[#f2f6f5] md:hidden">
+    {open && typeof document !== "undefined" && createPortal(<section role="dialog" aria-modal="true" aria-label="Notifications" className="fixed inset-0 z-[90] flex flex-col bg-[#f2f6f5] md:hidden">
       <header className="flex h-[68px] shrink-0 items-center justify-between border-b border-[#dbe7e5] bg-[#fbfdfd] px-4"><div><p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#4e817d]">Your updates</p><h2 className="text-lg font-semibold text-[#1d3837]">Notifications</h2></div><button type="button" aria-label="Close notifications" onClick={() => setOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full text-2xl text-[#455e5c] hover:bg-[#e7f1ef]">×</button></header>
       <div className="flex-1 overflow-y-auto p-4">{loading ? <p className="rounded-2xl bg-white p-8 text-center text-sm text-[#617573]">Loading notifications…</p> : error ? <p role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</p> : <div className="overflow-hidden rounded-2xl border border-[#dbe7e5] bg-white"><NotificationItems items={items} onSelect={(item) => void handleSelect(item)} /></div>}
         <Link href="/notifications" onClick={() => setOpen(false)} className="mt-4 block rounded-xl bg-[#123d3b] px-4 py-3 text-center text-sm font-semibold text-white hover:bg-[#1e615b]">View all notifications</Link>
       </div>
-    </section>}
+    </section>, document.body)}
 
     {open && <section role="dialog" aria-label="Notifications" className="absolute right-0 top-[calc(100%+0.75rem)] z-[80] hidden w-[min(24rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[#dbe7e5] bg-white shadow-[0_18px_50px_rgba(20,36,26,.18)] md:block">
       <header className="flex items-center justify-between border-b border-[#e3eeec] px-4 py-4"><div><h2 className="text-base font-semibold text-[#1d3837]">Notifications</h2><p className="mt-0.5 text-xs text-[#718481]">{unreadCount ? `${unreadCount} unread` : "You're all caught up"}</p></div><Link href="/notifications" onClick={() => setOpen(false)} className="text-sm font-semibold text-[#24716c] hover:underline">View all</Link></header>
