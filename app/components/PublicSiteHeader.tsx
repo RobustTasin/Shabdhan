@@ -34,7 +34,7 @@ export default function PublicSiteHeader() {
             </>
           ) : (
             <>
-              {pathname !== "/login" && <Link href="/login" className="rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-4">Log in</Link>}
+              {pathname !== "/login" && <Link href="/login" className="rounded-full bg-teal-950 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-900 sm:px-4">Log in</Link>}
               {pathname !== "/apply" && <Link href="/apply" className="rounded-full bg-teal-950 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-900 sm:px-4">Apply</Link>}
             </>
           )}
