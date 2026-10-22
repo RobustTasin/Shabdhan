@@ -246,7 +246,9 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
   .report-detail-entity { grid-area: entity; }
   .report-detail-interactions {
     grid-area: interactions;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas: "corroborations comments";
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "corroborations"
+      "comments";
   }
 }
