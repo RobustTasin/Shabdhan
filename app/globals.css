@@ -208,7 +208,19 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
   .report-evidence-link-form { order: 3; }
 }
 
-@media (min-width: 1000px) and (min-aspect-ratio: 2/1) {
+@media (min-width: 1000px) and (min-aspect-ratio: 4/3) {
+  .report-detail-layout {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 3fr);
+  }
+}
+
+@media (min-width: 1000px) and (min-aspect-ratio: 5/3) {
+  .report-detail-layout {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
+  }
+}
+
+@media (min-width: 1000px) and (min-aspect-ratio: 16/9) {
   .report-detail-layout {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-areas:
@@ -218,11 +230,6 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
 }
 
 @media (min-width: 2200px) and (min-aspect-ratio: 3/1) {
-  .report-detail-layout {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-areas: "evidence description overview overview";
-  }
-
   .report-detail-overview {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
