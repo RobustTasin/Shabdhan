@@ -56,7 +56,7 @@ export default function CreateAccountPage() {
       <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#4e817d]">Approved membership</p>
       <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#123d3b] sm:text-4xl">Create your account</h1>
       <p className="mt-3 max-w-2xl text-sm leading-6 text-[#627573]">First check the email you applied with. If your application is approved, enter the six-character code a moderator sent you to continue.</p>
-      {error && <div role="alert" className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{error}</div>}
+      {error && <div role="alert" className="mt-5 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">{error}</div>}
       {step === "email" && <form onSubmit={check} className="mt-7 space-y-4">
         <div><label className="block text-sm font-medium text-[#344f4e]" htmlFor="eligible-email">Application email</label>
         <input id="eligible-email" type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="mt-2 w-full rounded-xl border border-[#dbe7e5] bg-[#fbfdfd] px-4 py-3 text-sm text-[#1d3837] outline-none focus:border-[#4e817d] focus:ring-2 focus:ring-[#dfedeb]" /></div>
