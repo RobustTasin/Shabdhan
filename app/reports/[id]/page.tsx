@@ -823,8 +823,8 @@ export default function ReportDetailsPage() {
       )}
 
       <div className="report-detail-layout">
-      <div className="report-detail-overview space-y-6">
-        <section className="rounded-xl border border-slate-200 bg-white p-6">
+      <div className="report-detail-overview">
+        <section className="report-detail-meta rounded-xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-950">
             Report details
           </h2>
@@ -872,7 +872,7 @@ export default function ReportDetailsPage() {
           </div>
         </section>
 
-        {report.social_account?.id && <aside className="space-y-4">
+        {report.social_account?.id && <aside className="report-detail-entity space-y-4">
         <section className="rounded-xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-slate-950">
             Reported Entity
@@ -924,274 +924,6 @@ export default function ReportDetailsPage() {
           </div>
         </section>
         </aside>}
-      </div>
-
-      <section aria-labelledby="report-description-title" className="report-detail-description rounded-xl border border-slate-200 bg-white p-6">
-        <h2 id="report-description-title" className="text-base font-semibold text-slate-950">Description</h2>
-        <p className={`mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700 ${descriptionExpanded ? "" : "line-clamp-3"}`}>{report.description}</p>
-        {report.description.length > 220 && <button type="button" aria-expanded={descriptionExpanded} onClick={() => setDescriptionExpanded((expanded) => !expanded)} className="mt-2 text-sm font-semibold text-teal-800 underline underline-offset-2">{descriptionExpanded ? "Show less" : "Read full description"}</button>}
-      </section>
-
-      <section id="evidence" className="report-detail-evidence scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
-        <div>
-          <h2 className="text-lg font-semibold text-slate-950">Evidence and source links</h2>
-        </div>
-
-        {canAddEvidence ? (
-        <div className="report-evidence-forms mt-5 space-y-6">
-          <div className="report-evidence-link-form space-y-3">
-            <h3 className="text-sm font-semibold text-slate-950">Add a cloud folder or web link</h3>
-            <p className="mt-1 text-xs leading-5 text-slate-600">
-              Paste a Google Drive, OneDrive, Proton Drive, or public webpage link. Set cloud files to “Anyone with the link can view.” Shabdhan stores the link and does not change the provider’s sharing permissions.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="evidence-url" className="text-sm font-medium text-slate-700">View link</label>
-                <input id="evidence-url" type="url" value={evidenceUrl} onChange={(event) => { setEvidenceUrl(event.target.value); setArchiveMessage(""); }} placeholder="https://…" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
-              </div>
-              <div>
-                <label htmlFor="evidence-label" className="text-sm font-medium text-slate-700">Link label</label>
-                <input id="evidence-label" value={evidenceLabel} onChange={(event) => setEvidenceLabel(event.target.value)} maxLength={255} placeholder="Evidence folder or archived copy" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
-              </div>
-            </div>
-            <label htmlFor="evidence-link-description" className="mt-4 block text-sm font-medium text-slate-700">What does this link contain? <span className="font-normal text-slate-500">(optional)</span></label>
-            <textarea id="evidence-link-description" value={evidenceLinkDescription} onChange={(event) => setEvidenceLinkDescription(event.target.value)} maxLength={1000} rows={2} placeholder="Briefly describe the material" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button type="button" onClick={() => void handleAddEvidenceLink()} disabled={addingEvidenceLink || !evidenceUrl.trim()} className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">{addingEvidenceLink ? "Adding link…" : "Add public link"}</button>
-              {evidenceUrl.trim().startsWith("https://") && (
-                <>
-                  <button type="button" onClick={() => void handleCheckArchive()} disabled={checkingArchive} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60">{checkingArchive ? "Checking archive…" : "Find and attach saved copy"}</button>
-                  <a href={`https://web.archive.org/save/${evidenceUrl.trim()}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-800 underline underline-offset-2">Save with Internet Archive ↗</a>
-                </>
-              )}
-            </div>
-            {evidenceLinkError && <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{evidenceLinkError}</p>}
-            {evidenceLinkSuccess && <p role="status" className="mt-3 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">{evidenceLinkSuccess}</p>}
-            {archiveMessage && <p role={archiveMessageError ? "alert" : "status"} className={`mt-3 text-sm ${archiveMessageError ? "text-red-700" : "text-teal-800"}`}>{archiveMessage}</p>}
-            <p className="mt-3 text-xs leading-5 text-slate-500">Shabdhan can find and attach an existing Internet Archive snapshot. If none exists, save the public page with the Archive and check again. The snapshot is hosted by the Internet Archive, not copied onto Shabdhan, and capture is not guaranteed for every page.</p>
-          </div>
-
-          <div className="report-evidence-upload-form space-y-3">
-          <h3 className="text-sm font-semibold text-slate-950">
-            Or upload a file to Shabdhan
-          </h3>
-          <p className="mt-1 text-xs text-slate-600">JPG, PNG, WebP, or PDF · 12 MB total per report · no file count limit</p>
-          <p className="mt-1 text-xs text-slate-500">{formatFileSizeFromType({ size: Math.max(0, MAX_DIRECT_EVIDENCE_BYTES - usedDirectEvidenceBytes) } as File)} remaining</p>
-
-          <div className="mt-3 space-y-4">
-            <div>
-              <label
-                htmlFor="evidence-file"
-                className="text-sm font-medium text-slate-700"
-              >
-                Evidence file
-              </label>
-
-              <input
-                id="evidence-file"
-                type="file"
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-                multiple
-                onChange={(event) => {
-                  const files = Array.from(event.target.files ?? []);
-                  setSelectedFiles(files);
-                  setUploadError("");
-                  setUploadSuccess("");
-                  const invalidFile = files.find((file) => getEvidenceFileError(file));
-                  if (invalidFile) setUploadError(getEvidenceFileError(invalidFile));
-                  else if (usedDirectEvidenceBytes + files.reduce((total, file) => total + file.size, 0) > MAX_DIRECT_EVIDENCE_BYTES) setUploadError("Selected files and existing uploads exceed the 12 MB total per report.");
-                }}
-                className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 file:mr-4 file:rounded-md file:border-0 file:bg-teal-700 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-teal-800"
-              />
-
-              {selectedFiles.length > 0 && <ul className="mt-2 space-y-1 text-xs text-slate-500">{selectedFiles.map((file) => <li key={`${file.name}-${file.lastModified}-${file.size}`} className={getEvidenceFileError(file) ? "text-red-700" : ""}>{file.name} · {formatFileSizeFromType(file)}</li>)}</ul>}
-              {selectedFiles.length > 0 && <p className={`mt-1 text-xs ${exceedsEvidenceBudget ? "text-red-700" : "text-slate-500"}`}>Selected: {formatFileSizeFromType({ size: selectedEvidenceBytes } as File)} / {formatFileSizeFromType({ size: Math.max(0, MAX_DIRECT_EVIDENCE_BYTES - usedDirectEvidenceBytes) } as File)} remaining</p>}
-            </div>
-
-            <div>
-              <label
-                htmlFor="evidence-description"
-                className="text-sm font-medium text-slate-700"
-              >
-                Description
-              </label>
-
-              <textarea
-                id="evidence-description"
-                value={description}
-                onChange={(event) =>
-                  setDescription(event.target.value)
-                }
-                rows={3}
-                placeholder="Explain what this evidence shows..."
-                className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
-              />
-            </div>
-
-            {uploadError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-                {uploadError}
-              </div>
-            )}
-
-            {uploadSuccess && (
-              <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
-                {uploadSuccess}
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handleUpload}
-              disabled={uploading || selectedFiles.length === 0 || exceedsEvidenceBudget || selectedFiles.some((file) => Boolean(getEvidenceFileError(file)))}
-              className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {uploading ? "Uploading..." : selectedFiles.length > 1 ? `Upload ${selectedFiles.length} files` : "Upload evidence"}
-            </button>
-          </div>
-        </div>
-        </div>
-        ) : !user ? (
-          <div className="mt-5">
-            <p className="text-sm text-slate-700">Only the report creator can add evidence. If you created this report, sign in to continue.</p>
-            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#evidence`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in as report creator</Link>
-          </div>
-        ) : !canAddEvidence ? (
-          <p className="mt-5 text-sm text-slate-700">Only the report creator can add evidence.</p>
-        ) : null}
-
-        <div className="report-evidence-list mt-6">
-          {evidenceActionError && (
-            <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
-              {evidenceActionError}
-            </p>
-          )}
-
-          {evidenceLoading ? (
-            <p className="text-sm text-slate-500">
-              Loading evidence...
-            </p>
-          ) : evidenceError ? (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-              {evidenceError}
-            </div>
-          ) : evidence.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center">
-              <p className="text-sm font-medium text-slate-700">
-                No evidence has been added yet.
-              </p>
-
-              <p className="mt-1 text-xs text-slate-500">Evidence links and uploaded files appear here when available.</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {evidence.map((item) => (
-                <div key={item.id} className="py-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="break-words text-sm font-semibold text-slate-950">
-                        {item.file_name || "Evidence file"}
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-500">
-                        {formatEvidenceType(item.evidence_type)}
-                        {" · "}
-                        {new Date(
-                          item.created_at
-                        ).toLocaleString()}
-                      </p>
-
-                      {item.description && (
-                        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
-                          {item.description}
-                        </p>
-                      )}
-
-                    </div>
-
-                    <div className="flex flex-col items-start gap-2">
-                      <span
-                        className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${verificationBadgeClass(
-                          item.verification_status
-                        )}`}
-                      >
-                        {item.verification_status}
-                      </span>
-
-                      {canReviewEvidence && (
-                        <div className="flex flex-wrap gap-2">
-                          {item.verification_status !== "VERIFIED" && (
-                            <button
-                              type="button"
-                              onClick={() => void handleUpdateEvidenceVerification(item, "VERIFIED")}
-                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
-                              className="rounded-md border border-teal-200 px-2.5 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {reviewingEvidenceId === item.id ? "Saving…" : "Verify"}
-                            </button>
-                          )}
-                          {item.verification_status !== "REJECTED" && (
-                            <button
-                              type="button"
-                              onClick={() => void handleUpdateEvidenceVerification(item, "REJECTED")}
-                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
-                              className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-800 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {reviewingEvidenceId === item.id ? "Saving…" : "Reject"}
-                            </button>
-                          )}
-                          {item.verification_status !== "PENDING" && (
-                            <button
-                              type="button"
-                              onClick={() => void handleUpdateEvidenceVerification(item, "PENDING")}
-                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
-                              className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              {reviewingEvidenceId === item.id ? "Saving…" : "Mark pending"}
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {item.evidence_type === "IMAGE" && item.file_url && (
-                    <button type="button" onClick={() => setSelectedEvidenceImage(item.file_url)} aria-label={`View full-size evidence image: ${item.file_name || "uploaded image"}`} className="mt-4 block max-w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
-                      <img src={item.file_url} alt={item.description || item.file_name || "Report evidence"} loading="lazy" className="max-h-[32rem] max-w-full object-contain" />
-                      <span className="block px-3 py-2 text-xs font-medium text-teal-800">Click to view full size</span>
-                    </button>
-                  )}
-
-                  {item.file_url && item.evidence_type !== "IMAGE" && (
-                    <a
-                      href={item.file_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-4 inline-block text-sm font-medium text-slate-700 underline"
-                    >
-                      Open evidence
-                    </a>
-                  )}
-
-                  {user && (
-                    user.id === report?.reporter_id || user.role === "ADMIN"
-                  ) && (
-                    <button
-                      type="button"
-                      onClick={() => void handleDeleteEvidence(item)}
-                      disabled={deletingEvidenceId !== null}
-                      className="mt-4 ml-4 inline-block text-sm font-medium text-red-700 underline disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      {deletingEvidenceId === item.id ? "Deleting…" : "Delete evidence"}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-
       <div className="report-detail-interactions">
       <section id="corroborations" className="report-detail-corroborations scroll-mt-24 py-5">
         <div className="flex items-center justify-between gap-3">
@@ -1652,6 +1384,275 @@ export default function ReportDetailsPage() {
         </div>
       </section>
       </div>
+
+      </div>
+
+      <section aria-labelledby="report-description-title" className="report-detail-description rounded-xl border border-slate-200 bg-white p-6">
+        <h2 id="report-description-title" className="text-base font-semibold text-slate-950">Description</h2>
+        <p className={`mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700 ${descriptionExpanded ? "" : "line-clamp-3"}`}>{report.description}</p>
+        {report.description.length > 220 && <button type="button" aria-expanded={descriptionExpanded} onClick={() => setDescriptionExpanded((expanded) => !expanded)} className="mt-2 text-sm font-semibold text-teal-800 underline underline-offset-2">{descriptionExpanded ? "Show less" : "Read full description"}</button>}
+      </section>
+
+      <section id="evidence" className="report-detail-evidence scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-950">Evidence and source links</h2>
+        </div>
+
+        {canAddEvidence ? (
+        <div className="report-evidence-forms mt-5 space-y-6">
+          <div className="report-evidence-link-form space-y-3">
+            <h3 className="text-sm font-semibold text-slate-950">Add a cloud folder or web link</h3>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              Paste a Google Drive, OneDrive, Proton Drive, or public webpage link. Set cloud files to “Anyone with the link can view.” Shabdhan stores the link and does not change the provider’s sharing permissions.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label htmlFor="evidence-url" className="text-sm font-medium text-slate-700">View link</label>
+                <input id="evidence-url" type="url" value={evidenceUrl} onChange={(event) => { setEvidenceUrl(event.target.value); setArchiveMessage(""); }} placeholder="https://…" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
+              </div>
+              <div>
+                <label htmlFor="evidence-label" className="text-sm font-medium text-slate-700">Link label</label>
+                <input id="evidence-label" value={evidenceLabel} onChange={(event) => setEvidenceLabel(event.target.value)} maxLength={255} placeholder="Evidence folder or archived copy" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
+              </div>
+            </div>
+            <label htmlFor="evidence-link-description" className="mt-4 block text-sm font-medium text-slate-700">What does this link contain? <span className="font-normal text-slate-500">(optional)</span></label>
+            <textarea id="evidence-link-description" value={evidenceLinkDescription} onChange={(event) => setEvidenceLinkDescription(event.target.value)} maxLength={1000} rows={2} placeholder="Briefly describe the material" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button type="button" onClick={() => void handleAddEvidenceLink()} disabled={addingEvidenceLink || !evidenceUrl.trim()} className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">{addingEvidenceLink ? "Adding link…" : "Add public link"}</button>
+              {evidenceUrl.trim().startsWith("https://") && (
+                <>
+                  <button type="button" onClick={() => void handleCheckArchive()} disabled={checkingArchive} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-800 hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60">{checkingArchive ? "Checking archive…" : "Find and attach saved copy"}</button>
+                  <a href={`https://web.archive.org/save/${evidenceUrl.trim()}`} target="_blank" rel="noopener noreferrer" className="text-sm font-medium text-blue-800 underline underline-offset-2">Save with Internet Archive ↗</a>
+                </>
+              )}
+            </div>
+            {evidenceLinkError && <p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{evidenceLinkError}</p>}
+            {evidenceLinkSuccess && <p role="status" className="mt-3 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">{evidenceLinkSuccess}</p>}
+            {archiveMessage && <p role={archiveMessageError ? "alert" : "status"} className={`mt-3 text-sm ${archiveMessageError ? "text-red-700" : "text-teal-800"}`}>{archiveMessage}</p>}
+            <p className="mt-3 text-xs leading-5 text-slate-500">Shabdhan can find and attach an existing Internet Archive snapshot. If none exists, save the public page with the Archive and check again. The snapshot is hosted by the Internet Archive, not copied onto Shabdhan, and capture is not guaranteed for every page.</p>
+          </div>
+
+          <div className="report-evidence-upload-form space-y-3">
+          <h3 className="text-sm font-semibold text-slate-950">
+            Or upload a file to Shabdhan
+          </h3>
+          <p className="mt-1 text-xs text-slate-600">JPG, PNG, WebP, or PDF · 12 MB total per report · no file count limit</p>
+          <p className="mt-1 text-xs text-slate-500">{formatFileSizeFromType({ size: Math.max(0, MAX_DIRECT_EVIDENCE_BYTES - usedDirectEvidenceBytes) } as File)} remaining</p>
+
+          <div className="mt-3 space-y-4">
+            <div>
+              <label
+                htmlFor="evidence-file"
+                className="text-sm font-medium text-slate-700"
+              >
+                Evidence file
+              </label>
+
+              <input
+                id="evidence-file"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                multiple
+                onChange={(event) => {
+                  const files = Array.from(event.target.files ?? []);
+                  setSelectedFiles(files);
+                  setUploadError("");
+                  setUploadSuccess("");
+                  const invalidFile = files.find((file) => getEvidenceFileError(file));
+                  if (invalidFile) setUploadError(getEvidenceFileError(invalidFile));
+                  else if (usedDirectEvidenceBytes + files.reduce((total, file) => total + file.size, 0) > MAX_DIRECT_EVIDENCE_BYTES) setUploadError("Selected files and existing uploads exceed the 12 MB total per report.");
+                }}
+                className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 file:mr-4 file:rounded-md file:border-0 file:bg-teal-700 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-teal-800"
+              />
+
+              {selectedFiles.length > 0 && <ul className="mt-2 space-y-1 text-xs text-slate-500">{selectedFiles.map((file) => <li key={`${file.name}-${file.lastModified}-${file.size}`} className={getEvidenceFileError(file) ? "text-red-700" : ""}>{file.name} · {formatFileSizeFromType(file)}</li>)}</ul>}
+              {selectedFiles.length > 0 && <p className={`mt-1 text-xs ${exceedsEvidenceBudget ? "text-red-700" : "text-slate-500"}`}>Selected: {formatFileSizeFromType({ size: selectedEvidenceBytes } as File)} / {formatFileSizeFromType({ size: Math.max(0, MAX_DIRECT_EVIDENCE_BYTES - usedDirectEvidenceBytes) } as File)} remaining</p>}
+            </div>
+
+            <div>
+              <label
+                htmlFor="evidence-description"
+                className="text-sm font-medium text-slate-700"
+              >
+                Description
+              </label>
+
+              <textarea
+                id="evidence-description"
+                value={description}
+                onChange={(event) =>
+                  setDescription(event.target.value)
+                }
+                rows={3}
+                placeholder="Explain what this evidence shows..."
+                className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500"
+              />
+            </div>
+
+            {uploadError && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+                {uploadError}
+              </div>
+            )}
+
+            {uploadSuccess && (
+              <div className="rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800">
+                {uploadSuccess}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleUpload}
+              disabled={uploading || selectedFiles.length === 0 || exceedsEvidenceBudget || selectedFiles.some((file) => Boolean(getEvidenceFileError(file)))}
+              className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {uploading ? "Uploading..." : selectedFiles.length > 1 ? `Upload ${selectedFiles.length} files` : "Upload evidence"}
+            </button>
+          </div>
+        </div>
+        </div>
+        ) : !user ? (
+          <div className="mt-5">
+            <p className="text-sm text-slate-700">Only the report creator can add evidence. If you created this report, sign in to continue.</p>
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#evidence`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in as report creator</Link>
+          </div>
+        ) : !canAddEvidence ? (
+          <p className="mt-5 text-sm text-slate-700">Only the report creator can add evidence.</p>
+        ) : null}
+
+        <div className="report-evidence-list mt-6">
+          {evidenceActionError && (
+            <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              {evidenceActionError}
+            </p>
+          )}
+
+          {evidenceLoading ? (
+            <p className="text-sm text-slate-500">
+              Loading evidence...
+            </p>
+          ) : evidenceError ? (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+              {evidenceError}
+            </div>
+          ) : evidence.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-300 p-8 text-center">
+              <p className="text-sm font-medium text-slate-700">
+                No evidence has been added yet.
+              </p>
+
+              <p className="mt-1 text-xs text-slate-500">Evidence links and uploaded files appear here when available.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {evidence.map((item) => (
+                <div key={item.id} className="py-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="break-words text-sm font-semibold text-slate-950">
+                        {item.file_name || "Evidence file"}
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formatEvidenceType(item.evidence_type)}
+                        {" · "}
+                        {new Date(
+                          item.created_at
+                        ).toLocaleString()}
+                      </p>
+
+                      {item.description && (
+                        <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
+                          {item.description}
+                        </p>
+                      )}
+
+                    </div>
+
+                    <div className="flex flex-col items-start gap-2">
+                      <span
+                        className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${verificationBadgeClass(
+                          item.verification_status
+                        )}`}
+                      >
+                        {item.verification_status}
+                      </span>
+
+                      {canReviewEvidence && (
+                        <div className="flex flex-wrap gap-2">
+                          {item.verification_status !== "VERIFIED" && (
+                            <button
+                              type="button"
+                              onClick={() => void handleUpdateEvidenceVerification(item, "VERIFIED")}
+                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
+                              className="rounded-md border border-teal-200 px-2.5 py-1 text-xs font-medium text-teal-800 hover:bg-teal-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {reviewingEvidenceId === item.id ? "Saving…" : "Verify"}
+                            </button>
+                          )}
+                          {item.verification_status !== "REJECTED" && (
+                            <button
+                              type="button"
+                              onClick={() => void handleUpdateEvidenceVerification(item, "REJECTED")}
+                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
+                              className="rounded-md border border-red-200 px-2.5 py-1 text-xs font-medium text-red-800 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {reviewingEvidenceId === item.id ? "Saving…" : "Reject"}
+                            </button>
+                          )}
+                          {item.verification_status !== "PENDING" && (
+                            <button
+                              type="button"
+                              onClick={() => void handleUpdateEvidenceVerification(item, "PENDING")}
+                              disabled={reviewingEvidenceId !== null || deletingEvidenceId !== null}
+                              className="rounded-md border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {reviewingEvidenceId === item.id ? "Saving…" : "Mark pending"}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {item.evidence_type === "IMAGE" && item.file_url && (
+                    <button type="button" onClick={() => setSelectedEvidenceImage(item.file_url)} aria-label={`View full-size evidence image: ${item.file_name || "uploaded image"}`} className="mt-4 block max-w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-50 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-700">
+                      <img src={item.file_url} alt={item.description || item.file_name || "Report evidence"} loading="lazy" className="max-h-[32rem] max-w-full object-contain" />
+                      <span className="block px-3 py-2 text-xs font-medium text-teal-800">Click to view full size</span>
+                    </button>
+                  )}
+
+                  {item.file_url && item.evidence_type !== "IMAGE" && (
+                    <a
+                      href={item.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-4 inline-block text-sm font-medium text-slate-700 underline"
+                    >
+                      Open evidence
+                    </a>
+                  )}
+
+                  {user && (
+                    user.id === report?.reporter_id || user.role === "ADMIN"
+                  ) && (
+                    <button
+                      type="button"
+                      onClick={() => void handleDeleteEvidence(item)}
+                      disabled={deletingEvidenceId !== null}
+                      className="mt-4 ml-4 inline-block text-sm font-medium text-red-700 underline disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      {deletingEvidenceId === item.id ? "Deleting…" : "Delete evidence"}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       </div>
       {selectedEvidenceImage && <div role="presentation" className="fixed inset-0 z-[120] flex items-center justify-center bg-black/90 p-4 sm:p-8" onClick={() => setSelectedEvidenceImage(null)}><section role="dialog" aria-modal="true" aria-label="Full-size evidence image" className="relative flex h-full w-full items-center justify-center"><button type="button" autoFocus aria-label="Close full-size image" onClick={() => setSelectedEvidenceImage(null)} className="absolute right-0 top-0 z-10 rounded-full bg-teal-700 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-800">Close</button><img src={selectedEvidenceImage} alt="Full-size report evidence" onClick={(event) => event.stopPropagation()} className="max-h-full max-w-full object-contain" /></section></div>}
       </div>

@@ -166,13 +166,18 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
   grid-template-areas:
     "overview"
     "evidence"
-    "description"
-    "interactions";
+    "description";
   align-items: start;
   gap: 1.5rem;
 }
 
-.report-detail-overview { grid-area: overview; }
+.report-detail-overview {
+  grid-area: overview;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1.5rem;
+}
 .report-detail-description { grid-area: description; }
 .report-detail-evidence {
   grid-area: evidence;
@@ -180,7 +185,6 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
   flex-direction: column;
 }
 .report-detail-interactions {
-  grid-area: interactions;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
@@ -194,7 +198,7 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas:
       "evidence overview"
-      "description interactions";
+      "description overview";
   }
 
   .report-evidence-forms { display: contents; }
@@ -209,15 +213,29 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     grid-template-areas:
       "evidence description overview"
-      "evidence description interactions";
+      "evidence description overview";
   }
 }
 
 @media (min-width: 2200px) and (min-aspect-ratio: 3/1) {
   .report-detail-layout {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    grid-template-areas: "evidence description overview corroborations comments";
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-areas: "evidence description overview overview";
   }
 
-  .report-detail-interactions { display: contents; }
+  .report-detail-overview {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "details entity"
+      "interactions interactions";
+    align-items: start;
+    gap: 1.5rem;
+  }
+  .report-detail-meta { grid-area: details; }
+  .report-detail-entity { grid-area: entity; }
+  .report-detail-interactions {
+    grid-area: interactions;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
