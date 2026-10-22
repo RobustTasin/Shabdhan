@@ -68,7 +68,17 @@ export default function MembershipApplicationsPage() {
           : await declineMembershipApplication(application.id);
       if (action !== "decline") setCodes((prev) => ({ ...prev, [application.id]: code }));
       setNotice(response.message);
-      await loadApplications(filter);
+      if (action === "approve") {
+        setApplications((current) => current
+          .map((item) => item.id === application.id
+            ? { ...item, status: "APPROVED", reviewed_at: new Date().toISOString() }
+            : item)
+          .filter((item) => item.status === "APPROVED"));
+        if (filter === "APPROVED") await loadApplications("APPROVED");
+        else setFilter("APPROVED");
+      } else {
+        await loadApplications(filter);
+      }
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : "Unable to update application");
       if (action === "approve") {
