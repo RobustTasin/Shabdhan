@@ -164,20 +164,22 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
-    "overview"
+    "details"
+    "entity"
+    "description"
     "evidence"
-    "description";
+    "corroborations"
+    "comments";
   align-items: start;
   gap: 1.5rem;
 }
 
 .report-detail-overview {
   grid-area: overview;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-items: start;
-  gap: 1.5rem;
+  display: contents;
 }
+.report-detail-meta { grid-area: details; }
+.report-detail-entity { grid-area: entity; }
 .report-detail-description { grid-area: description; }
 .report-detail-evidence {
   grid-area: evidence;
@@ -185,18 +187,35 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
   flex-direction: column;
 }
 .report-detail-interactions {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-areas:
-    "corroborations"
-    "comments";
-  align-items: start;
-  gap: 1.5rem;
+  display: contents;
 }
 .report-detail-corroborations { grid-area: corroborations; }
 .report-detail-comments { grid-area: comments; }
 
 @media (min-width: 1000px) {
+  .report-detail-overview {
+    display: grid;
+    grid-area: overview;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "details"
+      "entity"
+      "interactions";
+    align-items: start;
+    gap: 1.5rem;
+  }
+
+  .report-detail-interactions {
+    display: grid;
+    grid-area: interactions;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "corroborations"
+      "comments";
+    align-items: start;
+    gap: 1.5rem;
+  }
+
   .report-detail-layout {
     grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
     grid-template-areas:
@@ -214,6 +233,14 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
 @media (min-width: 1000px) and (min-aspect-ratio: 4/3) {
   .report-detail-layout {
     grid-template-columns: minmax(0, 4fr) minmax(0, 3fr);
+  }
+}
+
+@media (min-width: 1000px) and (min-aspect-ratio: 1/1) and (max-aspect-ratio: 4/3) {
+  .report-detail-layout {
+    grid-template-areas:
+      "description overview"
+      "evidence overview";
   }
 }
 
@@ -245,7 +272,6 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
   .report-detail-meta { grid-area: details; }
   .report-detail-entity { grid-area: entity; }
   .report-detail-interactions {
-    grid-area: interactions;
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       "corroborations"
