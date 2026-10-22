@@ -716,7 +716,7 @@ router.get(
   async (req: AuthenticatedRequest, res) => {
     try {
       const report = await pool.query(
-        `SELECT id
+        `SELECT id, reporter_id
          FROM reports r
          WHERE r.id = $1
            AND (
@@ -740,6 +740,10 @@ router.get(
         });
       }
 
+      const canSeeUnverifiedEvidence =
+        report.rows[0].reporter_id === req.user?.id ||
+        Boolean(req.user && ["MODERATOR", "ADMIN"].includes(req.user.role));
+
       const result = await pool.query(
         `SELECT
            e.id,
@@ -761,8 +765,9 @@ router.get(
          FROM evidence e
          JOIN users u ON u.id = e.uploaded_by
          WHERE e.report_id = $1
+           AND (e.verification_status = 'VERIFIED' OR $2::boolean)
          ORDER BY e.created_at DESC`,
-        [req.params.reportId]
+        [req.params.reportId, canSeeUnverifiedEvidence]
       );
 
       res.json({
@@ -809,7 +814,8 @@ router.get(
        JOIN reports r ON r.id = e.report_id
        WHERE e.id = $1
          AND (
-           (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED')
+           (r.status = 'PUBLISHED' AND r.verification_status = 'VERIFIED'
+            AND e.verification_status = 'VERIFIED')
            OR r.reporter_id = $2
            OR $3 = TRUE
          )`,

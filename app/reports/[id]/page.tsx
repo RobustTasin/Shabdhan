@@ -1017,8 +1017,8 @@ export default function ReportDetailsPage() {
             You can&apos;t corroborate your own report.
           </p>
         ) : (
-          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
-            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#corroborations`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in to participate</Link>
+          <div className="mt-6">
+            <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#corroborations`)}`} className="inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in to participate</Link>
           </div>
         )}
 
