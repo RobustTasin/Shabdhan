@@ -60,6 +60,25 @@ router.post("/", async (req, res) => {
 });
 
 router.post("/eligibility", async (req, res) => {
+  const parsed = z.object({ email: z.string().trim().email().max(255).transform((value) => value.toLowerCase()) }).safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ status: "error", message: parsed.error.issues[0]?.message ?? "Enter your application email" });
+  const { email } = parsed.data;
+  try {
+    const result = await pool.query(
+      `SELECT 1 FROM membership_applications a
+       WHERE LOWER(a.email) = $1 AND a.status = 'APPROVED' AND a.account_created_at IS NULL
+         AND a.code_hash IS NOT NULL AND a.code_expires_at > NOW() AND a.attempts < 5
+         AND NOT EXISTS (SELECT 1 FROM users u WHERE LOWER(u.email) = $1)
+       LIMIT 1`, [email]
+    );
+    return res.json({ status: "ok", eligible: result.rows.length > 0 });
+  } catch (error) {
+    console.error("Failed to check membership eligibility:", error);
+    return res.status(500).json({ status: "error", message: "Unable to check eligibility" });
+  }
+});
+
+router.post("/eligibility/code", async (req, res) => {
   const parsed = z.object({ email: z.string().trim().email().max(255).transform((value) => value.toLowerCase()), code: codeSchema }).safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ status: "error", message: parsed.error.issues[0]?.message ?? "Enter your approved email and six-character code" });
   const { email, code } = parsed.data;
