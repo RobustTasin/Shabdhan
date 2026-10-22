@@ -139,11 +139,11 @@ html[data-site-theme="dark"] [class*="border-slate-"] {
 }
 
 html[data-site-theme="dark"] .site-wordmark-green {
-  color: #2fc58a !important;
+  color: #006a4e !important;
 }
 
 html[data-site-theme="dark"] .site-wordmark-red {
-  color: #ff5365 !important;
+  color: #f42a41 !important;
 }
 
 html[data-site-theme="dark"] .site-bangladesh-link {

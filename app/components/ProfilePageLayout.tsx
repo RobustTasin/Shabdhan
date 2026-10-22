@@ -5,6 +5,7 @@ import { useState, type ReactNode } from "react";
 
 import { useAppearance } from "./AppearanceProvider";
 import { useAuth } from "./AuthProvider";
+import BrandWordmark from "./BrandWordmark";
 
 export default function ProfilePageLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
@@ -19,7 +20,7 @@ export default function ProfilePageLayout({ children }: { children: ReactNode })
         <div className="mx-auto flex h-[68px] w-full items-center gap-3 px-4 sm:px-6 lg:px-8">
           <Link href="/" aria-label="Shabdhan home" className="flex shrink-0 items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#123d3b] text-sm font-bold text-[#e1f3ef]">S</span>
-            <span className="text-lg font-semibold tracking-[-0.04em]"><span className="site-wordmark-green text-[#006A4E]">sha</span><span className="site-wordmark-red text-[#F42A41]">bd</span><span className="site-wordmark-green text-[#006A4E]">han.</span></span>
+            <BrandWordmark className="text-lg font-semibold tracking-[-0.04em]" />
           </Link>
           <nav aria-label="Main navigation" className="ml-auto flex items-center gap-2">
             <Link href="/#public-feed" className="inline-flex h-10 items-center justify-center rounded-full bg-[#e7f1ef] px-4 text-sm font-semibold text-[#245c58] transition hover:bg-[#dfecea]">Feed</Link>

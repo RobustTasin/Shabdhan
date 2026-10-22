@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "./components/AuthProvider";
+import BrandWordmark from "./components/BrandWordmark";
 import { useAppearance } from "./components/AppearanceProvider";
 import FeedNotifications from "./components/FeedNotifications";
 import ReportPreviewDialog from "./components/ReportPreviewDialog";
@@ -428,7 +429,7 @@ export default function Home() {
         <div className="mx-auto flex h-[68px] w-full items-center gap-3 px-4 sm:px-6 lg:px-8 xl:px-10">
           <Link href="/" aria-label="Shabdhan feed" className="flex shrink-0 items-center gap-2.5">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#123d3b] text-sm font-bold text-[#e1f3ef]">S</span>
-            <span className="text-lg font-semibold tracking-[-0.04em]"><span className="site-wordmark-green text-[#006A4E]">sha</span><span className="site-wordmark-red text-[#F42A41]">bd</span><span className="site-wordmark-green text-[#006A4E]">han.</span></span>
+            <BrandWordmark className="text-lg font-semibold tracking-[-0.04em]" />
           </Link>
 
           <nav aria-label="Main navigation" className="ml-auto flex items-center gap-1.5">
@@ -700,7 +701,7 @@ export default function Home() {
 
       <footer className="border-t border-[#e0eae8] bg-white">
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-2 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:max-w-none lg:px-8 xl:px-10">
-          <Link href="/" className="font-semibold"><span className="text-[#006A4E]">sha</span><span className="text-[#F42A41]">bd</span><span className="text-[#006A4E]">han.</span></Link>
+          <Link href="/" className="font-semibold"><BrandWordmark /></Link>
           <p>Explore openly. Read carefully. Participate responsibly.</p>
         </div>
       </footer>

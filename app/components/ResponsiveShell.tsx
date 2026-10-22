@@ -6,6 +6,7 @@ import { useState } from "react";
 import SidebarNav from "./SidebarNav";
 import NotificationLink from "./NotificationLink";
 import { useAuth } from "./AuthProvider";
+import BrandWordmark from "./BrandWordmark";
 
 export default function ResponsiveShell({
   children,
@@ -40,9 +41,7 @@ export default function ResponsiveShell({
       <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white xl:flex xl:flex-col">
         <div className="flex h-16 items-center border-b border-slate-200 px-6">
           <Link href={homeHref}>
-            <div className="text-xl font-bold tracking-tight">
-              Shabdhan
-            </div>
+            <BrandWordmark className="text-xl font-bold tracking-tight" />
 
             <div className="text-xs text-slate-500">
               Trust & verification
@@ -81,9 +80,7 @@ export default function ResponsiveShell({
           {compactExpanded ? (
             <>
               <Link href={homeHref} className="min-w-0">
-                <div className="truncate text-xl font-bold tracking-tight">
-                  Shabdhan
-                </div>
+                <BrandWordmark className="truncate text-xl font-bold tracking-tight" />
 
                 <div className="text-xs text-slate-500">
                   Trust & verification
@@ -152,9 +149,7 @@ export default function ResponsiveShell({
             href={homeHref}
             onClick={() => setMobileMenuOpen(false)}
           >
-            <div className="text-xl font-bold tracking-tight">
-              Shabdhan
-            </div>
+            <BrandWordmark className="text-xl font-bold tracking-tight" />
 
             <div className="text-xs text-slate-500">
               Trust & verification
@@ -194,7 +189,7 @@ export default function ResponsiveShell({
               href={homeHref}
               className="truncate text-lg font-bold tracking-tight md:hidden"
             >
-              Shabdhan
+              <BrandWordmark />
             </Link>
           </div>
 
