@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import ProfilePageLayout from "../components/ProfilePageLayout";
 import { getCategories, getPublicReportStatistics, getPublicReportStatus, type Category, type PublicReportStatistic, type PublicReportStatus } from "../lib/reports-api";
 
-const STAT_ITEMS: { key: keyof PublicReportStatus; label: string; detail: string }[] = [
-  { key: "total", label: "All reports", detail: "Reports submitted across Shabdhan" },
-  { key: "under_review", label: "Under review", detail: "Waiting for moderator review" },
-  { key: "published", label: "Published", detail: "Verified and visible to everyone" },
-  { key: "resolved", label: "Resolved", detail: "Verified reports marked resolved" },
-  { key: "declined", label: "Declined", detail: "Reports declined during review" },
+type LocationLeaderKey = "division" | "district" | "sub_district";
+const LOCATION_LEADERS: { key: LocationLeaderKey; label: string }[] = [
+  { key: "division", label: "Division with most reports" },
+  { key: "district", label: "District with most reports" },
+  { key: "sub_district", label: "City corporation or subdistrict with most reports" },
 ];
 
 export default function MyBangladeshPage() {
@@ -24,6 +23,8 @@ export default function MyBangladeshPage() {
   const [toMonth, setToMonth] = useState("");
   const [statistics, setStatistics] = useState<PublicReportStatistic[]>([]);
   const [statsLoading, setStatsLoading] = useState(true);
+  const [leaders, setLeaders] = useState<Record<LocationLeaderKey, PublicReportStatistic | null>>({ division: null, district: null, sub_district: null });
+  const [leadersLoading, setLeadersLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -38,6 +39,17 @@ export default function MyBangladeshPage() {
   }, []);
 
   useEffect(() => { void getCategories().then((result)=>setCategories(result.categories)).catch(()=>setCategories([])); }, []);
+  useEffect(() => {
+    let active = true;
+    Promise.all(LOCATION_LEADERS.map(async ({ key }) => {
+      const rows = await getPublicReportStatistics({ groupBy: key, sortBy: "count", direction: "desc" });
+      return [key, rows.find((row) => row.report_count > 0 && row.label.trim() && row.label !== "Not applicable") ?? null] as const;
+    }))
+      .then((entries) => { if (active) setLeaders(Object.fromEntries(entries) as Record<LocationLeaderKey, PublicReportStatistic | null>); })
+      .catch((err: unknown) => { if (active) setError(err instanceof Error ? err.message : "Could not load location leaders."); })
+      .finally(() => { if (active) setLeadersLoading(false); });
+    return () => { active = false; };
+  }, []);
   useEffect(() => {
     let active = true;
     setStatsLoading(true);
@@ -64,21 +76,25 @@ export default function MyBangladeshPage() {
             {error}
           </div>
         ) : (
-          <section aria-label="Website report status" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {STAT_ITEMS.map((item) => (
-              <article key={item.key} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-sm font-medium text-slate-600">{item.label}</p>
-                <p className="mt-2 text-3xl font-bold tabular-nums text-slate-950">
-                  {counts ? counts[item.key].toLocaleString() : <span className="text-slate-300">—</span>}
-                </p>
-                <p className="mt-2 text-sm text-slate-500">{item.detail}</p>
-              </article>
-            ))}
+          <section aria-label="Website report status and leading locations" className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
+            <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <p className="text-sm font-medium text-slate-600">All reports</p>
+              <p className="mt-2 text-3xl font-bold tabular-nums text-slate-950">{counts ? counts.total.toLocaleString() : <span className="text-slate-300">—</span>}</p>
+            </article>
+            <article className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+              <p className="text-sm font-medium text-slate-600">Under review</p>
+              <p className="mt-2 text-3xl font-bold tabular-nums text-slate-950">{counts ? counts.under_review.toLocaleString() : <span className="text-slate-300">—</span>}</p>
+            </article>
+            {LOCATION_LEADERS.map(({ key, label }) => {
+              const leader = leaders[key];
+              return <article key={key} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+                <p className="text-sm font-medium text-slate-600">{label}</p>
+                <p className="mt-2 break-words text-xl font-bold text-slate-950">{leadersLoading ? <span className="text-slate-300">—</span> : leader?.label ?? "No location data"}</p>
+                {leader && <p className="mt-1 text-sm tabular-nums text-slate-500">{leader.report_count.toLocaleString()} {leader.report_count === 1 ? "report" : "reports"}</p>}
+              </article>;
+            })}
           </section>
         )}
-        <p className="mt-5 text-xs text-slate-500">
-          Counts include submitted reports. Drafts are private and are not included.
-        </p>
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
           <div><h2 className="text-xl font-semibold text-slate-950">Reported locations and trends</h2><p className="mt-1 text-sm text-slate-600">Explore submitted reports by place, category, incident type, or month.</p></div>
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -303,7 +303,7 @@ router.get("/public-statistics", async (req, res) => {
     country: "COALESCE(r.location_country_name, 'Location not supplied')",
     division: "COALESCE(r.location_division, 'Not applicable')",
     district: "COALESCE(r.location_district, 'Not applicable')",
-    sub_district: "COALESCE(r.location_area, r.location_city_corporation, r.location_sub_district, 'Not applicable')",
+    sub_district: "COALESCE(r.location_city_corporation, r.location_sub_district, 'Not applicable')",
     month: "TO_CHAR(DATE_TRUNC('month', r.created_at), 'YYYY-MM')",
     incident_type: "r.incident_type",
   };
