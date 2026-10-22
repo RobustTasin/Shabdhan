@@ -26,6 +26,7 @@ export type Evidence = {
   file_name: string | null;
   file_url: string | null;
   file_hash: string | null;
+  file_size_bytes?: number | null;
   description: string | null;
   verification_status: VerificationStatus;
   created_at: string;

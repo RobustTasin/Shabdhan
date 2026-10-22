@@ -29,8 +29,8 @@ export default function PublicSiteHeader() {
           </Link>
           {user ? (
             <>
-              <Link href="/me" className="rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-4">Me</Link>
-              <Link href="/create-report" className="rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-4">Create report</Link>
+              <Link href="/me" aria-label="Me" title="Me" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:w-auto sm:px-4"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 sm:hidden"><circle cx="12" cy="8" r="3.5" /><path strokeLinecap="round" d="M5.5 20c.7-3.5 3-5.2 6.5-5.2s5.8 1.7 6.5 5.2" /></svg><span className="hidden sm:inline">Me</span></Link>
+              <Link href="/create-report" aria-label="Create report" title="Create report" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:w-auto sm:px-4"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 sm:hidden"><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" /></svg><span className="hidden sm:inline">Create report</span></Link>
               {isModerator && <Link href="/dashboard" className="rounded-full bg-teal-950 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-900 sm:px-4">Dashboard</Link>}
             </>
           ) : (

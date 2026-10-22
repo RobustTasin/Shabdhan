@@ -67,13 +67,16 @@ router.post(
 router.get(
   "/",
   authenticate,
-  async (_req: AuthenticatedRequest, res) => {
+  async (req: AuthenticatedRequest, res) => {
     try {
+      const reportedOnly = req.query.reported_only === "true";
       const result = await pool.query(
         `SELECT id, platform, username, profile_url,
                 display_name, account_id, created_at, updated_at
          FROM social_accounts
-         ORDER BY created_at DESC`
+         ${reportedOnly ? "WHERE EXISTS (SELECT 1 FROM reports r WHERE r.social_account_id = social_accounts.id AND r.reporter_id = $1)" : ""}
+         ORDER BY created_at DESC`,
+        reportedOnly ? [req.user!.id] : []
       );
 
       res.json({

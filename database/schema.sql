@@ -264,6 +264,7 @@ CREATE TABLE evidence (
     file_name VARCHAR(255),
     file_url TEXT,
     file_hash VARCHAR(64),
+    file_size_bytes BIGINT,
 
     description TEXT,
 

@@ -41,6 +41,14 @@ import {
 } from "../../lib/corroborations-api";
 import { formatPublicReportId } from "../../../shared/report-id";
 
+const MAX_DIRECT_EVIDENCE_BYTES = 12 * 1024 * 1024;
+const SUPPORTED_DIRECT_EVIDENCE_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+]);
+
 function formatFileSizeFromType(file: File) {
   const bytes = file.size;
 
@@ -53,6 +61,13 @@ function formatFileSizeFromType(file: File) {
   }
 
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function getEvidenceFileError(file: File) {
+  if (!SUPPORTED_DIRECT_EVIDENCE_TYPES.has(file.type)) {
+    return `${file.name}: choose a JPG, PNG, WebP, or PDF file.`;
+  }
+  return "";
 }
 
 function formatEvidenceType(type: Evidence["evidence_type"]) {
@@ -110,7 +125,13 @@ export default function ReportDetailsPage() {
   const [deletingEvidenceId, setDeletingEvidenceId] = useState<string | null>(null);
   const [reviewingEvidenceId, setReviewingEvidenceId] = useState<string | null>(null);
 
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const usedDirectEvidenceBytes = evidence.reduce((total, item) => {
+    if (item.evidence_type !== "IMAGE" && item.evidence_type !== "DOCUMENT") return total;
+    return total + (Number(item.file_size_bytes) || 0);
+  }, 0);
+  const selectedEvidenceBytes = selectedFiles.reduce((total, file) => total + file.size, 0);
+  const exceedsEvidenceBudget = usedDirectEvidenceBytes + selectedEvidenceBytes > MAX_DIRECT_EVIDENCE_BYTES;
   const [description, setDescription] = useState("");
 
   const [uploading, setUploading] = useState(false);
@@ -284,8 +305,18 @@ export default function ReportDetailsPage() {
   }
 
   async function handleUpload() {
-    if (!id || !selectedFile) {
-      setUploadError("Please select an evidence file.");
+    if (!id || selectedFiles.length === 0) {
+      setUploadError("Please select one or more evidence files.");
+      return;
+    }
+
+    const invalidFile = selectedFiles.find((file) => getEvidenceFileError(file));
+    if (invalidFile) {
+      setUploadError(getEvidenceFileError(invalidFile));
+      return;
+    }
+    if (usedDirectEvidenceBytes + selectedFiles.reduce((total, file) => total + file.size, 0) > MAX_DIRECT_EVIDENCE_BYTES) {
+      setUploadError("All files uploaded directly to Shabdhan may total 12 MB per report. Remove files or delete existing uploads to continue.");
       return;
     }
 
@@ -294,20 +325,24 @@ export default function ReportDetailsPage() {
     setUploadSuccess("");
 
     try {
-      const response = await uploadEvidence(
-        id,
-        selectedFile,
-        description
-      );
+      const uploaded: Evidence[] = [];
+      for (let index = 0; index < selectedFiles.length; index += 1) {
+        try {
+          const response = await uploadEvidence(id, selectedFiles[index], description);
+          uploaded.push(response.evidence);
+        } catch (err) {
+          if (uploaded.length) setEvidence((current) => [...uploaded.reverse(), ...current]);
+          setSelectedFiles(selectedFiles.slice(index));
+          const reason = err instanceof Error ? err.message : "Upload failed";
+          setUploadError(`Uploaded ${uploaded.length} of ${selectedFiles.length} files. ${selectedFiles[index].name}: ${reason}`);
+          return;
+        }
+      }
 
-      setEvidence((current) => [
-        response.evidence,
-        ...current,
-      ]);
-
-      setSelectedFile(null);
+      setEvidence((current) => [...uploaded.reverse(), ...current]);
+      setSelectedFiles([]);
       setDescription("");
-      setUploadSuccess("Evidence uploaded successfully.");
+      setUploadSuccess(`${selectedFiles.length} ${selectedFiles.length === 1 ? "file" : "files"} uploaded successfully.`);
 
       const fileInput = document.getElementById(
         "evidence-file"
@@ -890,13 +925,13 @@ export default function ReportDetailsPage() {
         </aside>}
       </div>
 
-      <section aria-labelledby="report-description-title" className="rounded-xl border border-slate-200 bg-white p-5">
+      <section aria-labelledby="report-description-title" className="py-2">
         <h2 id="report-description-title" className="text-base font-semibold text-slate-950">Description</h2>
         <p className={`mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-700 ${descriptionExpanded ? "" : "line-clamp-3"}`}>{report.description}</p>
         {report.description.length > 220 && <button type="button" aria-expanded={descriptionExpanded} onClick={() => setDescriptionExpanded((expanded) => !expanded)} className="mt-2 text-sm font-semibold text-teal-800 underline underline-offset-2">{descriptionExpanded ? "Show less" : "Read full description"}</button>}
       </section>
 
-      <section id="evidence" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
+      <section id="evidence" className="scroll-mt-24 py-5">
         <div>
           <h2 className="text-lg font-semibold text-slate-950">Evidence and source links</h2>
 
@@ -906,13 +941,13 @@ export default function ReportDetailsPage() {
         </div>
 
         {canAddEvidence ? (
-        <div className="mt-6 space-y-5">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+        <div className="mt-5 space-y-6">
+          <div className="space-y-3">
             <h3 className="text-sm font-semibold text-slate-950">Add a cloud folder or web link</h3>
             <p className="mt-1 text-xs leading-5 text-slate-600">
               Paste a Google Drive, OneDrive, Proton Drive, or public webpage link. Set cloud files to “Anyone with the link can view.” Shabdhan stores the link and does not change the provider’s sharing permissions.
             </p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="evidence-url" className="text-sm font-medium text-slate-700">View link</label>
                 <input id="evidence-url" type="url" value={evidenceUrl} onChange={(event) => { setEvidenceUrl(event.target.value); setArchiveMessage(""); }} placeholder="https://…" className="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900" />
@@ -939,12 +974,14 @@ export default function ReportDetailsPage() {
             <p className="mt-3 text-xs leading-5 text-slate-500">Shabdhan can find and attach an existing Internet Archive snapshot. If none exists, save the public page with the Archive and check again. The snapshot is hosted by the Internet Archive, not copied onto Shabdhan, and capture is not guaranteed for every page.</p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+          <div className="space-y-3">
           <h3 className="text-sm font-semibold text-slate-950">
             Or upload a file to Shabdhan
           </h3>
+          <p className="mt-1 text-xs text-slate-600">JPG, PNG, WebP, or PDF · 12 MB total per report · no file count limit</p>
+          <p className="mt-1 text-xs text-slate-500">{formatFileSizeFromType({ size: Math.max(0, MAX_DIRECT_EVIDENCE_BYTES - usedDirectEvidenceBytes) } as File)} remaining</p>
 
-          <div className="mt-4 space-y-4">
+          <div className="mt-3 space-y-4">
             <div>
               <label
                 htmlFor="evidence-file"
@@ -956,23 +993,22 @@ export default function ReportDetailsPage() {
               <input
                 id="evidence-file"
                 type="file"
-                accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,application/pdf"
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+                multiple
                 onChange={(event) => {
-                  setSelectedFile(
-                    event.target.files?.[0] ?? null
-                  );
+                  const files = Array.from(event.target.files ?? []);
+                  setSelectedFiles(files);
                   setUploadError("");
                   setUploadSuccess("");
+                  const invalidFile = files.find((file) => getEvidenceFileError(file));
+                  if (invalidFile) setUploadError(getEvidenceFileError(invalidFile));
+                  else if (usedDirectEvidenceBytes + files.reduce((total, file) => total + file.size, 0) > MAX_DIRECT_EVIDENCE_BYTES) setUploadError("Selected files and existing uploads exceed the 12 MB total per report.");
                 }}
-                className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 file:mr-4 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700"
+                className="mt-2 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 file:mr-4 file:rounded-md file:border-0 file:bg-teal-700 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-teal-800"
               />
 
-              {selectedFile && (
-                <p className="mt-2 text-xs text-slate-500">
-                  {selectedFile.name} ·{" "}
-                  {formatFileSizeFromType(selectedFile)}
-                </p>
-              )}
+              {selectedFiles.length > 0 && <ul className="mt-2 space-y-1 text-xs text-slate-500">{selectedFiles.map((file) => <li key={`${file.name}-${file.lastModified}-${file.size}`} className={getEvidenceFileError(file) ? "text-red-700" : ""}>{file.name} · {formatFileSizeFromType(file)}</li>)}</ul>}
+              {selectedFiles.length > 0 && <p className={`mt-1 text-xs ${exceedsEvidenceBudget ? "text-red-700" : "text-slate-500"}`}>Selected: {formatFileSizeFromType({ size: selectedEvidenceBytes } as File)} / {formatFileSizeFromType({ size: Math.max(0, MAX_DIRECT_EVIDENCE_BYTES - usedDirectEvidenceBytes) } as File)} remaining</p>}
             </div>
 
             <div>
@@ -1010,21 +1046,21 @@ export default function ReportDetailsPage() {
             <button
               type="button"
               onClick={handleUpload}
-              disabled={uploading || !selectedFile}
+              disabled={uploading || selectedFiles.length === 0 || exceedsEvidenceBudget || selectedFiles.some((file) => Boolean(getEvidenceFileError(file)))}
               className="rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {uploading ? "Uploading..." : "Upload evidence"}
+              {uploading ? "Uploading..." : selectedFiles.length > 1 ? `Upload ${selectedFiles.length} files` : "Upload evidence"}
             </button>
           </div>
         </div>
         </div>
         ) : !user ? (
-          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+          <div className="mt-5">
             <p className="text-sm text-slate-700">Only the report creator can add evidence. If you created this report, sign in to continue.</p>
             <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#evidence`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in as report creator</Link>
           </div>
         ) : !canAddEvidence ? (
-          <p className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm text-slate-700">Only the report creator can add evidence.</p>
+          <p className="mt-5 text-sm text-slate-700">Only the report creator can add evidence.</p>
         ) : null}
 
         <div className="mt-6">
@@ -1053,10 +1089,7 @@ export default function ReportDetailsPage() {
           ) : (
             <div className="space-y-3">
               {evidence.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-lg border border-slate-200 p-4"
-                >
+                <div key={item.id} className="py-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <p className="break-words text-sm font-semibold text-slate-950">
@@ -1168,14 +1201,14 @@ export default function ReportDetailsPage() {
       </section>
 
       <div className="grid items-start gap-6 md:grid-cols-2">
-      <section id="corroborations" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
+      <section id="corroborations" className="scroll-mt-24 py-5">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-950">Corroborations</h2>
           <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{corroborations.length}</span>
         </div>
 
         {report.social_account_id && (
-        <div className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50/60 p-5">
+        <div className="mt-5 space-y-3">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h3 className="text-sm font-semibold text-slate-900">Other reports about this subject</h3>
@@ -1185,7 +1218,7 @@ export default function ReportDetailsPage() {
               href={user
                 ? `/create-report?social_account_id=${encodeURIComponent(report.social_account_id)}`
                 : `/login?next=${encodeURIComponent(`/create-report?social_account_id=${report.social_account_id}`)}`}
-              className="inline-flex shrink-0 rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-semibold text-indigo-900 hover:bg-indigo-100"
+              className="inline-flex shrink-0 rounded-lg bg-indigo-50 px-3 py-2 text-xs font-semibold text-indigo-900 hover:bg-indigo-100"
             >
               Add another report
             </Link>
@@ -1273,10 +1306,7 @@ export default function ReportDetailsPage() {
           ) : corroborations.length > 0 ? (
             <div className="space-y-3">
               {corroborations.map((item) => (
-                <div
-                  key={item.id}
-                  className="rounded-lg border border-slate-200 p-4"
-                >
+                <div key={item.id} className="py-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -1323,14 +1353,14 @@ export default function ReportDetailsPage() {
       </section>
 
 
-      <section id="comments" className="scroll-mt-24 rounded-xl border border-slate-200 bg-white p-6">
+      <section id="comments" className="scroll-mt-24 py-5">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-950">Comments</h2>
           <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{comments.length}</span>
         </div>
 
         {user ? (
-        <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+        <div className="mt-5">
           <h3 className="text-sm font-semibold text-slate-950">
             Add a comment
           </h3>
@@ -1364,7 +1394,7 @@ export default function ReportDetailsPage() {
           </div>
         </div>
         ) : (
-          <div className="mt-6 rounded-xl border border-slate-200 bg-slate-50 p-5">
+          <div className="mt-5">
             <Link href={`/login?next=${encodeURIComponent(`/reports/${id}#comments`)}`} className="mt-3 inline-flex rounded-lg bg-teal-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-teal-800">Sign in to comment</Link>
           </div>
         )}
@@ -1375,7 +1405,7 @@ export default function ReportDetailsPage() {
               Loading comments...
             </p>
           ) : comments.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-300 p-6 text-center">
+            <div className="py-5 text-center">
               <p className="text-sm text-slate-500">
                 No comments yet.
               </p>
@@ -1391,7 +1421,7 @@ export default function ReportDetailsPage() {
 
                   return (
                     <div key={comment.id} className="space-y-3">
-                      <div className="rounded-xl border border-slate-200 p-5">
+                      <div className="py-4">
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <p className="text-sm font-semibold text-slate-950">

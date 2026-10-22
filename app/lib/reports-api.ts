@@ -299,11 +299,12 @@ export async function getCategories(): Promise<{
   return apiFetch("/categories");
 }
 
-export async function getSocialAccounts(): Promise<{
+export async function getSocialAccounts(options: { reportedOnly?: boolean } = {}): Promise<{
   status: string;
   social_accounts: SocialAccount[];
 }> {
-  return apiFetch("/social-accounts", {
+  const query = options.reportedOnly ? "?reported_only=true" : "";
+  return apiFetch(`/social-accounts${query}`, {
     token: getToken() ?? undefined,
   });
 }
