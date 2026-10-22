@@ -702,7 +702,7 @@ export default function Home() {
       <footer className="border-t border-[#e0eae8] bg-white">
         <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-2 text-xs text-[#788279] sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:max-w-none lg:px-8 xl:px-10">
           <Link href="/" className="font-semibold"><BrandWordmark /></Link>
-          <p>Explore openly. Read carefully. Participate responsibly.</p>
+          <p>Warn others</p>
         </div>
       </footer>
     </main>

@@ -56,7 +56,7 @@ export default function ResponsiveShell({
             <BrandWordmark className="text-xl font-bold tracking-tight" />
 
             <div className="text-xs text-slate-500">
-              Trust & verification
+              Warn others
             </div>
           </Link>
         </div>
@@ -95,7 +95,7 @@ export default function ResponsiveShell({
                 <BrandWordmark className="truncate text-xl font-bold tracking-tight" />
 
                 <div className="text-xs text-slate-500">
-                  Trust & verification
+                  Warn others
                 </div>
               </Link>
 
@@ -168,7 +168,7 @@ export default function ResponsiveShell({
             <BrandWordmark className="text-xl font-bold tracking-tight" />
 
             <div className="text-xs text-slate-500">
-              Trust & verification
+              Warn others
             </div>
           </Link>
 
