@@ -19,7 +19,7 @@ export default function CreateReportPage() {
   const [socialAccountId, setSocialAccountId] = useState("");
   const [incidentType, setIncidentType] = useState<IncidentType | "">("");
   const [incidentPlatform, setIncidentPlatform] = useState("");
-  const [location, setLocation] = useState<ReportLocationValue>({ scope: "", countryCode: "", division: "", district: "", subDistrict: "" });
+  const [location, setLocation] = useState<ReportLocationValue>({ scope: "", countryCode: "", division: "", district: "", subDistrict: "", area: "" });
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");

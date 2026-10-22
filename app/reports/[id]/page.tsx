@@ -813,7 +813,7 @@ export default function ReportDetailsPage() {
 
               {report.location_country_name && <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{report.incident_type === "OFFLINE" ? "Incident location" : "Reported entity location"}</p>
-                <p className="mt-1 text-sm text-slate-900">{[report.location_sub_district, report.location_district, report.location_division, report.location_country_name].filter(Boolean).join(" · ")}</p>
+                <p className="mt-1 text-sm text-slate-900">{[report.location_area, report.location_sub_district, report.location_district, report.location_division, report.location_country_name].filter(Boolean).join(" · ")}</p>
               </div>}
 
               <div>

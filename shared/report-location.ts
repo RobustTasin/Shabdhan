@@ -8,7 +8,9 @@ export type ReportLocationValue = {
   division: string;
   district: string;
   subDistrict: string;
+  area: string;
 };
+export const OTHER_LOCALITY_VALUE = "__OTHER_LOCALITY__";
 type PlaceName = string | { en?: string; local?: string };
 type Upazila = { name: PlaceName };
 type District = { name: PlaceName; upazila: Upazila[] };
@@ -23,6 +25,11 @@ export function bangladeshSubDistricts(division: string, district: string) { ret
 export function locationCountryName(value: ReportLocationValue) { return value.scope === "BANGLADESH" ? "Bangladesh" : reportCountries.find((country)=>country.code===value.countryCode)?.name ?? ""; }
 export function hasCompleteLocation(value: ReportLocationValue) {
   if (value.scope === "ABROAD") return Boolean(reportCountries.some((country)=>country.code===value.countryCode));
-  if (value.scope === "BANGLADESH") return bangladeshSubDistricts(value.division,value.district).includes(value.subDistrict);
+  if (value.scope === "BANGLADESH") {
+    const districtIsValid = bangladeshDistricts(value.division).includes(value.district);
+    if (!districtIsValid) return false;
+    if (value.subDistrict === OTHER_LOCALITY_VALUE) return value.area.trim().length >= 2 && value.area.trim().length <= 120;
+    return !value.area.trim() && bangladeshSubDistricts(value.division,value.district).includes(value.subDistrict);
+  }
   return false;
 }

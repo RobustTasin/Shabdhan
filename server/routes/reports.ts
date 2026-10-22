@@ -12,7 +12,7 @@ import { withTransaction } from "../utils/transaction";
 import { cloudinary } from "../config/cloudinary";
 import { categoryCodeFromName, parsePublicReportId } from "../../shared/report-id";
 import { ONLINE_INCIDENT_PLATFORMS, type IncidentType } from "../../shared/incident-platforms";
-import { bangladeshSubDistricts, reportCountries } from "../../shared/report-location";
+import { bangladeshDistricts, bangladeshSubDistricts, OTHER_LOCALITY_VALUE, reportCountries } from "../../shared/report-location";
 
 const router = Router();
 
@@ -23,7 +23,7 @@ router.post(
   async (req: AuthenticatedRequest, res) => {
     try {
       const { social_account_id, category_id, incident_type, incident_platform, title, description,
-        location_scope, location_country_code, location_division, location_district, location_sub_district } = req.body;
+        location_scope, location_country_code, location_division, location_district, location_sub_district, location_area } = req.body;
 
       if (!title || !description || (incident_type !== "ONLINE" && incident_type !== "OFFLINE")) {
         return res.status(400).json({
@@ -44,7 +44,7 @@ router.post(
 
       const incidentType = incident_type as IncidentType;
       const incidentPlatform = incidentType === "ONLINE" ? incident_platform as string : null;
-      const hasAnyLocation = [location_scope, location_country_code, location_division, location_district, location_sub_district].some(Boolean);
+      const hasAnyLocation = [location_scope, location_country_code, location_division, location_district, location_sub_district, location_area].some(Boolean);
       if (incidentType === "OFFLINE" && !hasAnyLocation) {
         return res.status(400).json({ status: "error", message: "Choose the incident location." });
       }
@@ -53,17 +53,26 @@ router.post(
       let division: string | null = null;
       let district: string | null = null;
       let subDistrict: string | null = null;
+      let area: string | null = null;
       if (hasAnyLocation) {
         if (location_scope === "BANGLADESH" && location_country_code === "BD" &&
-            typeof location_division === "string" && typeof location_district === "string" && typeof location_sub_district === "string" &&
+            typeof location_division === "string" && typeof location_district === "string" &&
+            typeof location_sub_district === "string" && location_sub_district !== OTHER_LOCALITY_VALUE && !location_area &&
             bangladeshSubDistricts(location_division, location_district).includes(location_sub_district)) {
           countryCode = "BD"; countryName = "Bangladesh";
           division = location_division; district = location_district; subDistrict = location_sub_district;
+        } else if (location_scope === "BANGLADESH" && location_country_code === "BD" &&
+            typeof location_division === "string" && typeof location_district === "string" &&
+            location_sub_district === OTHER_LOCALITY_VALUE && typeof location_area === "string" &&
+            location_area.trim().length >= 2 && location_area.trim().length <= 120 &&
+            bangladeshDistricts(location_division).includes(location_district)) {
+          countryCode = "BD"; countryName = "Bangladesh";
+          division = location_division; district = location_district; area = location_area.trim();
         } else if (location_scope === "ABROAD" && typeof location_country_code === "string" && location_country_code !== "BD") {
           const country = reportCountries.find((item) => item.code === location_country_code);
           if (country) { countryCode = country.code; countryName = country.name; }
         }
-        if (!countryCode) return res.status(400).json({ status: "error", message: "Select a valid location. Bangladesh requires a division, district, and sub-district; abroad requires a country." });
+        if (!countryCode) return res.status(400).json({ status: "error", message: "Select a valid location. For Bangladesh, choose a sub-district or enter an area outside the listed sub-districts; abroad requires a country." });
       }
 
       // Validate the social account when the reporter chooses to link one.
@@ -102,12 +111,12 @@ router.post(
       // reporter_id comes from the authenticated user
       const result = await pool.query(
         `INSERT INTO reports
-         (reporter_id, social_account_id, category_id, public_report_category_code, incident_type, incident_platform, location_scope, location_country_code, location_country_name, location_division, location_district, location_sub_district, title, description)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+         (reporter_id, social_account_id, category_id, public_report_category_code, incident_type, incident_platform, location_scope, location_country_code, location_country_name, location_division, location_district, location_sub_district, location_area, title, description)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
          RETURNING id, public_report_number, public_report_category_code,
                    reporter_id, social_account_id, category_id,
                    incident_type, incident_platform, location_scope, location_country_code, location_country_name,
-                   location_division, location_district, location_sub_district, title, description, status,
+                   location_division, location_district, location_sub_district, location_area, title, description, status,
                    verification_status, published_at,
                    created_at, updated_at`,
         [
@@ -123,6 +132,7 @@ router.post(
           division,
           district,
           subDistrict,
+          area,
           title,
           description,
         ]
@@ -282,11 +292,11 @@ router.get("/public-status", async (_req, res) => {
 router.get("/public-statistics", async (req, res) => {
   const groupColumns: Record<string, string> = {
     category: "COALESCE(c.name, 'Uncategorized')",
-    location: "CASE WHEN r.location_scope = 'BANGLADESH' THEN CONCAT_WS(', ', r.location_sub_district, r.location_district, r.location_division, r.location_country_name) ELSE COALESCE(r.location_country_name, 'Location not supplied') END",
+    location: "CASE WHEN r.location_scope = 'BANGLADESH' THEN CONCAT_WS(', ', COALESCE(r.location_area, r.location_sub_district), r.location_district, r.location_division, r.location_country_name) ELSE COALESCE(r.location_country_name, 'Location not supplied') END",
     country: "COALESCE(r.location_country_name, 'Location not supplied')",
     division: "COALESCE(r.location_division, 'Not applicable')",
     district: "COALESCE(r.location_district, 'Not applicable')",
-    sub_district: "COALESCE(r.location_sub_district, 'Not applicable')",
+    sub_district: "COALESCE(r.location_area, r.location_sub_district, 'Not applicable')",
     month: "TO_CHAR(DATE_TRUNC('month', r.created_at), 'YYYY-MM')",
     incident_type: "r.incident_type",
   };
@@ -332,6 +342,7 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
     const division = String(req.query.division || "").trim();
     const district = String(req.query.district || "").trim();
     const subDistrict = String(req.query.sub_district || "").trim();
+    const area = String(req.query.area || "").trim();
     const fromMonth = String(req.query.from_month || "").trim();
     const toMonth = String(req.query.to_month || "").trim();
 
@@ -398,6 +409,7 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
     if (division) { values.push(division); conditions.push(`r.location_division = $${values.length}`); }
     if (district) { values.push(district); conditions.push(`r.location_district = $${values.length}`); }
     if (subDistrict) { values.push(subDistrict); conditions.push(`r.location_sub_district = $${values.length}`); }
+    if (area) { values.push(area); conditions.push(`r.location_area ILIKE $${values.length}`); }
     for (const [month, op] of [[fromMonth, ">="], [toMonth, "<="]] as const) {
       if (month) {
         if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return res.status(400).json({ status: "error", message: "Months must use YYYY-MM format." });
@@ -436,6 +448,7 @@ router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, re
          r.location_division,
          r.location_district,
          r.location_sub_district,
+         r.location_area,
          r.title,
          r.description,
          r.status,
@@ -667,7 +680,7 @@ router.get(
          r.incident_type,
          r.incident_platform,
          r.location_scope, r.location_country_code, r.location_country_name,
-         r.location_division, r.location_district, r.location_sub_district,
+         r.location_division, r.location_district, r.location_sub_district, r.location_area,
            r.title,
            r.description,
            r.status,

@@ -1,5 +1,5 @@
 "use client";
-import { bangladeshDivisions, bangladeshDistricts, bangladeshSubDistricts, reportCountries, type ReportLocationValue } from "../../shared/report-location";
+import { bangladeshDivisions, bangladeshDistricts, bangladeshSubDistricts, OTHER_LOCALITY_VALUE, reportCountries, type ReportLocationValue } from "../../shared/report-location";
 
 type Props = { value: ReportLocationValue; onChange: (value: ReportLocationValue) => void; required?: boolean; label?: string };
 const selectClass = "mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm";
@@ -9,17 +9,18 @@ export default function ReportLocationSelector({ value, onChange, required = fal
   return <fieldset className="space-y-4">
     <legend className="text-sm font-medium text-slate-700">{label}{required ? " *" : ""}</legend>
     <label className="block text-sm text-slate-600">Where is the location?
-      <select value={value.scope} required={required} onChange={(e)=>onChange({scope:e.target.value as ReportLocationValue["scope"],countryCode:"",division:"",district:"",subDistrict:""})} className={selectClass}>
+      <select value={value.scope} required={required} onChange={(e)=>onChange({scope:e.target.value as ReportLocationValue["scope"],countryCode:"",division:"",district:"",subDistrict:"",area:""})} className={selectClass}>
         <option value="">{required ? "Choose Bangladesh or abroad" : "Not provided"}</option><option value="BANGLADESH">Bangladesh</option><option value="ABROAD">Abroad</option>
       </select>
     </label>
     {value.scope === "ABROAD" && <label className="block text-sm text-slate-600">Country
       <select value={value.countryCode} required={locationRequired} onChange={(e)=>set({countryCode:e.target.value})} className={selectClass}><option value="">Choose a country</option>{reportCountries.map((country)=><option key={country.code} value={country.code}>{country.name}</option>)}</select>
     </label>}
-    {value.scope === "BANGLADESH" && <div className="grid gap-4 sm:grid-cols-3">
-      <label className="text-sm text-slate-600">Division<select required={locationRequired} value={value.division} onChange={(e)=>set({division:e.target.value,district:"",subDistrict:""})} className={selectClass}><option value="">Choose division</option>{bangladeshDivisions.map((item)=><option key={item}>{item}</option>)}</select></label>
-      <label className="text-sm text-slate-600">District<select required={locationRequired} value={value.district} onChange={(e)=>set({district:e.target.value,subDistrict:""})} disabled={!value.division} className={selectClass}><option value="">Choose district</option>{bangladeshDistricts(value.division).map((item)=><option key={item}>{item}</option>)}</select></label>
-      <label className="text-sm text-slate-600">Sub-district<select required={locationRequired} value={value.subDistrict} onChange={(e)=>set({subDistrict:e.target.value})} disabled={!value.district} className={selectClass}><option value="">Choose sub-district</option>{bangladeshSubDistricts(value.division,value.district).map((item)=><option key={item}>{item}</option>)}</select></label>
+    {value.scope === "BANGLADESH" && <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <label className="text-sm text-slate-600">Division<select required={locationRequired} value={value.division} onChange={(e)=>set({division:e.target.value,district:"",subDistrict:"",area:""})} className={selectClass}><option value="">Choose division</option>{bangladeshDivisions.map((item)=><option key={item}>{item}</option>)}</select></label>
+      <label className="text-sm text-slate-600">District<select required={locationRequired} value={value.district} onChange={(e)=>set({district:e.target.value,subDistrict:"",area:""})} disabled={!value.division} className={selectClass}><option value="">Choose district</option>{bangladeshDistricts(value.division).map((item)=><option key={item}>{item}</option>)}</select></label>
+      <label className="text-sm text-slate-600">Sub-district or other locality<select required={locationRequired} value={value.subDistrict} onChange={(e)=>set({subDistrict:e.target.value,area:""})} disabled={!value.district} className={selectClass}><option value="">Choose sub-district or other locality</option>{bangladeshSubDistricts(value.division,value.district).map((item)=><option key={item}>{item}</option>)}<option value={OTHER_LOCALITY_VALUE}>Other area (outside listed sub-districts)</option></select></label>
+      {value.subDistrict === OTHER_LOCALITY_VALUE && <label className="text-sm text-slate-600">Area, city corporation, or municipality<input required={locationRequired} minLength={2} maxLength={120} value={value.area} onChange={(e)=>set({area:e.target.value})} placeholder="For example, Dhaka North City Corporation · Gulshan" className={selectClass} /><span className="mt-1 block text-xs text-slate-500">Use this for any local area that is not listed as a sub-district.</span></label>}
     </div>}
   </fieldset>;
 }
