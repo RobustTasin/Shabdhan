@@ -106,6 +106,12 @@ html[data-site-theme="dark"] [class*="text-indigo-"] {
   color: #d5e5e3 !important;
 }
 
+html[data-site-theme="dark"] [role="alert"] {
+  background-color: #2b0b12 !important;
+  border-color: #7f1d1d !important;
+  color: #fecdd3 !important;
+}
+
 html[data-site-theme="dark"] [class*="text-teal-800"],
 html[data-site-theme="dark"] [class*="text-teal-900"],
 html[data-site-theme="dark"] [class*="text-teal-950"] {
