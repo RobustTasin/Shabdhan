@@ -71,7 +71,7 @@ export default function MembershipApplicationsPage() {
       if (action === "approve") {
         setApplications((current) => current
           .map((item) => item.id === application.id
-            ? { ...item, status: "APPROVED", reviewed_at: new Date().toISOString() }
+            ? { ...item, status: "APPROVED" as const, reviewed_at: new Date().toISOString() }
             : item)
           .filter((item) => item.status === "APPROVED"));
         if (filter === "APPROVED") await loadApplications("APPROVED");
