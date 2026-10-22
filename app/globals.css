@@ -187,6 +187,9 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
 .report-detail-interactions {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "corroborations"
+    "comments";
   align-items: start;
   gap: 1.5rem;
 }
@@ -244,5 +247,6 @@ html[data-site-theme="dark"] .site-bangladesh-link:hover {
   .report-detail-interactions {
     grid-area: interactions;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas: "corroborations comments";
   }
 }
