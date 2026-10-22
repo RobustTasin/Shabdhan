@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 
 export default function PublicSiteHeader() {
   const { user } = useAuth();
+  const pathname = usePathname();
   const isModerator = user?.role === "MODERATOR" || user?.role === "ADMIN";
 
   return (
@@ -18,8 +20,11 @@ export default function PublicSiteHeader() {
           <Link href="/#public-feed" className="rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-4">
             Feed
           </Link>
-          <Link href="/search" className="rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-4">
-            Search
+          <Link href="/search" aria-label="Search reports" title="Search reports" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5">
+              <circle cx="10.8" cy="10.8" r="6.3" />
+              <path strokeLinecap="round" d="m15.5 15.5 4.2 4.2" />
+            </svg>
           </Link>
           {user ? (
             <>
@@ -30,7 +35,7 @@ export default function PublicSiteHeader() {
           ) : (
             <>
               <Link href="/login" className="rounded-full px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:px-4">Log in</Link>
-              <Link href="/apply" className="rounded-full bg-teal-950 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-900 sm:px-4">Apply</Link>
+              {pathname !== "/apply" && <Link href="/apply" className="rounded-full bg-teal-950 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-900 sm:px-4">Apply</Link>}
             </>
           )}
         </nav>
