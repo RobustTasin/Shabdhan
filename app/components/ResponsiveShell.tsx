@@ -27,9 +27,10 @@ export default function ResponsiveShell({
 
   const isPublicReportPage = /^\/reports\/[^/]+$/.test(pathname);
   const isProfilePage = pathname === "/me" || /^\/users\/[^/]+$/.test(pathname);
+  const isPublicExplorePage = pathname === "/categories" || pathname.startsWith("/categories/") || pathname === "/my-bangladesh";
 
   // Public pages use their own layouts instead of the authenticated dashboard shell.
-  if (pathname === "/" || pathname === "/search" || pathname === "/create-report" || pathname === "/notifications" || isPublicReportPage || isProfilePage || isAuthPage || isPublicMembershipPage) {
+  if (pathname === "/" || pathname === "/search" || pathname === "/create-report" || pathname === "/notifications" || isPublicReportPage || isProfilePage || isPublicExplorePage || isAuthPage || isPublicMembershipPage) {
     return <>{children}</>;
   }
 

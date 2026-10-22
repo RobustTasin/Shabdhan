@@ -1,7 +1,9 @@
 import { Response, Router } from "express";
 import bcrypt from "bcrypt";
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 import { z } from "zod";
 import { pool } from "../config/database";
+import { JWT_SECRET } from "../config/auth";
 import { AuthenticatedRequest, authenticate, requireRole } from "../middleware/auth";
 import { createAuditLog } from "../utils/audit";
 
@@ -14,6 +16,27 @@ const applicationSchema = z.object({
 });
 const idSchema = z.uuid();
 const codeSchema = z.string().trim().regex(/^[A-Za-z0-9]{6}$/).transform((value) => value.toUpperCase());
+const approvalCodeKey = createHash("sha256").update(`shabdhan-membership-approval-code:v1:${JWT_SECRET}`).digest();
+
+function encryptApprovalCode(code: string) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", approvalCodeKey, iv);
+  const ciphertext = Buffer.concat([cipher.update(code, "utf8"), cipher.final()]);
+  return `v1:${iv.toString("base64url")}:${cipher.getAuthTag().toString("base64url")}:${ciphertext.toString("base64url")}`;
+}
+
+function decryptApprovalCode(value: string | null) {
+  if (!value) return null;
+  try {
+    const [version, ivValue, tagValue, ciphertextValue] = value.split(":");
+    if (version !== "v1" || !ivValue || !tagValue || !ciphertextValue) return null;
+    const decipher = createDecipheriv("aes-256-gcm", approvalCodeKey, Buffer.from(ivValue, "base64url"));
+    decipher.setAuthTag(Buffer.from(tagValue, "base64url"));
+    return Buffer.concat([decipher.update(Buffer.from(ciphertextValue, "base64url")), decipher.final()]).toString("utf8");
+  } catch {
+    return null;
+  }
+}
 
 router.post("/", async (req, res) => {
   const parsed = applicationSchema.safeParse(req.body);
@@ -74,12 +97,19 @@ router.get("/", ...reviewer, async (req: AuthenticatedRequest, res) => {
     const where = requestedStatus === "ALL" ? "" : (values.push(requestedStatus), `WHERE a.status = $${values.length}`);
     const result = await pool.query(
       `SELECT a.id, a.application_number::text, a.email, a.social_platform, a.social_url,
-              a.status, a.created_at, a.reviewed_at, a.code_expires_at, a.account_created_at,
+              a.status, a.created_at, a.reviewed_at, a.code_expires_at, a.code_encrypted, a.account_created_at,
               reviewer.username AS reviewed_by_username
        FROM membership_applications a LEFT JOIN users reviewer ON reviewer.id = a.reviewed_by
        ${where} ORDER BY CASE WHEN a.status = 'PENDING' THEN 0 ELSE 1 END, a.created_at DESC LIMIT 200`, values
     );
-    return res.json({ status: "ok", applications: result.rows });
+    const applications = result.rows.map((application) => ({
+      ...application,
+      approval_code: application.status === "APPROVED" && !application.account_created_at && application.code_expires_at && new Date(application.code_expires_at).getTime() > Date.now()
+        ? decryptApprovalCode(application.code_encrypted)
+        : null,
+      code_encrypted: undefined,
+    }));
+    return res.json({ status: "ok", applications });
   } catch (error) {
     console.error("Failed to load membership applications:", error);
     return res.status(500).json({ status: "error", message: "Unable to load membership applications" });
@@ -99,10 +129,10 @@ async function reviewApplication(id: string, action: "APPROVED" | "DECLINED", co
     }
     const codeHash = action === "APPROVED" ? await bcrypt.hash(code!, 10) : null;
     await client.query(
-      `UPDATE membership_applications SET status = $1, code_hash = $2,
+      `UPDATE membership_applications SET status = $1, code_hash = $2, code_encrypted = $5,
        code_expires_at = CASE WHEN $1 = 'APPROVED' THEN NOW() + INTERVAL '48 hours' ELSE NULL END,
        attempts = 0, reviewed_by = $3, reviewed_at = NOW(), updated_at = NOW() WHERE id = $4`,
-      [action, codeHash, req.user!.id, id]
+      [action, codeHash, req.user!.id, id, action === "APPROVED" ? encryptApprovalCode(code!) : null]
     );
     await createAuditLog({ userId: req.user!.id, action: `MEMBERSHIP_APPLICATION_${action}`, entityType: "membership_application", entityId: id, newData: { application_number: app.application_number, email: app.email }, req, client });
     await client.query("COMMIT");
@@ -139,7 +169,7 @@ router.post("/:id/code", ...reviewer, async (req: AuthenticatedRequest, res) => 
     if (!found.rows.length) { await client.query("ROLLBACK"); return res.status(404).json({ status: "error", message: "Application not found" }); }
     const application = found.rows[0];
     if (application.status !== "APPROVED" || application.account_created_at) { await client.query("ROLLBACK"); return res.status(409).json({ status: "error", message: "A code can only be issued for an approved application without an account" }); }
-    await client.query("UPDATE membership_applications SET code_hash = $1, code_expires_at = NOW() + INTERVAL '48 hours', attempts = 0, reviewed_by = $2, reviewed_at = NOW(), updated_at = NOW() WHERE id = $3", [await bcrypt.hash(code.data, 10), req.user!.id, id.data]);
+    await client.query("UPDATE membership_applications SET code_hash = $1, code_encrypted = $2, code_expires_at = NOW() + INTERVAL '48 hours', attempts = 0, reviewed_by = $3, reviewed_at = NOW(), updated_at = NOW() WHERE id = $4", [await bcrypt.hash(code.data, 10), encryptApprovalCode(code.data), req.user!.id, id.data]);
     await createAuditLog({ userId: req.user!.id, action: "MEMBERSHIP_APPLICATION_CODE_ISSUED", entityType: "membership_application", entityId: id.data, newData: { application_number: application.application_number, email: application.email }, req, client });
     await client.query("COMMIT");
     return res.json({ status: "ok", message: "Code set. Manually email it to the applicant within 48 hours." });

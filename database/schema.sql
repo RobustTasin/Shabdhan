@@ -81,6 +81,7 @@ CREATE TABLE membership_applications (
     reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
     reviewed_at TIMESTAMPTZ,
     code_hash CHAR(64),
+    code_encrypted TEXT,
     code_expires_at TIMESTAMPTZ,
     attempts SMALLINT NOT NULL DEFAULT 0,
     account_created_at TIMESTAMPTZ,
