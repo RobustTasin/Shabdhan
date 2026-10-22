@@ -47,7 +47,7 @@ export default function ProfilePageLayout({ children }: { children: ReactNode })
               </section>
               <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
               <Link href="/categories" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse Categories</Link>
-              <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="site-bangladesh-link rounded-xl bg-[#F42A41] px-3 py-3 text-sm font-semibold text-[#101820] hover:bg-[#e9243b]">আমার বাংলাদেশ</Link>
+              <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="site-bangladesh-link rounded-xl px-3 py-3 text-sm font-semibold text-[#F42A41] hover:bg-[#edf4f2]">আমার বাংলাদেশ</Link>
               {user ? <>
                 {isModerator && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}
                 <Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Create a report</Link>

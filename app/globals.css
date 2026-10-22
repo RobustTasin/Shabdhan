@@ -147,10 +147,9 @@ html[data-site-theme="dark"] .site-wordmark-red {
 }
 
 html[data-site-theme="dark"] .site-bangladesh-link {
-  background-color: #f42a41 !important;
-  color: #101820 !important;
+  color: #ff5365 !important;
 }
 
 html[data-site-theme="dark"] .site-bangladesh-link:hover {
-  background-color: #d91e35 !important;
+  background-color: #182522 !important;
 }
