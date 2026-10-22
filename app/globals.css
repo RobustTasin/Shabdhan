@@ -137,3 +137,20 @@ html[data-site-theme="dark"] [class*="border-[#"],
 html[data-site-theme="dark"] [class*="border-slate-"] {
   border-color: #344947 !important;
 }
+
+html[data-site-theme="dark"] .site-wordmark-green {
+  color: #2fc58a !important;
+}
+
+html[data-site-theme="dark"] .site-wordmark-red {
+  color: #ff5365 !important;
+}
+
+html[data-site-theme="dark"] .site-bangladesh-link {
+  background-color: #f42a41 !important;
+  color: #101820 !important;
+}
+
+html[data-site-theme="dark"] .site-bangladesh-link:hover {
+  background-color: #d91e35 !important;
+}
