@@ -68,25 +68,21 @@ export default function MembershipApplicationsPage() {
           : await declineMembershipApplication(application.id);
       if (action !== "decline") setCodes((prev) => ({ ...prev, [application.id]: code }));
       setNotice(response.message);
-      if (action === "approve") {
+      if (action === "approve" || action === "decline") {
+        const nextStatus: MembershipApplicationStatus = action === "approve" ? "APPROVED" : "DECLINED";
         setApplications((current) => current
           .map((item) => item.id === application.id
-            ? { ...item, status: "APPROVED" as const, reviewed_at: new Date().toISOString() }
+            ? { ...item, status: nextStatus, reviewed_at: new Date().toISOString() }
             : item)
-          .filter((item) => item.status === "APPROVED"));
-        if (filter === "APPROVED") await loadApplications("APPROVED");
-        else setFilter("APPROVED");
+          .filter((item) => item.status === nextStatus));
+        if (filter === nextStatus) await loadApplications(nextStatus);
+        else setFilter(nextStatus);
       } else {
         await loadApplications(filter);
       }
     } catch (actionError) {
       setError(actionError instanceof Error ? actionError.message : "Unable to update application");
-      if (action === "approve") {
-        setFilter("APPROVED");
-        await loadApplications("APPROVED");
-      } else {
-        await loadApplications(filter);
-      }
+      await loadApplications(filter);
     } finally {
       setBusyId(null);
     }
