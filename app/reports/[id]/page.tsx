@@ -150,9 +150,11 @@ export default function ReportDetailsPage() {
 
   const [comments, setComments] = useState<ApiComment[]>([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
+  const [commentsError, setCommentsError] = useState("");
 
   const [corroborations, setCorroborations] = useState<ApiCorroboration[]>([]);
   const [corroborationsLoading, setCorroborationsLoading] = useState(true);
+  const [corroborationsError, setCorroborationsError] = useState("");
   const [corroborationComment, setCorroborationComment] = useState("");
   const [submittingCorroboration, setSubmittingCorroboration] = useState(false);
   const [corroborationActionError, setCorroborationActionError] = useState("");
@@ -173,41 +175,53 @@ export default function ReportDetailsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!id) {
-      return;
-    }
+    if (!id) return;
+    let active = true;
+    setLoading(true);
+    setEvidenceLoading(true);
+    setCommentsLoading(true);
+    setCorroborationsLoading(true);
+    setError("");
+    setEvidenceError("");
+    setCommentsError("");
+    setCorroborationsError("");
 
-    void Promise.all([
-      getReport(id),
-      getEvidenceForReport(id),
-      getCommentsForReport(id),
-      getCorroborationsForReport(id),
-    ])
-      .then(
-        ([reportResponse, evidenceResponse, commentsResponse, corroborationsResponse]) => {
-          setReport(reportResponse.report);
-          setEditTitle(reportResponse.report.title);
-          setEditDescription(reportResponse.report.description);
-          setEvidence(evidenceResponse.evidence);
-          setComments(commentsResponse.comments);
-          setCorroborations(corroborationsResponse.corroborations);
-
-        }
-      )
-      .catch((err) => {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Failed to load report";
-
-        setError(message);
+    void getReport(id)
+      .then((response) => {
+        if (!active) return;
+        setReport(response.report);
+        setEditTitle(response.report.title);
+        setEditDescription(response.report.description);
+      })
+      .catch((err: unknown) => {
+        if (active) setError(err instanceof Error ? err.message : "Failed to load report");
       })
       .finally(() => {
-        setLoading(false);
-        setEvidenceLoading(false);
-        setCommentsLoading(false);
-        setCorroborationsLoading(false);
+        if (active) setLoading(false);
       });
+
+    void getEvidenceForReport(id)
+      .then((response) => { if (active) setEvidence(response.evidence); })
+      .catch((err: unknown) => {
+        if (active) setEvidenceError(err instanceof Error ? err.message : "Failed to fetch evidence");
+      })
+      .finally(() => { if (active) setEvidenceLoading(false); });
+
+    void getCommentsForReport(id)
+      .then((response) => { if (active) setComments(response.comments); })
+      .catch((err: unknown) => {
+        if (active) setCommentsError(err instanceof Error ? err.message : "Failed to load comments");
+      })
+      .finally(() => { if (active) setCommentsLoading(false); });
+
+    void getCorroborationsForReport(id)
+      .then((response) => { if (active) setCorroborations(response.corroborations); })
+      .catch((err: unknown) => {
+        if (active) setCorroborationsError(err instanceof Error ? err.message : "Failed to load corroborations");
+      })
+      .finally(() => { if (active) setCorroborationsLoading(false); });
+
+    return () => { active = false; };
   }, [id]);
 
   useEffect(() => {
@@ -686,7 +700,7 @@ export default function ReportDetailsPage() {
 
           <div className="rounded-xl border border-red-200 bg-red-50 p-6">
             <h1 className="text-xl font-semibold text-red-950">
-              Report not found
+              Unable to load report
             </h1>
 
             <p className="mt-2 text-sm text-red-800">
@@ -928,7 +942,7 @@ export default function ReportDetailsPage() {
       <section id="corroborations" className="report-detail-corroborations scroll-mt-24 py-5">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-950">Corroborations</h2>
-          <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{corroborations.length}</span>
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{corroborationsError ? "—" : corroborations.length}</span>
         </div>
 
         {report.social_account_id && (
@@ -1027,6 +1041,8 @@ export default function ReportDetailsPage() {
             <p className="text-sm text-slate-500">
               Loading corroborations...
             </p>
+          ) : corroborationsError ? (
+            <p role="alert" className="text-sm text-red-700">{corroborationsError}</p>
           ) : corroborations.length > 0 ? (
             <div className="space-y-3">
               {corroborations.map((item) => (
@@ -1080,7 +1096,7 @@ export default function ReportDetailsPage() {
       <section id="comments" className="report-detail-comments scroll-mt-24 py-5">
         <div className="flex items-center justify-between gap-3">
           <h2 className="text-lg font-semibold text-slate-950">Comments</h2>
-          <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{comments.length}</span>
+          <span className="rounded-full bg-teal-50 px-3 py-1 text-sm font-semibold text-teal-900">{commentsError ? "—" : comments.length}</span>
         </div>
 
         {user ? (
@@ -1128,6 +1144,8 @@ export default function ReportDetailsPage() {
             <p className="text-sm text-slate-500">
               Loading comments...
             </p>
+          ) : commentsError ? (
+            <p role="alert" className="text-sm text-red-700">{commentsError}</p>
           ) : comments.length === 0 ? (
             <div className="py-5 text-center">
               <p className="text-sm text-slate-500">
