@@ -46,6 +46,7 @@ export default function PublicSiteHeader() {
       </section>
       <Link href="/search" onClick={closeMenu} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-slate-100">Advanced search</Link>
       <Link href="/categories" onClick={closeMenu} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-slate-100">Browse categories</Link>
+      <Link href="/how-to-use" onClick={closeMenu} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-slate-100">How to use Shabdhan</Link>
       <Link href="/my-bangladesh" onClick={closeMenu} className="site-bangladesh-link rounded-xl px-3 py-3 text-sm font-semibold text-[#F42A41] hover:bg-slate-100">আমার বাংলাদেশ</Link>
       {user ? <>
         {isModerator && <Link href="/dashboard" onClick={closeMenu} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-slate-100">Dashboard</Link>}
@@ -75,6 +76,11 @@ export default function PublicSiteHeader() {
               <path strokeLinecap="round" d="m15.5 15.5 4.2 4.2" />
             </svg>
           </Link>
+          {!user && (
+            <Link href="/how-to-use" aria-label="How to use Shabdhan" title="How to use Shabdhan" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-700 hover:bg-slate-100">
+              <span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded-full border border-current text-xs font-bold">?</span>
+            </Link>
+          )}
           {user ? (
             <>
               <Link href="/create-report" aria-label="Create report" title="Create report" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold text-slate-700 hover:bg-slate-100 sm:w-auto sm:px-4"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 sm:hidden"><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" /></svg><span className="hidden sm:inline">Create report</span></Link>
