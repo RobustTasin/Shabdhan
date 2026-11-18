@@ -61,6 +61,7 @@ export default function ProfilePageLayout({ children }: { children: ReactNode })
               </section>
               <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
               <Link href="/categories" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse Categories</Link>
+              <Link href="/how-to-use" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">How to use Shabdhan</Link>
               <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="site-bangladesh-link rounded-xl px-3 py-3 text-sm font-semibold text-[#F42A41] hover:bg-[#edf4f2]">আমার বাংলাদেশ</Link>
               {user ? <>
                 {isModerator && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}
@@ -89,6 +90,7 @@ export default function ProfilePageLayout({ children }: { children: ReactNode })
                 </section>
                 <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
                 <Link href="/categories" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse Categories</Link>
+              <Link href="/how-to-use" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">How to use Shabdhan</Link>
                 <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="site-bangladesh-link rounded-xl px-3 py-3 text-sm font-semibold text-[#F42A41] hover:bg-[#edf4f2]">আমার বাংলাদেশ</Link>
                 {user ? <>{isModerator && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e3eeec] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Apply for membership</Link></>}
               </nav>
