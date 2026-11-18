@@ -469,7 +469,7 @@ export default function Home() {
             <h2 className="text-base font-semibold text-[#1d3837]">Menu</h2>
             <button type="button" aria-label="Close menu" onClick={() => setMenuOpen(false)} className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[#455e5c] hover:bg-[#e7f1ef]"><MenuIcon open /></button>
           </div>
-          <nav aria-label="Menu links" className="mt-2 flex flex-col gap-1">
+          <nav aria-label="Menu links" className="mt-2 grid grid-cols-1 gap-1">
             <Link href={user ? "/me" : "/login?next=%2Fme"} onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Me</Link>
             <section aria-label="Appearance settings" className="rounded-xl px-3 py-1">
               <button type="button" aria-expanded={appearanceOpen} onClick={() => setAppearanceOpen((open) => !open)} className="flex w-full items-center justify-between rounded-xl py-1.5 text-left text-sm font-semibold text-[#1d3837] hover:bg-[#edf4f2]">
@@ -518,7 +518,7 @@ export default function Home() {
         </header>
         <div className="flex-1 overflow-y-auto p-4">
           {user && <div className="mb-2 px-3 py-2"><p className="text-sm font-semibold text-[#1d3837]">{user.username}</p><p className="mt-1 text-xs text-[#788279]">Signed in to Shabdhan</p></div>}
-          <nav aria-label="Menu links" className="flex flex-col gap-0.5">
+          <nav aria-label="Menu links" className="grid grid-cols-1 gap-0.5">
             <Link href={user ? "/me" : "/login?next=%2Fme"} onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Me</Link>
             <section aria-label="Appearance settings" className="rounded-xl px-3 py-1">
               <button type="button" aria-expanded={appearanceOpen} onClick={() => setAppearanceOpen((open) => !open)} className="flex w-full items-center justify-between rounded-xl py-2 text-left text-sm font-semibold text-[#1d3837] hover:bg-[#edf4f2]">
