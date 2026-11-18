@@ -338,6 +338,91 @@ router.get("/public-statistics", async (req, res) => {
   }
 });
 
+// Public home feed: fetch the newest reports for every category in one request.
+router.get("/public-feed", optionalAuthenticate, async (req: AuthenticatedRequest, res) => {
+  try {
+    const result = await pool.query(
+      `WITH ranked_reports AS (
+         SELECT r.*,
+                COUNT(*) OVER (PARTITION BY r.category_id)::int AS category_total,
+                ROW_NUMBER() OVER (PARTITION BY r.category_id ORDER BY r.created_at DESC, r.id DESC) AS category_rank
+         FROM reports r
+         LEFT JOIN categories active_category ON active_category.id = r.category_id
+         WHERE r.status = 'PUBLISHED'
+           AND r.verification_status = 'VERIFIED'
+           AND (r.category_id IS NULL OR active_category.is_active = true)
+       )
+       SELECT
+         r.id,
+         r.public_report_number,
+         r.public_report_category_code,
+         r.reporter_id,
+         r.social_account_id,
+         r.category_id,
+         r.incident_type,
+         r.incident_platform,
+         r.location_scope,
+         r.location_country_code,
+         r.location_country_name,
+         r.location_division,
+         r.location_district,
+         r.location_sub_district,
+         r.location_city_corporation,
+         r.location_area,
+         r.title,
+         r.description,
+         r.status,
+         r.verification_status,
+         r.published_at,
+         r.created_at,
+         r.updated_at,
+         r.category_total,
+         (SELECT COUNT(*)::int FROM report_votes rv WHERE rv.report_id = r.id AND rv.vote = 1) AS upvote_count,
+         (SELECT COUNT(*)::int FROM report_votes rv WHERE rv.report_id = r.id AND rv.vote = -1) AS downvote_count,
+         (SELECT rv.vote FROM report_votes rv WHERE rv.report_id = r.id AND rv.user_id = $1) AS current_user_vote,
+         (SELECT COUNT(*)::int FROM evidence e
+          WHERE e.report_id = r.id AND e.verification_status = 'VERIFIED') AS verified_evidence_count,
+         (SELECT e.file_url FROM evidence e
+          WHERE e.report_id = r.id AND e.evidence_type = 'IMAGE'
+            AND e.verification_status = 'VERIFIED' AND e.file_url IS NOT NULL
+          ORDER BY e.created_at DESC, e.id DESC LIMIT 1) AS preview_image_url,
+         CASE WHEN sa.id IS NULL THEN NULL ELSE json_build_object(
+           'id', sa.id, 'platform', sa.platform, 'username', sa.username,
+           'profile_url', sa.profile_url, 'display_name', sa.display_name
+         ) END AS social_account,
+         CASE WHEN c.id IS NULL THEN NULL ELSE json_build_object(
+           'id', c.id, 'name', c.name, 'description', c.description
+         ) END AS category
+       FROM ranked_reports r
+       LEFT JOIN social_accounts sa ON sa.id = r.social_account_id
+       LEFT JOIN categories c ON c.id = r.category_id
+       WHERE r.category_rank <= 8
+       ORDER BY r.category_total DESC, COALESCE(c.name, 'Uncategorized') ASC,
+                r.created_at DESC, r.id DESC`,
+      [req.user?.id ?? null]
+    );
+
+    const categories: Array<{ id: string; name: string; description: string | null; is_active: boolean; report_count: number }> = [];
+    const feeds: Record<string, { reports: unknown[]; total: number }> = {};
+    for (const row of result.rows) {
+      const categoryId = row.category_id ?? "uncategorized";
+      const total = Number(row.category_total) || 0;
+      if (!feeds[categoryId]) {
+        const name = row.category?.name ?? "Uncategorized";
+        const description = row.category?.description ?? "Public reports that have not been assigned a category.";
+        categories.push({ id: categoryId, name, description, is_active: true, report_count: total });
+        feeds[categoryId] = { reports: [], total };
+      }
+      const { category_total: _categoryTotal, ...report } = row;
+      feeds[categoryId].reports.push(report);
+    }
+
+    return res.json({ status: "ok", categories, feeds });
+  } catch (error) {
+    console.error("Failed to fetch public feed:", error);
+    return res.status(500).json({ status: "error", message: "Failed to fetch public feed" });
+  }
+});
 // Public report search
 router.get("/search", optionalAuthenticate, async (req: AuthenticatedRequest, res) => {
   try {

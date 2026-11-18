@@ -9,7 +9,7 @@ import FeedNotifications from "./components/FeedNotifications";
 import ReportPreviewDialog from "./components/ReportPreviewDialog";
 import { formatPublicReportId } from "../shared/report-id";
 import {
-  getCategories,
+  getPublicCategoryFeeds,
   searchReports,
   setReportVote,
   type ApiReport,
@@ -265,70 +265,9 @@ export default function Home() {
     setLoading(true);
     setError("");
     try {
-      let active: Category[];
-      try {
-        const response = await getCategories();
-        active = response.categories.filter((category) => category.is_active);
-      } catch (categoryError) {
-        console.warn("Could not load categories; deriving them from public reports.", categoryError);
-        const recent = await searchReports({ limit: 100 });
-        const derived = new Map<string, Category>();
-        for (const report of recent.reports) {
-          const category = report.category;
-          if (category?.id && !derived.has(category.id)) {
-            derived.set(category.id, {
-              id: category.id,
-              name: category.name,
-              description: category.description,
-              is_active: true,
-            });
-          }
-        }
-        active = Array.from(derived.values());
-      }
-      const results = await Promise.all(
-        active.map(async (category) => {
-          try {
-            const result = await searchReports({ categoryId: category.id, limit: 8 });
-            return [category.id, { reports: result.reports, total: result.pagination.total }] as const;
-          } catch {
-            return [category.id, { reports: [], total: 0 }] as const;
-          }
-        })
-      );
-
-      let uncategorizedFeed: CategoryFeed = { reports: [], total: 0 };
-      try {
-        const result = await searchReports({
-          categoryId: UNCATEGORIZED_CATEGORY_ID,
-          limit: 8,
-        });
-        uncategorizedFeed = {
-          reports: result.reports,
-          total: result.pagination.total,
-        };
-      } catch (uncategorizedError) {
-        console.warn("Could not load uncategorized public reports.", uncategorizedError);
-      }
-
-      const categoriesWithUncategorized = uncategorizedFeed.reports.length
-        ? [
-            ...active,
-            {
-              id: UNCATEGORIZED_CATEGORY_ID,
-              name: "Uncategorized",
-              description: "Public reports that have not been assigned a category.",
-              is_active: true,
-            },
-          ]
-        : active;
-      const feedsByCategory = Object.fromEntries(results) as Record<string, CategoryFeed>;
-      if (uncategorizedFeed.reports.length) {
-        feedsByCategory[UNCATEGORIZED_CATEGORY_ID] = uncategorizedFeed;
-      }
-
-      setCategories(categoriesWithUncategorized);
-      setFeeds(feedsByCategory);
+      const response = await getPublicCategoryFeeds();
+      setCategories(response.categories);
+      setFeeds(response.feeds);
       setActiveIndexes({});
     } catch {
       setError("We couldn’t load the public feed. Please try again.");

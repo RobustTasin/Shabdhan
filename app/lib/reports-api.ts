@@ -292,6 +292,13 @@ export async function deleteReport(id: string): Promise<{ status: string; messag
   });
 }
 
+export async function getPublicCategoryFeeds(): Promise<{
+  status: string;
+  categories: Category[];
+  feeds: Record<string, { reports: ApiReport[]; total: number }>;
+}> {
+  return apiFetch("/reports/public-feed", { token: getToken() ?? undefined });
+}
 export async function getCategories(): Promise<{
   status: string;
   categories: Category[];
