@@ -740,30 +740,62 @@ router.get(
         });
       }
 
-      const result = await pool.query(
-        `SELECT
-           e.id,
-           e.report_id,
-           e.uploaded_by,
-           e.evidence_type,
-           e.file_name,
-           e.file_url,
-           e.file_hash,
-           e.file_size_bytes,
-           e.description,
-           e.verification_status,
-           e.created_at,
-           e.updated_at,
-           json_build_object(
-             'id', u.id,
-             'username', u.username
-           ) AS uploader
-         FROM evidence e
-         JOIN users u ON u.id = e.uploaded_by
-         WHERE e.report_id = $1
-         ORDER BY e.created_at DESC`,
-        [req.params.reportId]
-      );
+      let result;
+      try {
+        result = await pool.query(
+          `SELECT
+             e.id,
+             e.report_id,
+             e.uploaded_by,
+             e.evidence_type,
+             e.file_name,
+             e.file_url,
+             e.file_hash,
+             e.file_size_bytes,
+             e.description,
+             e.verification_status,
+             e.created_at,
+             e.updated_at,
+             json_build_object(
+               'id', u.id,
+               'username', u.username
+             ) AS uploader
+           FROM evidence e
+           JOIN users u ON u.id = e.uploaded_by
+           WHERE e.report_id = $1
+           ORDER BY e.created_at DESC`,
+          [req.params.reportId]
+        );
+      } catch (error) {
+        // Keep public evidence readable while a deployment's database is
+        // catching up with the optional file-size migration.
+        if ((error as { code?: string })?.code !== "42703") throw error;
+
+        result = await pool.query(
+          `SELECT
+             e.id,
+             e.report_id,
+             e.uploaded_by,
+             e.evidence_type,
+             e.file_name,
+             e.file_url,
+             e.file_hash,
+             NULL::bigint AS file_size_bytes,
+             e.description,
+             e.verification_status,
+             e.created_at,
+             e.updated_at,
+             json_build_object(
+               'id', u.id,
+               'username', u.username
+             ) AS uploader
+           FROM evidence e
+           JOIN users u ON u.id = e.uploaded_by
+           WHERE e.report_id = $1
+           ORDER BY e.created_at DESC`,
+          [req.params.reportId]
+        );
+      }
 
       res.json({
         status: "ok",
