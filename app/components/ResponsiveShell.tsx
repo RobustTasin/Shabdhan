@@ -43,7 +43,7 @@ export default function ResponsiveShell({
   const isPublicExplorePage = pathname === "/categories" || pathname.startsWith("/categories/") || pathname === "/my-bangladesh";
 
   // Public pages use their own layouts instead of the authenticated dashboard shell.
-  if (pathname === "/" || pathname === "/search" || pathname === "/create-report" || pathname === "/notifications" || pathname === "/how-to-use" || isPublicReportPage || isProfilePage || isPublicExplorePage || isAuthPage || isPublicMembershipPage) {
+  if (pathname === "/" || pathname === "/search" || pathname === "/create-report" || pathname === "/notifications" || pathname === "/how-to-use" || pathname === "/how-to-save-webpage" || isPublicReportPage || isProfilePage || isPublicExplorePage || isAuthPage || isPublicMembershipPage) {
     return <>{children}</>;
   }
 

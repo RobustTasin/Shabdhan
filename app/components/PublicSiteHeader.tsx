@@ -47,6 +47,7 @@ export default function PublicSiteHeader() {
       <Link href="/search" onClick={closeMenu} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-slate-100">Advanced search</Link>
       <Link href="/categories" onClick={closeMenu} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-slate-100">Browse categories</Link>
       <Link href="/how-to-use" onClick={closeMenu} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-slate-100">How to use Shabdhan</Link>
+      <Link href="/how-to-save-webpage" onClick={closeMenu} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-slate-100">How to save a webpage</Link>
       <Link href="/my-bangladesh" onClick={closeMenu} className="site-bangladesh-link rounded-xl px-3 py-3 text-sm font-semibold text-[#F42A41] hover:bg-slate-100">আমার বাংলাদেশ</Link>
       {user ? <>
         {isModerator && <Link href="/dashboard" onClick={closeMenu} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-slate-100">Dashboard</Link>}

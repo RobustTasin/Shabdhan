@@ -12,6 +12,7 @@ const navigation = [
   { name: "Evidence", href: "/evidence", icon: "◈" },
   { name: "Disputes", href: "/disputes", icon: "⚖" },
   { name: "Notifications", href: "/notifications", icon: "●" },
+  { name: "How to save a webpage", href: "/how-to-save-webpage", icon: "↗" },
 ];
 
 type SidebarNavProps = {
