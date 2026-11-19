@@ -434,6 +434,7 @@ export default function Home() {
 
           <nav aria-label="Main navigation" className="ml-auto flex items-center gap-1.5">
             <a href="#public-feed" className="hidden rounded-full bg-[#e7f1ef] px-3.5 py-2 text-sm font-semibold text-[#245c58] sm:inline-flex">Feed</a>
+            {!user && <Link href="/how-to-use" aria-label="How to use Shabdhan" title="How to use Shabdhan" className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#455e5c] transition hover:bg-[#e7f1ef]"><span aria-hidden="true" className="flex h-5 w-5 items-center justify-center rounded-full border border-current text-xs font-bold">?</span></Link>}
             <button type="button" aria-label={searchOpen ? "Close search" : "Open search"} aria-expanded={searchOpen} onClick={() => setSearchOpen(searchOpen ? false : true)} className="inline-flex h-10 w-10 items-center justify-center rounded-full text-[#455e5c] transition hover:bg-[#e7f1ef]">
               <SearchIcon />
             </button>
@@ -505,6 +506,7 @@ export default function Home() {
             </section>
             <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
             <Link href="/categories" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse categories</Link>
+            <Link href="/how-to-use" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">How to use Shabdhan</Link>
             <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="site-bangladesh-link rounded-xl px-3 py-3 text-sm font-semibold text-[#F42A41] hover:bg-[#edf4f2]">আমার বাংলাদেশ</Link>
             {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e3eeec] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Apply for membership</Link></>}
           </nav>
@@ -554,6 +556,7 @@ export default function Home() {
             </section>
             <Link href="/search" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Advanced search</Link>
             <Link href="/categories" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Browse categories</Link>
+            <Link href="/how-to-use" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">How to use Shabdhan</Link>
             <Link href="/my-bangladesh" onClick={() => setMenuOpen(false)} className="site-bangladesh-link rounded-xl px-3 py-3 text-sm font-semibold text-[#F42A41] hover:bg-[#edf4f2]">আমার বাংলাদেশ</Link>
             {user ? <>{(user.role === "MODERATOR" || user.role === "ADMIN") && <Link href="/dashboard" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Dashboard</Link>}<Link href="/create-report" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Create a report</Link><button type="button" onClick={() => { setMenuOpen(false); logout(); }} className="mt-2 rounded-xl border-t border-[#e3eeec] px-3 py-3 text-left text-sm font-semibold text-rose-800 hover:bg-rose-50">Log out</button></> : <><Link href="/login" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Log in</Link><Link href="/apply" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-3 text-sm font-medium hover:bg-[#edf4f2]">Apply for membership</Link></>}
           </nav>
