@@ -85,11 +85,15 @@ export type PublicReportStatus = {
   declined: number;
 };
 export type PublicReportStatistic = { label: string; report_count: number };
-export async function getPublicReportStatistics(params: { groupBy: string; sortBy?: "count" | "label"; direction?: "asc" | "desc"; categoryId?: string; fromMonth?: string; toMonth?: string }): Promise<PublicReportStatistic[]> {
+export async function getPublicReportStatistics(params: { groupBy: string; sortBy?: "count" | "label"; direction?: "asc" | "desc"; categoryId?: string; fromMonth?: string; toMonth?: string; division?: string; district?: string; subDistrict?: string; cityCorporation?: string }): Promise<PublicReportStatistic[]> {
   const query = new URLSearchParams({ group_by: params.groupBy, sort_by: params.sortBy ?? "count", direction: params.direction ?? "desc" });
   if (params.categoryId) query.set("category_id", params.categoryId);
   if (params.fromMonth) query.set("from_month", params.fromMonth);
   if (params.toMonth) query.set("to_month", params.toMonth);
+  if (params.division) query.set("division", params.division);
+  if (params.district) query.set("district", params.district);
+  if (params.subDistrict) query.set("sub_district", params.subDistrict);
+  if (params.cityCorporation) query.set("city_corporation", params.cityCorporation);
   const response = await apiFetch<{ status: string; statistics: PublicReportStatistic[] }>(`/reports/public-statistics?${query}`);
   return response.statistics;
 }
