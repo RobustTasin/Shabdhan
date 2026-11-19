@@ -79,14 +79,14 @@ function countFor(statistics: PublicReportStatistic[], label: string) {
 }
 
 function colorFor(count: number, maximum: number) {
-  if (!count || !maximum) return "#e3f4e9";
+  if (!count || !maximum) return "#dcfce7";
   const ratio = Math.log1p(count) / Math.log1p(maximum);
-  const start = [220, 244, 229];
-  const middle = [250, 205, 111];
-  const end = [220, 53, 69];
-  const from = ratio < 0.55 ? start : middle;
-  const to = ratio < 0.55 ? middle : end;
-  const amount = ratio < 0.55 ? ratio / 0.55 : (ratio - 0.55) / 0.45;
+  const start = [134, 239, 172];
+  const middle = [250, 204, 21];
+  const end = [220, 38, 38];
+  const from = ratio < 0.45 ? start : middle;
+  const to = ratio < 0.45 ? middle : end;
+  const amount = ratio < 0.45 ? ratio / 0.45 : (ratio - 0.45) / 0.55;
   const channel = (index: number) => Math.round(from[index] + (to[index] - from[index]) * amount).toString(16).padStart(2, "0");
   return `#${channel(0)}${channel(1)}${channel(2)}`;
 }
@@ -173,7 +173,7 @@ export default function BangladeshChoroplethMap({
             <g filter="url(#map-shadow)">
               {prepared.items.map(({ feature, label, count, path }) => {
                 const selected = level === "division" ? normalizeName(label) === normalizeName(division) : level === "district" ? normalizeName(label) === normalizeName(district) : normalizeName(label) === normalizeName(selectedArea);
-                return <path key={`${feature.properties.division_name}-${feature.properties.district_name}-${label}`} d={path} fill={colorFor(count, prepared.maximum ?? 1)} fillRule="evenodd" stroke={selected ? "#0f766e" : hovered === label ? "#0f766e" : "#ffffff"} strokeWidth={selected ? 2.2 : hovered === label ? 1.8 : 0.8} vectorEffect="non-scaling-stroke" role="button" tabIndex={0} aria-label={`${label}, ${count.toLocaleString()} reports. Select to explore.`} onClick={() => select(feature)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(feature); } }} onMouseEnter={() => setHovered(label)} onMouseLeave={() => setHovered("")} onFocus={() => setHovered(label)} onBlur={() => setHovered("")} className="cursor-pointer outline-none transition-colors focus:stroke-teal-800">
+                return <path key={`${feature.properties.division_name}-${feature.properties.district_name}-${label}`} d={path} fill={colorFor(count, prepared.maximum ?? 1)} fillRule="evenodd" stroke={selected ? "#0f766e" : hovered === label ? "#0f766e" : "#ffffff"} strokeWidth={selected ? 2.4 : hovered === label ? 2 : 1.1} vectorEffect="non-scaling-stroke" role="button" tabIndex={0} aria-label={`${label}, ${count.toLocaleString()} reports. Select to explore.`} onClick={() => select(feature)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); select(feature); } }} onMouseEnter={() => setHovered(label)} onMouseLeave={() => setHovered("")} onFocus={() => setHovered(label)} onBlur={() => setHovered("")} className="cursor-pointer outline-none transition-colors focus:stroke-teal-800">
                   <title>{label}: {count.toLocaleString()} reports — select to explore</title>
                 </path>;
               })}
@@ -182,7 +182,7 @@ export default function BangladeshChoroplethMap({
         )}
         <div className="absolute bottom-3 left-3 rounded-xl border border-slate-200/80 bg-white/95 px-3 py-2 shadow-sm backdrop-blur">
           <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Report count</p>
-          <div className="flex items-center gap-2 text-xs text-slate-600"><span>Fewer</span><span className="h-2.5 w-24 rounded-full bg-gradient-to-r from-[#dcf4e5] via-[#facd6f] to-[#dc3545]" aria-hidden="true"/><span>More</span></div>
+          <div className="flex items-center gap-2 text-xs text-slate-600"><span>Fewer</span><span className="h-2.5 w-24 rounded-full bg-gradient-to-r from-[#86efac] via-[#facc15] to-[#dc2626]" aria-hidden="true"/><span>More</span></div>
         </div>
         {hovered && <div className="absolute right-3 top-3 rounded-lg bg-slate-950 px-3 py-2 text-xs font-semibold text-white shadow-lg">{hovered}: {countFor(statistics, hovered).toLocaleString()}</div>}
       </div>
