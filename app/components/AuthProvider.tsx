@@ -32,7 +32,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(
   undefined
 );
 
-const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/search", "/reports", "/categories", "/my-bangladesh", "/apply", "/membership/accept", "/account/create"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/forgot-password", "/search", "/reports", "/categories", "/my-bangladesh", "/how-to-use", "/apply", "/membership/accept", "/account/create"];
 
 function isPublicPath(pathname: string) {
   return PUBLIC_PATHS.includes(pathname) || /^\/reports\/[^/]+$/.test(pathname) || /^\/categories\/[^/]+$/.test(pathname) || /^\/users\/[^/]+$/.test(pathname);
