@@ -1,9 +1,24 @@
+"use client";
+
 import Link from "next/link";
+import { useState } from "react";
 import PublicSiteHeader from "../components/PublicSiteHeader";
 
-const guidePdf = "/guides/internet-archive-save-guide.pdf";
+type GuideLanguage = "en" | "bn";
+
+const guidePdfs: Record<GuideLanguage, string> = {
+  en: "/guides/internet-archive-save-guide.pdf",
+  bn: "/guides/internet-archive-save-guide-bengali.pdf",
+};
 
 export default function HowToSaveWebpagePage() {
+  const [language, setLanguage] = useState<GuideLanguage>("en");
+  const guidePdf = guidePdfs[language];
+  const isBengali = language === "bn";
+  const pdfTitle = isBengali
+    ? "ইন্টারনেট আর্কাইভে ওয়েবপেজ সংরক্ষণের নির্দেশিকা"
+    : "How to Save Web Pages and Facebook Posts with the Internet Archive";
+
   return (
     <>
       <PublicSiteHeader />
@@ -41,9 +56,34 @@ export default function HowToSaveWebpagePage() {
             </a>
           </div>
         </div>
+
+        <section aria-label="Guide language" className="mb-4">
+          <p className="mb-2 text-sm font-medium text-slate-700">Choose a language / ভাষা নির্বাচন করুন</p>
+          <div className="inline-flex rounded-xl border border-slate-200 bg-white p-1" role="group" aria-label="Guide language">
+            <button
+              type="button"
+              onClick={() => setLanguage("en")}
+              aria-pressed={language === "en"}
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${language === "en" ? "bg-teal-800 text-white" : "text-slate-700 hover:bg-slate-100"}`}
+            >
+              English
+            </button>
+            <button
+              type="button"
+              onClick={() => setLanguage("bn")}
+              aria-pressed={language === "bn"}
+              lang="bn"
+              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${language === "bn" ? "bg-teal-800 text-white" : "text-slate-700 hover:bg-slate-100"}`}
+            >
+              বাংলা
+            </button>
+          </div>
+        </section>
+
         <section aria-label="Internet Archive saving guide" className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <iframe
-            title="How to Save Web Pages and Facebook Posts with the Internet Archive"
+            key={language}
+            title={pdfTitle}
             src={`${guidePdf}#view=FitH`}
             className="h-[75dvh] min-h-[36rem] w-full"
           />
