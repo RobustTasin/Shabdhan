@@ -9,7 +9,7 @@ import FeedNotifications from "./components/FeedNotifications";
 import ReportPreviewDialog from "./components/ReportPreviewDialog";
 import { formatPublicReportId } from "../shared/report-id";
 import {
-  getPublicCategoryFeeds,
+  getCategories,
   searchReports,
   setReportVote,
   type ApiReport,
@@ -126,6 +126,10 @@ export default function Home() {
   const { theme: feedTheme, setTheme: setFeedTheme } = useAppearance();
   const [categories, setCategories] = useState<Category[]>([]);
   const [feeds, setFeeds] = useState<Record<string, CategoryFeed>>({});
+  const [categoryLoading, setCategoryLoading] = useState<Record<string, boolean>>({});
+  const [categoryErrors, setCategoryErrors] = useState<Record<string, string>>({});
+  const loadedFeedWindows = useRef(new Set<string>());
+  const pendingFeedWindows = useRef(new Set<string>());
   const [activeIndexes, setActiveIndexes] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -261,14 +265,87 @@ export default function Home() {
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [menuOpen]);
 
+  const loadCategoryFeed = useCallback(async (categoryId: string, startIndex: number, total: number) => {
+    const reportCount = Math.min(cardsPerPage, Math.max(0, total - startIndex));
+    if (reportCount === 0) return;
+    const windowKey = `${categoryId}:${startIndex}:${reportCount}`;
+    if (loadedFeedWindows.current.has(windowKey) || pendingFeedWindows.current.has(windowKey)) return;
+
+    pendingFeedWindows.current.add(windowKey);
+    setCategoryLoading((current) => ({ ...current, [categoryId]: true }));
+    setCategoryErrors((current) => ({ ...current, [categoryId]: "" }));
+    try {
+      // Fetch only the cards in this category's currently visible carousel window.
+      // A one-item page lets us request any carousel offset without downloading
+      // the reports before it.
+      const pages = await Promise.all(Array.from({ length: reportCount }, (_, offset) =>
+        searchReports({ categoryId, page: startIndex + offset + 1, limit: 1 })
+      ));
+      const reports = pages.flatMap((page) => page.reports);
+      setFeeds((current) => ({
+        ...current,
+        [categoryId]: { reports, total: pages[0]?.pagination.total ?? total },
+      }));
+      loadedFeedWindows.current.add(windowKey);
+    } catch (loadError) {
+      setCategoryErrors((current) => ({
+        ...current,
+        [categoryId]: loadError instanceof Error ? loadError.message : "Could not load this category.",
+      }));
+    } finally {
+      pendingFeedWindows.current.delete(windowKey);
+      setCategoryLoading((current) => ({ ...current, [categoryId]: false }));
+    }
+  }, [cardsPerPage]);
+
   const loadFeed = useCallback(async () => {
     setLoading(true);
     setError("");
+    loadedFeedWindows.current.clear();
     try {
-      const response = await getPublicCategoryFeeds();
-      setCategories(response.categories);
-      setFeeds(response.feeds);
+      let activeCategories: Category[];
+      try {
+        const response = await getCategories();
+        activeCategories = response.categories
+          .filter((category) => category.is_active && (category.report_count ?? 0) > 0);
+      } catch {
+        // Keep the public feed usable if the category endpoint is temporarily unavailable.
+        const recent = await searchReports({ limit: 100 });
+        const derived = new Map<string, Category>();
+        for (const report of recent.reports) {
+          if (!report.category?.id) continue;
+          const existing = derived.get(report.category.id);
+          derived.set(report.category.id, {
+            ...report.category,
+            is_active: true,
+            report_count: (existing?.report_count ?? 0) + 1,
+          });
+        }
+        activeCategories = Array.from(derived.values());
+      }
+      let uncategorizedCategory: Category | null = null;
+      let uncategorizedFeed: CategoryFeed | null = null;
+      try {
+        const result = await searchReports({ categoryId: UNCATEGORIZED_CATEGORY_ID, page: 1, limit: 1 });
+        if (result.pagination.total > 0) {
+          uncategorizedCategory = {
+            id: UNCATEGORIZED_CATEGORY_ID,
+            name: "Uncategorized",
+            description: "Public reports that have not been assigned a category.",
+            is_active: true,
+            report_count: result.pagination.total,
+          };
+          uncategorizedFeed = { reports: result.reports, total: result.pagination.total };
+          loadedFeedWindows.current.add(`${UNCATEGORIZED_CATEGORY_ID}:0:1`);
+        }
+      } catch {
+        // Older API versions may not support uncategorized filtering.
+      }
+
+      setCategories(uncategorizedCategory ? [...activeCategories, uncategorizedCategory] : activeCategories);
+      setFeeds(uncategorizedFeed ? { [UNCATEGORIZED_CATEGORY_ID]: uncategorizedFeed } : {});
       setActiveIndexes({});
+      setCategoryErrors({});
     } catch {
       setError("We couldn’t load the public feed. Please try again.");
     } finally {
@@ -280,6 +357,21 @@ export default function Home() {
     void loadFeed();
   }, [loadFeed]);
 
+  useEffect(() => {
+    if (loading || error || categories.length === 0 || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const categoryId = (entry.target as HTMLElement).dataset.feedCategory;
+        const category = categories.find((item) => item.id === categoryId);
+        if (!categoryId || !category) continue;
+        void loadCategoryFeed(categoryId, activeIndexes[categoryId] ?? 0, category.report_count ?? 0);
+      }
+    }, { rootMargin: "240px 0px" });
+
+    document.querySelectorAll<HTMLElement>("[data-feed-category]").forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, [categories, activeIndexes, loading, error, loadCategoryFeed]);
   function moveReport(categoryId: string, direction: -1 | 1, count: number) {
     setActiveIndexes((current) => {
       const index = current[categoryId] ?? 0;
@@ -347,7 +439,7 @@ export default function Home() {
     }
   }
 
-  const visibleCategories = categories.filter((category) => feeds[category.id]?.reports.length);
+  const visibleCategories = categories.filter((category) => category.report_count === undefined || category.report_count > 0 || (feeds[category.id]?.total ?? 0) > 0);
   const sampleCategories = categories.slice(0, 3);
   const sampleCategoryNames = ["Online information", "Public services", "Community notices"];
   while (sampleCategories.length < 3) {
@@ -528,13 +620,13 @@ export default function Home() {
           const index = activeIndexes[category.id] ?? 0;
           const demoCategoryIndex = sampleCategories.findIndex((item) => item.id === category.id);
           const demoReports = demoMode ? DEMO_REPORTS[demoCategoryIndex] ?? [] : [];
-          const count = demoMode ? demoReports.length : feed.reports.length;
+          const count = demoMode ? demoReports.length : category.report_count ?? feed.total;
           const shownCount = Math.min(cardsPerPage, Math.max(0, count - index));
           const shownDemoReports = demoReports.slice(index, index + cardsPerPage);
-          const shownReports = demoMode ? [] : feed.reports.slice(index, index + cardsPerPage);
+          const shownReports = demoMode ? [] : feed.reports;
 
           return (
-            <section key={category.id} aria-label={`${category.name} reports`} className="mb-6 sm:mb-7">
+            <section key={category.id} data-feed-category={category.id} aria-label={`${category.name} reports`} className="mb-6 sm:mb-7">
               <div className="mb-2 flex items-center justify-between gap-3 px-1 py-1">
                 <div className="min-w-0">
                   <h2 className="truncate text-lg font-semibold tracking-[-0.02em] text-[#243b39]"><Link href={`/categories/${encodeURIComponent(category.id)}`} className="rounded-sm hover:text-[#4e817d] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#4e817d]">{category.name}<span className="sr-only"> — view all reports in this category</span></Link></h2>
@@ -611,8 +703,15 @@ export default function Home() {
                 </article>;
                 })}
                 </div>
+              ) : categoryErrors[category.id] ? (
+                <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
+                  <p>Could not load this category. Please try again.</p>
+                  <button type="button" onClick={() => void loadCategoryFeed(category.id, index, count)} className="mt-2 font-semibold underline underline-offset-2">Try again</button>
+                </div>
+              ) : categoryLoading[category.id] ? (
+                <div aria-label={`Loading ${category.name} reports`} className="h-48 animate-pulse rounded-2xl border border-[#dfeae8] bg-white" />
               ) : null}
-              {!demoMode && feed.total > feed.reports.length && <p className="px-1 pt-3 text-xs text-[#81918d]">Showing the {feed.reports.length} newest reports in this category.</p>}
+              {!demoMode && feed.total > feed.reports.length && <p className="px-1 pt-3 text-xs text-[#81918d]">Showing {feed.reports.length} report{feed.reports.length === 1 ? "" : "s"} from this category.</p>}
             </section>
           );
         })}</div>}

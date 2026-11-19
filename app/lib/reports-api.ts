@@ -292,63 +292,6 @@ export async function deleteReport(id: string): Promise<{ status: string; messag
   });
 }
 
-async function getPublicCategoryFeedsFromLegacyApi(): Promise<{
-  status: string;
-  categories: Category[];
-  feeds: Record<string, { reports: ApiReport[]; total: number }>;
-}> {
-  const { categories: allCategories } = await getCategories();
-  const activeCategories = allCategories.filter((category) => category.is_active);
-  const categoryResults = await Promise.all(activeCategories.map(async (category) => {
-    try {
-      const result = await searchReports({ categoryId: category.id, limit: 8 });
-      return { category, feed: { reports: result.reports, total: result.pagination.total } };
-    } catch {
-      return { category, feed: { reports: [] as ApiReport[], total: 0 } };
-    }
-  }));
-  const categories: Category[] = [];
-  const feeds: Record<string, { reports: ApiReport[]; total: number }> = {};
-  for (const { category, feed } of categoryResults) {
-    if (!feed.reports.length) continue;
-    categories.push({ ...category, report_count: feed.total });
-    feeds[category.id] = feed;
-  }
-
-  try {
-    const uncategorized = await searchReports({ categoryId: "uncategorized", limit: 8 });
-    if (uncategorized.reports.length) {
-      categories.push({
-        id: "uncategorized",
-        name: "Uncategorized",
-        description: "Public reports that have not been assigned a category.",
-        is_active: true,
-        report_count: uncategorized.pagination.total,
-      });
-      feeds.uncategorized = { reports: uncategorized.reports, total: uncategorized.pagination.total };
-    }
-  } catch {
-    // Older API versions may not support uncategorized filtering.
-  }
-
-  return { status: "ok", categories, feeds };
-}
-
-export async function getPublicCategoryFeeds(): Promise<{
-  status: string;
-  categories: Category[];
-  feeds: Record<string, { reports: ApiReport[]; total: number }>;
-}> {
-  try {
-    return await apiFetch("/reports/public-feed", { token: getToken() ?? undefined });
-  } catch (error) {
-    // Preview deployments may point to an API version that predates this endpoint.
-    if (error instanceof Error && /status 404\b/.test(error.message)) {
-      return getPublicCategoryFeedsFromLegacyApi();
-    }
-    throw error;
-  }
-}
 export async function getCategories(): Promise<{
   status: string;
   categories: Category[];
