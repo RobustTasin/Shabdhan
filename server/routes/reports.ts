@@ -323,6 +323,14 @@ router.get("/public-statistics", async (req, res) => {
         conditions.push(`r.created_at ${op} $${values.length}::date ${key === "to_month" ? "+ INTERVAL '1 month'" : ""}`);
       }
     }
+    const division = String(req.query.division || "").trim();
+    const district = String(req.query.district || "").trim();
+    const subDistrict = String(req.query.sub_district || "").trim();
+    const cityCorporation = String(req.query.city_corporation || "").trim();
+    if (division) { values.push(division); conditions.push(`r.location_division = $${values.length}`); }
+    if (district) { values.push(district); conditions.push(`r.location_district = $${values.length}`); }
+    if (subDistrict) { values.push(subDistrict); conditions.push(`r.location_sub_district = $${values.length}`); }
+    if (cityCorporation) { values.push(cityCorporation); conditions.push(`r.location_city_corporation = $${values.length}`); }
     const sortBy = String(req.query.sort_by || "count");
     const direction = String(req.query.direction || "desc").toLowerCase() === "asc" ? "ASC" : "DESC";
     const sortExpression = sortBy === "label" ? "label" : "report_count";
