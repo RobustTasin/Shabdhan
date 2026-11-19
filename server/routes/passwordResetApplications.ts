@@ -17,9 +17,15 @@ router.post("/", async (req, res) => {
   try {
     const user = await pool.query("SELECT 1 FROM users WHERE LOWER(email) = $1 AND is_active = true", [email]);
     if (user.rows.length) {
-      await pool.query("INSERT INTO password_reset_applications (email) VALUES ($1)", [email]);
+      const approvedRequest = await pool.query(
+        "SELECT 1 FROM password_reset_applications WHERE LOWER(email) = $1 AND status = 'APPROVED' AND code_expires_at > NOW() AND attempts < 5 LIMIT 1",
+        [email]
+      );
+      if (!approvedRequest.rows.length) {
+        await pool.query("INSERT INTO password_reset_applications (email) VALUES ($1)", [email]);
+      }
     }
-    return res.status(202).json({ status: "ok", message: "If an active account uses this email, the request has been sent to moderators. They will review it and email you a code manually." });
+    return res.status(202).json({ status: "ok", message: "If an active account uses this email, the request has been sent to moderators. They will review it and email you a code manually. If you already have a recently approved reset code, use it before requesting another." });
   } catch (error) {
     if (typeof error === "object" && error !== null && "code" in error && error.code === "23505") return res.status(409).json({ status: "error", message: "A password reset request is already pending for this email" });
     console.error("Failed to create password reset application:", error);

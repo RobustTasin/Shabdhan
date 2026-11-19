@@ -46,6 +46,13 @@ router.post("/", async (req, res) => {
     if ((await pool.query("SELECT 1 FROM users WHERE LOWER(email) = $1 LIMIT 1", [email])).rows.length) {
       return res.status(409).json({ status: "error", message: "An account already exists for this email. Try logging in or resetting your password." });
     }
+    const approvedApplication = await pool.query(
+      "SELECT 1 FROM membership_applications WHERE LOWER(email) = $1 AND status = 'APPROVED' AND account_created_at IS NULL LIMIT 1",
+      [email]
+    );
+    if (approvedApplication.rows.length) {
+      return res.status(409).json({ status: "error", message: "This email already has an approved application. Use the approval code to create your account, or contact a moderator for a replacement code." });
+    }
     const result = await pool.query(
       `INSERT INTO membership_applications (email, social_platform, social_url)
        VALUES ($1, $2, $3) RETURNING id, application_number::text`,
